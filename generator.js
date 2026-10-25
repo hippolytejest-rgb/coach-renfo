@@ -2,6 +2,7 @@
    buildSession({exercices, duree, avecEchauffement, avecRetour}, deps)
    - exercices : identifiants de exercises.json (jamais retirés de la séance)
    - duree : minutes visées (±1 min, mesuré avec expand())
+   - ordreBlocs (facultatif) : noms de blocs dans l'ordre voulu (« Mobilité », « Échauffement »…) ; les autres blocs suivent.
    - deps (facultatif) : {expand, bibliotheque} ; par défaut les globales expand() et EXERCISES de la page. */
 
 const GEN = {
@@ -121,6 +122,10 @@ function buildSession(opts, deps) {
   }
 
   const programme = best.prog;
+  if (opts.ordreBlocs) {
+    const rang = b => { const i = opts.ordreBlocs.indexOf(b.name); return i < 0 ? opts.ordreBlocs.length : i };
+    programme.blocks = programme.blocks.map((b, i) => ({b, i})).sort((x, y) => rang(x.b) - rang(y.b) || x.i - y.i).map(x => x.b);
+  }
   programme.name = `Séance ${min(best.secs)} min`;
   programme.sub = parts.circuit.length
     ? `${best.p.rounds} tour${best.p.rounds > 1 ? "s" : ""} · ${best.p.work} s de travail · ${best.p.rest} s de repos`
@@ -137,6 +142,9 @@ GEN.ZONES = {
   "pied-cheville": ["pied-cheville"],
   "tronc": ["tronc"],
   "haut-corps": ["dos", "épaules", "bras"],
+  // zones à un seul muscle, utilisées par les préréglages (absentes de ZONE_LABELS : pas proposées au choix)
+  "fessiers": ["fessiers"], "hanches": ["hanches"], "quadriceps": ["quadriceps"], "mollets": ["mollets"],
+  "ischio-jambiers": ["ischio-jambiers"], "dos": ["dos"], "épaules": ["épaules"], "cou": ["cou"],
   "corps-entier": ["fessiers", "ischio-jambiers", "quadriceps", "mollets", "pied-cheville", "hanches", "tronc", "dos", "épaules", "bras"]
 };
 GEN.ZONE_LABELS = {"jambes": "Jambes", "fessiers-hanches": "Fessiers et hanches", "pied-cheville": "Pied et cheville",
@@ -157,12 +165,17 @@ const genJitter = (seed, id) => genRand((seed ^ genHash(id)) >>> 0)();
 
 function genZonesOf(e, zones) {return zones.filter(z => (e.muscles || []).some(m => GEN.ZONES[z].includes(m)))}
 
-// Exercices admissibles : zones, matériel (null = pas de limite), impact.
+// Sports d'un exercice (champ sports de exercises.json) ; « général » à défaut. Un exercice convient à un sport s'il le cite ou s'il est « général ».
+const genSports = e => e.sports && e.sports.length ? e.sports : ["général"];
+const genConvientSport = (e, sport) => !sport || genSports(e).some(x => x === sport || x === "général");
+
+// Exercices admissibles : types (o.types, sinon TYPES_AUTO), sport, zones, matériel (null = pas de limite), impact.
 function genPool(lib, o) {
   const dispo = o.materiel ? new Set([...GEN.TOUJOURS, ...o.materiel]) : null;
   return Object.keys(lib).filter(id => {
     const e = lib[id];
-    return GEN.TYPES_AUTO.includes(e.type)
+    return (o.types || GEN.TYPES_AUTO).includes(e.type)
+      && genConvientSport(e, o.sport)
       && (!dispo || (e.equipment || ["aucun"]).every(q => dispo.has(q)))
       && (!o.sansImpact || (e.impact || "aucun") === "aucun")
       && genZonesOf(e, o.zones).length > 0;
@@ -173,17 +186,31 @@ function genPool(lib, o) {
 // exercices récents (evites) en dernier recours.
 function genPick(lib, pool, o, n) {
   const evites = new Set(o.evites || []), restants = pool.slice(), res = [], circ = [];
-  const couvert = new Set(), parType = {};
+  const couvert = new Set(), parType = {}, maxPT = o.maxParType || GEN.MAX_PAR_TYPE;
   const prim = id => (lib[id].muscles || [])[0];
+  const prendre = id => {
+    res.push(id); restants.splice(restants.indexOf(id), 1);
+    const e = lib[id]; parType[e.type] = (parType[e.type] || 0) + 1;
+    if (!maxPT[e.type]) circ.push(id);
+    genZonesOf(e, o.zones).forEach(z => couvert.add(z));
+  };
+  // Exigences (o.exiger : [{test}]) : on place d'abord un exercice qui les satisfait, même si n est petit
+  (o.exiger || []).forEach(x => {
+    if (res.some(id => x.test(lib[id]))) return;
+    const cand = restants.filter(id => x.test(lib[id]))
+      .sort((a, b) => (evites.has(a) - evites.has(b)) || genJitter(o.graine, b) - genJitter(o.graine, a));
+    if (cand.length) prendre(cand[0]);
+  });
   while (res.length < n && restants.length) {
     // alternance et suites de types calculées sur le circuit seul : mobilités et étirements ont leurs propres blocs
     const pid = circ[circ.length - 1], prev = pid && lib[pid], prev2 = circ.length > 1 && lib[circ[circ.length - 2]];
     let best = null;
     restants.forEach(id => {
-      const e = lib[id], zs = genZonesOf(e, o.zones), enCircuit = !GEN.MAX_PAR_TYPE[e.type];
-      if (!enCircuit && (parType[e.type] || 0) >= GEN.MAX_PAR_TYPE[e.type]) return;
+      const e = lib[id], zs = genZonesOf(e, o.zones), enCircuit = !maxPT[e.type];
+      if (!enCircuit && (parType[e.type] || 0) >= maxPT[e.type]) return;
       let sc = genJitter(o.graine, id) * 1.5;
       if (!evites.has(id)) sc += 2;
+      if (o.sport && genSports(e).includes(o.sport)) sc += 2;
       if (zs.some(z => !couvert.has(z))) sc += 4;
       if (enCircuit && prev) {
         if (prim(pid) !== prim(id)) sc += 3;
@@ -193,10 +220,7 @@ function genPick(lib, pool, o, n) {
       if (!best || sc > best.sc) best = {id, sc};
     });
     if (!best) break;
-    res.push(best.id); restants.splice(restants.indexOf(best.id), 1);
-    const e = lib[best.id]; parType[e.type] = (parType[e.type] || 0) + 1;
-    if (!GEN.MAX_PAR_TYPE[e.type]) circ.push(best.id);
-    genZonesOf(e, o.zones).forEach(z => couvert.add(z));
+    prendre(best.id);
   }
   return res;
 }
@@ -204,13 +228,17 @@ function genPick(lib, pool, o, n) {
 const GEN_ZONE_NOMS = z => (GEN.ZONE_LABELS[z] || z).toLowerCase();
 
 /* buildAuto({zones, duree, sansImpact, materiel, evites, graine, avecEchauffement, avecRetour}, deps)
-   → {programme, duree, avertissements, proposition, parametres, ajoutes, exercices} ou {erreur}. */
+   → {programme, duree, avertissements, proposition, parametres, ajoutes, exercices} ou {erreur}.
+   Options des préréglages (voir buildPreset) : types (types admis), maxParType, sport, exiger [{label, test}],
+   tri (ids, bibliotheque → ids), ordreBlocs, estim {fixe, par} (secondes : durée fixe + durée moyenne par exercice).
+   Une erreur de durée porte aussi maxMin : la durée maximale que la bibliothèque permet. */
 function buildAuto(opts, deps) {
   deps = deps || {};
   const lib = deps.bibliotheque || (typeof EXERCISES !== "undefined" ? EXERCISES : null);
   const zones = (opts.zones || []).filter(z => GEN.ZONES[z]);
   if (!zones.length) return {erreur: "Choisis au moins une zone."};
-  const o = {zones, sansImpact: !!opts.sansImpact, materiel: opts.materiel || null, evites: opts.evites || [], graine: opts.graine || 1};
+  const o = {zones, sansImpact: !!opts.sansImpact, materiel: opts.materiel || null, evites: opts.evites || [], graine: opts.graine || 1,
+    types: opts.types, maxParType: opts.maxParType, sport: opts.sport, exiger: opts.exiger};
   const pool = genPool(lib, o);
   const sansZone = zones.filter(z => z !== "corps-entier" && !pool.some(id => genZonesOf(lib[id], [z]).length));
   const conseil = " Élargis les zones, décoche « sans impact » ou coche du matériel dans ton profil.";
@@ -219,12 +247,15 @@ function buildAuto(opts, deps) {
 
   const cible = Math.round((opts.duree || 0) * 60), tol = GEN.TOL;
   const essai = n => {
-    const ex = genPick(lib, pool, o, n);
-    const r = buildSession({exercices: ex, duree: opts.duree, avecEchauffement: opts.avecEchauffement, avecRetour: opts.avecRetour, ordreLibre: true}, deps);
+    let ex = genPick(lib, pool, o, n);
+    if (opts.tri) ex = opts.tri(ex, lib);
+    const r = buildSession({exercices: ex, duree: opts.duree, avecEchauffement: opts.avecEchauffement, avecRetour: opts.avecRetour,
+      ordreLibre: true, ordreBlocs: opts.ordreBlocs}, deps);
     return {r, ex};
   };
   // Nombre d'exercices : estimation, puis ajustement d'après la durée mesurée
-  let n = Math.max(GEN.MIN_EXOS, Math.min(pool.length, Math.round((cible - 180) / 130))), vus = new Set(), cur = null;
+  const estim = opts.estim || {fixe: 180, par: 130};
+  let n = Math.max(GEN.MIN_EXOS, Math.min(pool.length, Math.round((cible - estim.fixe) / estim.par))), vus = new Set(), cur = null;
   for (;;) {
     cur = essai(n); vus.add(n);
     const trop = cur.r.duree - cible;
@@ -237,7 +268,8 @@ function buildAuto(opts, deps) {
     // Même avec tous les exercices disponibles la durée n'est pas atteignable : on le dit plutôt que livrer une séance incomplète
     const maxi = essai(pool.length);
     return {erreur: `Avec ces contraintes, la bibliothèque ne permet d'aller que jusqu'à environ ${Math.round(maxi.r.duree / 60)} min (${maxi.ex.length} exercices). ` +
-      `Réduis la durée à ${Math.round(maxi.r.duree / 60)} min ou moins, ou élargis les zones, le matériel ou l'impact.`};
+      `Réduis la durée à ${Math.round(maxi.r.duree / 60)} min ou moins, ou élargis les zones, le matériel ou l'impact.`,
+      maxMin: Math.round(maxi.r.duree / 60), nbMax: maxi.ex.length};
   }
   return {...cur.r, exercices: cur.ex};
 }
@@ -246,7 +278,11 @@ function buildAuto(opts, deps) {
 function genEquivalents(lib, id, o) {
   const e = lib[id], dispo = o.materiel ? new Set([...GEN.TOUJOURS, ...o.materiel]) : null, deja = new Set(o.courants || []);
   const evites = new Set(o.evites || []);
+  // une exigence (ex. « au moins un exercice d'équilibre ») que `id` est seul à satisfaire doit rester satisfaite
+  const exigees = (o.exiger || []).filter(x => x.test(e) && !(o.courants || []).some(c => c !== id && x.test(lib[c])));
   return Object.keys(lib).filter(k => !deja.has(k) && lib[k].type === e.type
+      && genConvientSport(lib[k], o.sport) && (!o.zones || genZonesOf(lib[k], o.zones).length > 0)
+      && exigees.every(x => x.test(lib[k]))
       && (!dispo || (lib[k].equipment || ["aucun"]).every(q => dispo.has(q)))
       && (!o.sansImpact || (lib[k].impact || "aucun") === "aucun"))
     .map(k => ({k, commun: (lib[k].muscles || []).filter(m => (e.muscles || []).includes(m)).length}))
@@ -255,4 +291,78 @@ function genEquivalents(lib, id, o) {
     .map(x => x.k);
 }
 
-if (typeof module !== "undefined") module.exports = {buildSession, buildAuto, genEquivalents, GEN};
+/* ---------- Préréglages (Quotidien, Échauffement, Récupération) ---------- */
+
+// Du plus doux au plus dynamique : mobilité avant échauffement, sans impact avant impact, au sol avant debout.
+GEN.douceur = e => (e.type === "échauffement" ? 10 : 0) + ({aucun: 0, faible: 1, "élevé": 2}[e.impact || "aucun"]) * 3
+  + ((e.tags || []).includes("cardio") ? 2 : 0) + (e.position === "debout" ? 1 : 0);
+GEN.triDouceur = (ids, lib) => ids.map((id, i) => ({id, i})).sort((a, b) => GEN.douceur(lib[a.id]) - GEN.douceur(lib[b.id]) || a.i - b.i).map(x => x.id);
+
+GEN.EQUILIBRE = {label: "un exercice d'équilibre", test: e => e.type === "équilibre" || (e.type !== "mobilité" && (e.tags || []).includes("équilibre"))};
+
+/* Un préréglage fixe les zones (ou les laisse choisir : parZone), les types d'exercices, le sport et l'ordre.
+   options : cases proposées à l'étape durée (echauffement / retour = ajoutés par buildSession). */
+const GEN_QUOTIDIEN = [10, 20, 30, 45], GEN_ECHAUFFEMENT = [5, 10, 15], GEN_RECUP = [5, 10, 15, 20];
+const GEN_ECH = {types: ["mobilité", "échauffement"], tri: "douceur", ordreBlocs: ["Mobilité", "Échauffement"], maxParType: {}, estim: {fixe: 30, par: 55}, durees: GEN_ECHAUFFEMENT, defaut: 10};
+const GEN_REC = {types: ["étirement", "retour au calme"], maxParType: {}, estim: {fixe: 30, par: 55}, durees: GEN_RECUP, defaut: 10};
+GEN.PRESETS = {
+  "quotidien-quick-gym": {titre: "Quick gym", zones: ["corps-entier"], durees: GEN_QUOTIDIEN, defaut: 20, autour: "seuil"},
+  "quotidien-par-zone": {titre: "Quotidien par zone", parZone: true, durees: GEN_QUOTIDIEN, defaut: 20, options: true},
+  "quotidien-renfo-trail": {titre: "Renfo trail", sport: "trail", exiger: [GEN.EQUILIBRE], durees: GEN_QUOTIDIEN, defaut: 20, options: true,
+    zones: ["pied-cheville", "mollets", "fessiers", "hanches", "quadriceps", "tronc"]},
+  "echauffement-par-zone": {...GEN_ECH, titre: "Échauffement par zone", parZone: true},
+  "echauffement-trail": {...GEN_ECH, titre: "Échauffement trail", sport: "trail", zones: ["pied-cheville", "hanches", "fessiers"]},
+  "echauffement-cyclisme": {...GEN_ECH, titre: "Échauffement cyclisme", sport: "cyclisme", zones: ["hanches", "dos", "épaules"]},
+  "recuperation-par-zone": {...GEN_REC, titre: "Récupération par zone", parZone: true},
+  "recuperation-trail": {...GEN_REC, titre: "Récupération trail", sport: "trail", zones: ["mollets", "quadriceps", "ischio-jambiers", "fessiers", "pied-cheville"]},
+  "recuperation-cyclisme": {...GEN_REC, titre: "Récupération cyclisme", sport: "cyclisme", zones: ["hanches", "quadriceps", "dos", "épaules", "cou"]}
+};
+GEN.SEUIL_AUTOUR = 20; // Quick gym : échauffement et retour au calme courts au-delà de 20 min
+
+/* buildPreset(id, {zones, duree, sansImpact, materiel, evites, graine, avecEchauffement, avecRetour, exercices}, deps)
+   Réutilise buildAuto (choix des exercices) et buildSession (durée). `exercices` : liste imposée (remplacement d'un exercice).
+   Même résultat que buildAuto ; une bibliothèque insuffisante donne {erreur, manque: [...]} qui dit ce qui manque. */
+function buildPreset(id, opts, deps) {
+  deps = deps || {};
+  const P = GEN.PRESETS[id], lib = deps.bibliotheque || (typeof EXERCISES !== "undefined" ? EXERCISES : null);
+  if (!P) return {erreur: `Préréglage inconnu : « ${id} ».`};
+  const zones = P.zones || (opts.zones || []).filter(z => GEN.ZONES[z]);
+  if (!zones.length) return {erreur: "Choisis au moins une zone."};
+  const types = P.types || GEN.TYPES_AUTO, typesTxt = types.join(" / ");
+
+  // Ce que la bibliothèque ne contient pas du tout (indépendamment du matériel et de l'impact choisis)
+  const manque = [];
+  zones.filter(z => z !== "corps-entier" && !genPool(lib, {zones: [z], types, sport: P.sport}).length)
+    .forEach(z => manque.push(`${GEN_ZONE_NOMS(z)} (${typesTxt})`));
+  const horsContraintes = genPool(lib, {zones, types, sport: P.sport});
+  (P.exiger || []).filter(x => !horsContraintes.some(k => x.test(lib[k]))).forEach(x => manque.push(x.label));
+  if (manque.length) return {erreur: `Il manque des exercices dans la bibliothèque pour « ${P.titre} » : ${manque.join(", ")}.`, manque};
+
+  const seuil = P.autour === "seuil" ? opts.duree > GEN.SEUIL_AUTOUR : null;
+  const c = {
+    duree: opts.duree, sansImpact: opts.sansImpact, materiel: opts.materiel, evites: opts.evites, graine: opts.graine, zones,
+    avecEchauffement: seuil !== null ? seuil : P.options ? opts.avecEchauffement !== false : false,
+    avecRetour: seuil !== null ? seuil : P.options ? opts.avecRetour !== false : false,
+    types: P.types, maxParType: P.maxParType, sport: P.sport, exiger: P.exiger, estim: P.estim, ordreBlocs: P.ordreBlocs,
+    tri: P.tri === "douceur" ? GEN.triDouceur : null
+  };
+  let r;
+  if (opts.exercices) {
+    const ex = c.tri ? c.tri(opts.exercices, lib) : opts.exercices;
+    r = {...buildSession({exercices: ex, duree: c.duree, avecEchauffement: c.avecEchauffement, avecRetour: c.avecRetour, ordreLibre: true, ordreBlocs: c.ordreBlocs}, deps), exercices: ex};
+  } else {
+    r = buildAuto(c, deps);
+  }
+  if (r.erreur) {
+    if (r.maxMin !== undefined) {
+      r.manque = [`environ ${Math.max(opts.duree - r.maxMin, 1)} min d'exercices (${typesTxt})`];
+      r.erreur = `La bibliothèque ne permet pour « ${P.titre} » que ${r.maxMin} min au maximum (${r.nbMax} exercices) : il manque ${r.manque[0]} pour ${opts.duree} min. ` +
+        `Choisis ${r.maxMin} min ou moins, ou ajoute des exercices à la bibliothèque.`;
+    }
+    return r;
+  }
+  if (r.programme) r.programme.name = `${P.titre} ${Math.round(r.duree / 60)} min`;
+  return r;
+}
+
+if (typeof module !== "undefined") module.exports = {buildSession, buildAuto, buildPreset, genEquivalents, GEN};

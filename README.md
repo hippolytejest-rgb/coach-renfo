@@ -16,4 +16,6 @@ Puis ouvrir http://localhost:8000 dans Chrome ou Safari.
 
 - `index.html` : interface, programmes, moteur de séance, voix et bips
 - `figure.js` : silhouettes animées (poses clés + cinématique inverse)
+- `generator.js` : génération de séances (`buildSession`, `buildAuto`, `buildPreset` et les préréglages Quotidien / Échauffement / Récupération)
+- `exercises.json` : bibliothèque ; le champ `sports` (trail, cyclisme, général) oriente les préréglages trail et cyclisme
 - `img/cards/<id>.svg` : visuels des cartes de l'onglet Activités (provisoires ; un dégradé s'affiche si le fichier manque)

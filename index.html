@@ -157,10 +157,18 @@ body:has(#run:not([hidden])) .update{display:none} /* jamais par-dessus la séan
 .hist .hdel.warn{border-color:var(--danger);color:var(--danger)}
 .hist li small{color:var(--muted);display:block}
 .acthead{display:flex;align-items:center;gap:12px}
-.acthead h2,.actsoon h2{font-family:var(--display);font-size:1.6rem;margin:0}
-.acthead h2:focus,.actsoon h2:focus{outline:none}
+.acthead h2{font-family:var(--display);font-size:1.6rem;margin:0}
+.acthead h2:focus{outline:none}
 .sechead{font-family:var(--display);font-size:1.4rem;margin:0}
-.actsoon p{margin:0;color:var(--muted);font-weight:700}
+.actflow{max-width:640px}
+.actflow .cats button[aria-pressed="false"]:hover{border-color:var(--work)}
+.actflow .genopts{margin:0}
+.actflow .start{margin-top:0}
+.actflow .start:disabled{opacity:.4}
+.flowlink{border:0;background:transparent;padding:4px 2px;color:var(--muted);font:inherit;font-size:.86rem;text-decoration:underline;text-underline-offset:3px}
+.flowlink:disabled{text-decoration:none;opacity:.6}
+.flowlink:focus-visible,.actflow .cats button:focus-visible{outline:3px solid var(--work);outline-offset:2px}
+.genprev:focus{outline:none}
 .acard{display:flex;flex-direction:column;width:100%;padding:0;overflow:hidden;text-align:left;font:inherit;color:var(--ink);background:var(--surface);border:1.5px solid var(--line);border-radius:14px}
 .acard:focus-visible,.carbtn:focus-visible,.cardot:focus-visible,.acthead .btn:focus-visible{outline:3px solid var(--work);outline-offset:2px}
 .apic{display:block;aspect-ratio:5/3;background:var(--prep-bg)}
@@ -284,7 +292,7 @@ body:has(#run:not([hidden])) .update{display:none} /* jamais par-dessus la séan
     <button class="btn" type="submit">Créer</button>
   </form>
   <p id="pmsg" class="err" role="status"></p>
-  <footer class="foot">Version 1.13.0 · profils enregistrés sur cet appareil</footer>
+  <footer class="foot">Version 1.14.0 · profils enregistrés sur cet appareil</footer>
 </main>
 
 <div class="loaderr" id="loadErr" role="alert" hidden><p id="loadErrMsg"></p><button class="btn" id="loadRetry">Réessayer</button></div>
@@ -335,11 +343,7 @@ body:has(#run:not([hidden])) .update{display:none} /* jamais par-dessus la séan
       </div>
     </div>
     <div class="agrid" id="actSection" hidden></div>
-    <section class="panel actsoon" id="actSoon" aria-labelledby="soonTitle" hidden>
-      <h2 id="soonTitle" tabindex="-1"></h2>
-      <p>Bientôt disponible</p>
-      <div class="row"><button class="btn" id="soonBack" type="button">Retour</button></div>
-    </section>
+    <section class="panel actflow" id="actFlow" aria-labelledby="actTitle" hidden></section>
     <div class="panel" id="viewBiblio" hidden>
     <section class="panel" aria-labelledby="secMine">
     <h2 class="sechead" id="secMine">Mes séances</h2>
@@ -461,7 +465,7 @@ body:has(#run:not([hidden])) .update{display:none} /* jamais par-dessus la séan
     </section>
   </div>
   <!-- À mettre à jour à chaque publication : ce pied de page, figure.js?v= plus bas, et VERSION dans sw.js -->
-  <footer class="foot">Version 1.13.0 · publiée le <time datetime="2026-10-25T19:26">25/10/2026 à 19:26</time></footer>
+  <footer class="foot">Version 1.14.0 · publiée le <time datetime="2026-10-25T19:35">25/10/2026 à 19:35</time></footer>
 </main>
 
 <section id="run" class="run" data-phase="prep" hidden>
@@ -511,8 +515,8 @@ body:has(#run:not([hidden])) .update{display:none} /* jamais par-dessus la séan
   <button class="start" id="againBtn" style="max-width:320px">Retour</button>
 </section>
 
-<script src="figure.js?v=1.13.0"></script>
-<script src="generator.js?v=1.13.0"></script>
+<script src="figure.js?v=1.14.0"></script>
+<script src="generator.js?v=1.14.0"></script>
 <script>
 /* ---------- Exercices (exercises.json) ---------- */
 let EXERCISES=null;
@@ -1226,7 +1230,7 @@ addEventListener("online",sync);
 showSyncUi(); sync();
 
 /* ---------- Activités : rubriques et pile d'écrans ---------- */
-/* Niveau 1 : carrousel de rubriques. Niveau 2 : page de la rubrique. Niveau 3 : « Bientôt disponible ».
+/* Niveau 1 : carrousel de rubriques. Niveau 2 : page de la rubrique. Niveau 3 : parcours d'un préréglage (zones → durée → aperçu).
    La pile est dans history.state ({act:[…]}) : le retour du navigateur et le geste de retour iPhone remontent d'un niveau. */
 const ACT_SECTIONS=[
   {id:"quotidien",title:"Quotidien",sub:"Les séances de tous les jours",items:[["quick-gym","Quick gym","Court et efficace"],["par-zone","Par zone","Cible un groupe musculaire"],["renfo-trail","Renfo trail","Pour courir plus loin"]]},
@@ -1256,29 +1260,141 @@ function actReset(){
 function renderAct(stack,focus){
   const prev=actStack, sec=ACT_SECTIONS.find(x=>x.id===stack[0]);
   const item=sec&&sec.items&&sec.items.find(i=>i[0]===stack[1]);
-  stack=sec?(item?[sec.id,item[0]]:[sec.id]):[]; actStack=stack;
-  const biblio=!!sec&&sec.id==="biblio", list=!!sec&&!!sec.items&&!item;
-  $("actHome").hidden=!!sec; $("actSection").hidden=!list; $("actSoon").hidden=!item; $("viewBiblio").hidden=!biblio;
-  $("actHead").hidden=!sec||!!item;
-  if(sec) $("actTitle").textContent=sec.title;
+  const step=item&&["zones","duree","apercu"].includes(stack[2])?stack[2]:null;
+  stack=sec?(step?[sec.id,item[0],step]:[sec.id]):[]; actStack=stack;
+  const biblio=!!sec&&sec.id==="biblio", list=!!sec&&!!sec.items&&!step;
+  $("actHome").hidden=!!sec; $("actSection").hidden=!list; $("actFlow").hidden=!step; $("viewBiblio").hidden=!biblio;
+  $("actHead").hidden=!sec;
+  if(sec) $("actTitle").textContent=step?sec.title+" · "+item[1]:sec.title;
   if(list){
     const g=$("actSection"); g.innerHTML="";
-    sec.items.forEach(([k,title,sub])=>g.appendChild(makeCard({id:sec.id+"-"+k,title,sub,onClick:()=>actGo([sec.id,k])})));
+    sec.items.forEach(([k,title,sub])=>g.appendChild(makeCard({id:sec.id+"-"+k,title,sub,onClick:()=>{
+      flow=null; actGo([sec.id,k,GEN.PRESETS[sec.id+"-"+k].parZone?"zones":"duree"]);
+    }})));
   }
-  if(item){$("soonTitle").textContent=sec.title+" · "+item[1]}
+  if(step) renderFlow(sec.id+"-"+item[0],step); // l'état du parcours est gardé : retour du navigateur et relance retrouvent les choix
   if(biblio) renderLib(); else closeLibDemo();
   if(!sec) carSync();
   if(!focus) return;
   window.scrollTo(0,0);
-  const el=item?$("soonTitle"):sec?$("actTitle"):document.querySelector(`#carTrack [data-card="${prev[0]}"]`);
+  const el=sec?$("actTitle"):document.querySelector(`#carTrack [data-card="${prev[0]}"]`);
   if(el) el.focus({preventScroll:true});
 }
-$("actBack").onclick=$("soonBack").onclick=()=>history.back();
+$("actBack").onclick=()=>history.back();
 addEventListener("popstate",e=>{
   const s=(e.state&&e.state.act)||[];
   if(s.length&&$("tab-activites").hidden&&!$("setup").hidden) showTab("activites");
   renderAct(s,true);
 });
+
+/* ---------- Parcours d'un préréglage : [zones] → durée → aperçu → lancer ---------- */
+let flow=null; // état du parcours en cours : {id, zones, duree, sansImpact, equip, warm, cool, seed, over, cur}
+const newSeed=()=>1+Math.floor(Math.random()*1e6);
+function flowState(id){
+  if(!flow||flow.id!==id) flow={id,zones:new Set(["corps-entier"]),duree:GEN.PRESETS[id].defaut,sansImpact:false,equip:true,warm:true,cool:true,seed:newSeed(),over:null,cur:null};
+  return flow;
+}
+function flowMateriel(){return flow.equip&&profile?equipData().have.map(x=>x.toLowerCase()):null}
+function flowCompute(){
+  const f=flow;
+  if(!(f.duree>0)) return {err:"Indique une durée en minutes."};
+  const o={duree:f.duree,zones:[...f.zones],sansImpact:f.sansImpact,materiel:flowMateriel(),evites:recentIds(2),graine:f.seed,avecEchauffement:f.warm,avecRetour:f.cool};
+  if(f.over) o.exercices=f.over;
+  const r=buildPreset(f.id,o);
+  return r.erreur?{err:r.erreur}:{r};
+}
+function flowReplace(id){
+  const f=flow, P=GEN.PRESETS[f.id], ids=[...f.cur.exercices];
+  const cand=genEquivalents(EXERCISES,id,{materiel:flowMateriel(),sansImpact:f.sansImpact,courants:ids,evites:recentIds(2),graine:newSeed(),
+    sport:P.sport,zones:P.zones||[...f.zones],exiger:P.exiger});
+  if(!cand.length){refreshFlowPrev(); $("flowMsg").className="err"; $("flowMsg").textContent="Aucun exercice équivalent disponible avec ces contraintes."; return}
+  ids[ids.indexOf(id)]=cand[0]; f.over=ids; refreshFlowPrev();
+}
+function flowRun(){
+  const r=flow&&flow.cur; if(!r||!r.programme||!EXERCISES) return;
+  const prev=selectedId; tempProg={...r.programme,id:"gen"}; // rien n'est ajouté à « Mes séances »
+  selectedId="gen"; start(); selectedId=prev;
+}
+function flowSave(){
+  const r=flow&&flow.cur; if(!r||!r.programme||!profile) return;
+  const ok=setPdata({sessions:[...(pdata().sessions||[]),{...r.programme,id:"s"+Date.now().toString(36)}]});
+  renderSetup();
+  const m=$("flowMsg"); m.className=ok?"ok":"err";
+  m.textContent=ok?"Séance enregistrée dans « Mes séances ».":"Ce navigateur bloque l'enregistrement.";
+  if(ok) $("flowSave").disabled=true;
+}
+function flowEl(tag,cls,text){const e=document.createElement(tag); if(cls) e.className=cls; if(text!==undefined) e.textContent=text; return e}
+function flowCheck(label,checked,onchange){
+  const l=flowEl("label"), c=document.createElement("input"); c.type="checkbox"; c.checked=checked; c.onchange=()=>onchange(c.checked);
+  l.append(c,document.createTextNode(" "+label)); return l;
+}
+function refreshFlowPrev(){
+  const f=flow, pv=$("flowPrev"); pv.innerHTML=""; f.cur=null; $("flowMsg").textContent="";
+  $("flowRun").disabled=$("flowSave").disabled=true;
+  const {r,err}=flowCompute();
+  if(err){
+    pv.className="genprev"; const p=flowEl("p","err",err); p.style.margin="0 0 8px"; pv.appendChild(p);
+    const t=flowEl("p","tips","Retour pour changer la durée, les zones ou les contraintes."); t.style.margin="0 0 8px"; pv.appendChild(t);
+    return;
+  }
+  f.cur=r;
+  renderPreviewBody(pv,r,{vise:f.duree,onReplace:flowReplace,onViser:m=>{f.duree=m; f.over=null; refreshFlowPrev()}});
+  $("flowRun").disabled=!r.programme; $("flowSave").disabled=!r.programme||!profile;
+}
+function renderFlow(id,step){
+  const root=$("actFlow"), P=GEN.PRESETS[id], f=flowState(id); root.innerHTML="";
+  if(!EXERCISES){root.appendChild(flowEl("p","err","Bibliothèque indisponible : exercises.json n'a pas pu être chargé.")); return}
+  if(step==="zones"&&!P.parZone) step="duree";
+  if(step==="zones"){
+    const fs=flowEl("fieldset","genzones"), lg=flowEl("legend","eyebrow","Zones à travailler"), box=flowEl("div","genopts");
+    fs.append(lg,box);
+    const next=flowEl("button","start","Suivant"); next.type="button";
+    next.disabled=!f.zones.size;
+    Object.keys(GEN.ZONE_LABELS).forEach(k=>box.appendChild(flowCheck(GEN.ZONE_LABELS[k],f.zones.has(k),on=>{on?f.zones.add(k):f.zones.delete(k); f.over=null; next.disabled=!f.zones.size})));
+    next.onclick=()=>actGo([actStack[0],actStack[1],"duree"]);
+    root.append(fs,next); return;
+  }
+  if(step==="duree"){
+    const g=flowEl("div"); g.append(flowEl("p","eyebrow","Durée"));
+    const pills=flowEl("div","cats"); pills.setAttribute("role","group"); pills.setAttribute("aria-label","Durée en minutes");
+    const inp=document.createElement("input"); inp.type="number"; inp.id="flowDur"; inp.min=1; inp.max=240; inp.step=1; inp.inputMode="numeric"; inp.value=f.duree||"";
+    const sync=()=>[...pills.children].forEach(b=>b.setAttribute("aria-pressed",String(+b.dataset.d===f.duree)));
+    P.durees.forEach(d=>{
+      const b=flowEl("button",null,d+" min"); b.type="button"; b.dataset.d=d;
+      b.onclick=()=>{f.duree=d; f.over=null; inp.value=d; sync()}; pills.appendChild(b);
+    });
+    inp.oninput=()=>{const v=parseInt(inp.value,10); f.duree=v>0?Math.min(v,240):0; f.over=null; sync()};
+    const lab=flowEl("label"); lab.append(document.createTextNode("Autre durée (min) "),inp);
+    const free=flowEl("div","genopts"); free.style.marginTop="10px"; free.appendChild(lab);
+    g.append(pills,free); sync();
+    const opts=flowEl("div","genopts");
+    opts.appendChild(flowCheck("Sans impact",f.sansImpact,on=>{f.sansImpact=on; f.over=null}));
+    opts.appendChild(flowCheck("Matériel limité à mon profil",f.equip,on=>{f.equip=on; f.over=null}));
+    if(P.options){
+      opts.appendChild(flowCheck("Échauffement",f.warm,on=>{f.warm=on; f.over=null}));
+      opts.appendChild(flowCheck("Retour au calme",f.cool,on=>{f.cool=on; f.over=null}));
+    }
+    const have=profile?equipData().have:[];
+    const info=flowEl("p","tips","Toujours disponible : tapis, mur, chaise, step. Coché dans le profil : "+(have.length?have.join(", "):"rien d'autre")+"."); info.style.margin="0";
+    root.append(g,opts,info);
+    if(P.autour==="seuil") root.appendChild(flowEl("p","tips","Au-delà de "+GEN.SEUIL_AUTOUR+" min, un échauffement court et un retour au calme court sont ajoutés."));
+    const next=flowEl("button","start","Voir l'aperçu"); next.type="button";
+    next.onclick=()=>{if(!(f.duree>0)){inp.focus(); return} actGo([actStack[0],actStack[1],"apercu"])};
+    root.appendChild(next); return;
+  }
+  // aperçu
+  const pv=flowEl("div","genprev"); pv.id="flowPrev"; pv.setAttribute("aria-live","polite"); pv.tabIndex=-1;
+  const row=flowEl("div","row");
+  const another=flowEl("button","btn","Autre proposition"); another.type="button";
+  another.onclick=()=>{f.seed=newSeed(); f.over=null; refreshFlowPrev()};
+  row.appendChild(another);
+  const run=flowEl("button","start","Lancer"); run.id="flowRun"; run.type="button"; run.onclick=flowRun;
+  const save=flowEl("button","flowlink","Enregistrer dans Mes séances"); save.id="flowSave"; save.type="button"; save.onclick=flowSave;
+  const msg=flowEl("p","ok"); msg.id="flowMsg"; msg.setAttribute("role","status");
+  const lw=flowEl("div","row"); lw.append(save);
+  root.append(pv,row,run,lw,msg);
+  refreshFlowPrev();
+}
 
 /* Carrousel */
 const carReduce=matchMedia("(prefers-reduced-motion: reduce)");
@@ -1474,22 +1590,18 @@ function replaceAuto(id){
   if(!cand.length){renderGenPreview(true); const m=$("genMsg"); m.className="err"; m.textContent="Aucun exercice équivalent disponible avec ces contraintes."; return}
   ids[ids.indexOf(id)]=cand[0]; autoOver=ids; renderGenPreview();
 }
-function renderGenPreview(keep){
-  const pv=$("genPrev"); pv.innerHTML=""; if(keep!==true) $("genMsg").textContent="";
-  genCur=null; $("genRun").disabled=$("genSave").disabled=true;
-  const {r,msg,err}=genCompute();
-  if(msg||err){pv.className="genprev"+(err?"":" tips"); const p=document.createElement("p"); p.className=err?"err":""; p.style.margin="0 0 8px"; p.textContent=msg||err; pv.appendChild(p); return}
-  pv.className="genprev"; genCur=r;
+/* Corps de l'aperçu d'une séance générée (résumé, avertissements, blocs). o : {vise (min), onViser(min), onReplace(id) | null} */
+function renderPreviewBody(pv,r,o){
   const sum=document.createElement("p"); sum.className="sum tab";
   const works=expand(r.programme).filter(s=>s.type==="work");
-  sum.textContent=`${fmt(r.duree)} au total (visé : ${genDurMin()} min) · ${works.length} passages · ${r.programme.sub}`;
+  sum.textContent=`${fmt(r.duree)} au total (visé : ${o.vise} min) · ${works.length} passages · ${r.programme.sub}`;
   pv.appendChild(sum);
   if(r.avertissements.length){
     const w=document.createElement("div"); w.className="genwarn";
     r.avertissements.forEach(t=>{const p=document.createElement("p"); p.className="err"; p.textContent=t; w.appendChild(p)});
     if(r.proposition){
       const b=document.createElement("button"); b.className="btn"; b.textContent=`Viser ${r.proposition.duree} min`;
-      b.onclick=()=>{$("genDur").value=r.proposition.duree; autoOver=null; renderGenPreview()}; w.appendChild(b);
+      b.onclick=()=>o.onViser(r.proposition.duree); w.appendChild(b);
     }
     pv.appendChild(w);
   }
@@ -1504,14 +1616,23 @@ function renderGenPreview(keep){
       n.textContent=it.name+(r.ajoutes.includes(id)?" (ajouté)":"");
       em.textContent=(it.sets>1?`${it.sets} × `:"")+`${it.work} s`+(it.sides?" / côté":"");
       right.appendChild(em);
-      if(genMode==="auto"&&(r.exercices||[]).includes(id)){
+      if(o.onReplace&&(r.exercices||[]).includes(id)){
         const rb=document.createElement("button"); rb.className="btn genrep"; rb.textContent="Remplacer"; rb.setAttribute("aria-label","Remplacer "+it.name);
-        rb.onclick=()=>replaceAuto(id); right.appendChild(rb);
+        rb.onclick=()=>o.onReplace(id); right.appendChild(rb);
       }
       li.append(n,right); ol.appendChild(li);
     });
     d.appendChild(ol); pv.appendChild(d);
   });
+}
+function renderGenPreview(keep){
+  const pv=$("genPrev"); pv.innerHTML=""; if(keep!==true) $("genMsg").textContent="";
+  genCur=null; $("genRun").disabled=$("genSave").disabled=true;
+  const {r,msg,err}=genCompute();
+  if(msg||err){pv.className="genprev"+(err?"":" tips"); const p=document.createElement("p"); p.className=err?"err":""; p.style.margin="0 0 8px"; p.textContent=msg||err; pv.appendChild(p); return}
+  pv.className="genprev"; genCur=r;
+  renderPreviewBody(pv,r,{vise:genDurMin(),onReplace:genMode==="auto"?replaceAuto:null,
+    onViser:m=>{$("genDur").value=m; autoOver=null; renderGenPreview()}});
   $("genRun").disabled=$("genSave").disabled=!r.programme;
   if(!$("genName").value.trim()||$("genName").dataset.auto==="1"){$("genName").value=r.programme.name; $("genName").dataset.auto="1"}
 }
@@ -1581,12 +1702,12 @@ document.addEventListener("keydown",e=>{
 });
 $("voiceSel").onchange=()=>{if(profile) setPdata({voice:$("voiceSel").value}); voiceFailed=false; pickVoice();};
 if(HAS_TTS){try{speechSynthesis.addEventListener("voiceschanged",pickVoice)}catch(e){speechSynthesis.onvoiceschanged=pickVoice}}
-$("loadRetry").onclick=async()=>{if(await loadExercises()&&!$("setup").hidden) renderSetup()};
+$("loadRetry").onclick=async()=>{if(await loadExercises()&&!$("setup").hidden){renderSetup(); renderAct(actStack)}};
 renderProfiles(); pickVoice(); setTimeout(pickVoice,600);
 buildCarousel();
 history.replaceState({act:[]},"");
 renderAct([]);
-loadExercises().then(ok=>{if(ok&&!$("setup").hidden) renderSetup()});
+loadExercises().then(ok=>{if(ok&&!$("setup").hidden){renderSetup(); renderAct(actStack)}});
 
 /* ---------- Hors ligne et mises à jour ---------- */
 if("serviceWorker" in navigator){
