@@ -178,6 +178,14 @@ body:has(#run:not([hidden])) .update{display:none} /* jamais par-dessus la séan
 .pnew .btn{padding:6px 16px}
 .who{display:flex;align-items:center;gap:8px;font-size:.9rem;color:var(--muted)}
 .who b{color:var(--ink)}
+.who{justify-content:space-between}
+.hello{font-family:var(--display);font-weight:800;font-size:clamp(3rem,13vw,5rem);line-height:.9;margin:0;text-transform:uppercase;overflow-wrap:anywhere}
+.cal h3{margin:0 0 8px;font-size:1rem;text-transform:capitalize}
+.calgrid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;text-align:center}
+.calgrid .dow{color:var(--muted);font-size:.75rem;font-weight:700;text-transform:uppercase}
+.calgrid .day{aspect-ratio:1;display:flex;align-items:center;justify-content:center;border-radius:50%;font-size:.9rem;font-variant-numeric:tabular-nums}
+.calgrid .day.done{background:var(--work);color:var(--bg);font-weight:700}
+.calgrid .day.today{outline:2px solid var(--ink);outline-offset:-2px}
 
 /* ---------- Run ---------- */
 .run{--c:var(--prep);--cbg:var(--prep-bg);min-height:100%;box-sizing:border-box;display:flex;flex-direction:column;gap:10px;background:var(--cbg);padding-left:max(14px,env(safe-area-inset-left,0px));padding-right:max(14px,env(safe-area-inset-right,0px));padding-block:10px 12px;transition:background-color .35s}
@@ -247,14 +255,13 @@ body:has(#run:not([hidden])) .update{display:none} /* jamais par-dessus la séan
     <button class="btn" type="submit">Créer</button>
   </form>
   <p id="pmsg" class="err" role="status"></p>
-  <footer class="foot">Version 1.11.0 · profils enregistrés sur cet appareil</footer>
+  <footer class="foot">Version 1.12.0 · profils enregistrés sur cet appareil</footer>
 </main>
 
 <div class="loaderr" id="loadErr" role="alert" hidden><p id="loadErrMsg"></p><button class="btn" id="loadRetry">Réessayer</button></div>
 <main id="setup" class="setup" hidden>
   <header class="brand">
     <h1>Coach Renfo</h1>
-    <div class="who"><span>Profil : <b id="whoName"></b></span><button class="btn" id="switchProf">Changer</button></div>
     <p>Lance la séance et pose l'écran. Une silhouette montre chaque mouvement, la voix l'annonce et les bips rythment les 3 dernières secondes.</p>
   </header>
   <div class="tabs" role="tablist" aria-label="Sections">
@@ -264,6 +271,11 @@ body:has(#run:not([hidden])) .update{display:none} /* jamais par-dessus la séan
   </div>
 
   <div class="panel" id="tab-dash" role="tabpanel" aria-labelledby="tabB-dash">
+    <h2 class="hello" id="hello"></h2>
+    <section class="cal" aria-labelledby="calTitle">
+      <h3 id="calTitle"></h3>
+      <div class="calgrid" id="calGrid"></div>
+    </section>
     <div class="stats">
       <div class="stat"><b class="tab" id="stCount">0</b><span>activités</span></div>
       <div class="stat"><b class="tab" id="stTime">0:00</b><span>temps total d'activité</span></div>
@@ -351,6 +363,10 @@ body:has(#run:not([hidden])) .update{display:none} /* jamais par-dessus la séan
 
   <div class="panel" id="tab-options" role="tabpanel" aria-labelledby="tabB-options" hidden>
     <section>
+      <p class="eyebrow">Profil</p>
+      <div class="who"><span>Profil : <b id="whoName"></b></span><button class="btn" id="switchProf">Changer de profil</button></div>
+    </section>
+    <section>
       <p class="eyebrow">Son et consignes</p>
       <div class="opts">
         <label class="chk"><input type="checkbox" id="optVoice" checked> Voix</label>
@@ -389,7 +405,7 @@ body:has(#run:not([hidden])) .update{display:none} /* jamais par-dessus la séan
     </section>
   </div>
   <!-- À mettre à jour à chaque publication : ce pied de page, figure.js?v= plus bas, et VERSION dans sw.js -->
-  <footer class="foot">Version 1.11.0 · publiée le <time datetime="2026-10-25T18:44">25/10/2026 à 18:44</time></footer>
+  <footer class="foot">Version 1.12.0 · publiée le <time datetime="2026-10-25T19:05">25/10/2026 à 19:05</time></footer>
 </main>
 
 <section id="run" class="run" data-phase="prep" hidden>
@@ -439,8 +455,8 @@ body:has(#run:not([hidden])) .update{display:none} /* jamais par-dessus la séan
   <button class="start" id="againBtn" style="max-width:320px">Retour</button>
 </section>
 
-<script src="figure.js?v=1.11.0"></script>
-<script src="generator.js?v=1.11.0"></script>
+<script src="figure.js?v=1.12.0"></script>
+<script src="generator.js?v=1.12.0"></script>
 <script>
 /* ---------- Exercices (exercises.json) ---------- */
 let EXERCISES=null;
@@ -1004,9 +1020,25 @@ function renderDashSync(){
   const c=syncCfg(), on=!!(c&&c.gist), el=$("dashSync");
   el.textContent=on?$("syncMsg").textContent:"Synchronisation désactivée : l'historique reste sur cet appareil. Active-la dans Options pour le retrouver partout.";
 }
+function renderCal(h){
+  const now=new Date(), y=now.getFullYear(), m=now.getMonth(), grid=$("calGrid"); grid.innerHTML="";
+  $("calTitle").textContent=now.toLocaleDateString("fr-FR",{month:"long",year:"numeric"});
+  const cnt={}; // jour du mois -> nombre de séances, en heure locale
+  h.forEach(x=>{const d=new Date(x.d); if(d.getFullYear()===y&&d.getMonth()===m) cnt[d.getDate()]=(cnt[d.getDate()]||0)+1});
+  ["lun","mar","mer","jeu","ven","sam","dim"].forEach(t=>{const c=document.createElement("span"); c.className="dow"; c.textContent=t; grid.appendChild(c)});
+  const lead=(new Date(y,m,1).getDay()+6)%7, days=new Date(y,m+1,0).getDate();
+  for(let i=0;i<lead;i++) grid.appendChild(document.createElement("span"));
+  for(let d=1;d<=days;d++){
+    const c=document.createElement("span"); c.className="day"; c.textContent=d;
+    if(cnt[d]){c.classList.add("done"); c.setAttribute("aria-label",new Date(y,m,d).toLocaleDateString("fr-FR",{day:"numeric",month:"long"})+" : "+cnt[d]+(cnt[d]>1?" activités":" activité"))}
+    if(d===now.getDate()) {c.classList.add("today"); c.setAttribute("aria-current","date")}
+    grid.appendChild(c);
+  }
+}
 function renderDash(){
   const h=(profile&&pdata().hist)||[], wk=h.filter(x=>x.d>Date.now()-7*864e5);
   const sum=a=>a.reduce((t,x)=>t+x.s,0);
+  $("hello").textContent="Hello "+(profile?profile.name:""); renderCal(h);
   $("stCount").textContent=h.length; $("stTime").textContent=fmt(sum(h));
   $("stWeekCount").textContent=wk.length; $("stWeekTime").textContent=fmt(sum(wk));
   renderDashSync();
