@@ -2,9 +2,10 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>Coach Renfo</title>
+<meta name="apple-mobile-web-app-title" content="Renfo Batai">
+<title>Renfo Batai</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Big+Shoulders+Display:wght@600;800&display=swap">
@@ -272,6 +273,17 @@ body:has(#run:not([hidden])) .update{display:none} /* jamais par-dessus la séan
 .done h2{font-family:var(--display);font-weight:800;text-transform:uppercase;font-size:clamp(2.6rem,9vw,4.6rem);line-height:.9;margin:0;color:var(--work)}
 .done p{margin:0;color:var(--muted)}
 @media (prefers-reduced-motion:reduce){.run,.ringwrap .bar{transition:none}}
+/* Affichage mobile : pas de zoom, champs >= 16px, cartes portrait */
+html{touch-action:manipulation;-webkit-text-size-adjust:100%}
+input,select,textarea{font-size:max(16px,1em)}
+.histtitle{font-size:clamp(2.2rem,8vw,3.2rem);line-height:.95;text-transform:uppercase;font-weight:800;margin:0 0 12px}
+.carslide{flex:0 0 58%;max-width:240px}
+.carslide .acard{aspect-ratio:3/4}
+.carslide .apic{aspect-ratio:auto;flex:1 1 0;min-height:0}
+.agrid{grid-template-columns:minmax(0,1fr)}
+.agrid .apic{aspect-ratio:16/7}
+.prevtoggle{margin-top:14px;width:100%}
+.prevtoggle+.start{margin-top:8px}
 </style>
 </head>
 <body>
@@ -282,7 +294,7 @@ body:has(#run:not([hidden])) .update{display:none} /* jamais par-dessus la séan
 </div>
 
 <main id="profiles" class="profiles">
-  <header class="brand"><h1>Coach Renfo</h1></header>
+  <header class="brand"><h1>Renfo Batai</h1></header>
   <section aria-labelledby="whoPick">
     <p class="eyebrow" id="whoPick">Qui s'entraîne ?</p>
     <div class="plist" id="plist"></div>
@@ -292,14 +304,13 @@ body:has(#run:not([hidden])) .update{display:none} /* jamais par-dessus la séan
     <button class="btn" type="submit">Créer</button>
   </form>
   <p id="pmsg" class="err" role="status"></p>
-  <footer class="foot">Version 1.15.0 · profils enregistrés sur cet appareil</footer>
+  <footer class="foot">Version 1.16.0 · profils enregistrés sur cet appareil</footer>
 </main>
 
 <div class="loaderr" id="loadErr" role="alert" hidden><p id="loadErrMsg"></p><button class="btn" id="loadRetry">Réessayer</button></div>
 <main id="setup" class="setup" hidden>
   <header class="brand">
-    <h1>Coach Renfo</h1>
-    <p>Lance la séance et pose l'écran. Une silhouette montre chaque mouvement, la voix l'annonce et les bips rythment les 3 dernières secondes.</p>
+    <h1>Renfo Batai</h1>
   </header>
   <div class="tabs" role="tablist" aria-label="Sections">
     <button role="tab" id="tabB-dash" aria-controls="tab-dash" aria-selected="true" data-tab="dash"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 20V11M12 20V4M19 20v-6"/></svg><span>Tableau de bord</span></button>
@@ -309,10 +320,6 @@ body:has(#run:not([hidden])) .update{display:none} /* jamais par-dessus la séan
 
   <div class="panel" id="tab-dash" role="tabpanel" aria-labelledby="tabB-dash">
     <h2 class="hello" id="hello"></h2>
-    <section class="cal" aria-labelledby="calTitle">
-      <h3 id="calTitle"></h3>
-      <div class="calgrid" id="calGrid"></div>
-    </section>
     <div class="stats">
       <div class="stat"><b class="tab" id="stCount">0</b><span>activités</span></div>
       <div class="stat"><b class="tab" id="stTime">0:00</b><span>temps total d'activité</span></div>
@@ -320,7 +327,11 @@ body:has(#run:not([hidden])) .update{display:none} /* jamais par-dessus la séan
       <div class="stat"><b class="tab" id="stWeekTime">0:00</b><span>temps depuis 7 jours</span></div>
     </div>
     <section>
-      <p class="eyebrow">Historique des séances</p>
+      <h2 class="sechead histtitle">Historique des séances</h2>
+    <section class="cal" aria-labelledby="calTitle">
+      <h3 id="calTitle"></h3>
+      <div class="calgrid" id="calGrid"></div>
+    </section>
       <ul class="hist" id="histList"></ul>
       <button class="btn" id="histMore" hidden style="margin-top:10px"></button>
       <p class="tips" id="dashSync"></p>
@@ -383,10 +394,11 @@ body:has(#run:not([hidden])) .update{display:none} /* jamais par-dessus la séan
       <section aria-labelledby="pick">
         <p class="eyebrow" id="pick">Programme</p>
         <div class="progs" id="progs"></div>
+        <button class="btn prevtoggle" id="prevToggle" type="button" aria-expanded="false" aria-controls="preview">Voir l'aperçu</button>
         <button class="start" id="startBtn">Démarrer</button>
         <p class="tips">Mac : <b>Espace</b> pause, <b>← →</b> exercice précédent / suivant, <b>Échap</b> arrêter.</p>
       </section>
-      <section class="preview" id="preview" aria-live="polite"></section>
+      <section class="preview" id="preview" aria-live="polite" hidden></section>
     </div>
   <details class="custom" id="customBox">
     <summary>Créer ou modifier un programme (JSON)</summary>
@@ -465,7 +477,7 @@ body:has(#run:not([hidden])) .update{display:none} /* jamais par-dessus la séan
     </section>
   </div>
   <!-- À mettre à jour à chaque publication : ce pied de page, figure.js?v= plus bas, et VERSION dans sw.js -->
-  <footer class="foot">Version 1.15.0 · publiée le <time datetime="2026-10-25T19:39">25/10/2026 à 19:39</time></footer>
+  <footer class="foot">Version 1.16.0 · publiée le <time datetime="2026-10-25T21:00">25/10/2026 à 21:00</time></footer>
 </main>
 
 <section id="run" class="run" data-phase="prep" hidden>
@@ -515,8 +527,8 @@ body:has(#run:not([hidden])) .update{display:none} /* jamais par-dessus la séan
   <button class="start" id="againBtn" style="max-width:320px">Retour</button>
 </section>
 
-<script src="figure.js?v=1.15.0"></script>
-<script src="generator.js?v=1.15.0"></script>
+<script src="figure.js?v=1.16.0"></script>
+<script src="generator.js?v=1.16.0"></script>
 <script>
 /* ---------- Exercices (exercises.json) ---------- */
 let EXERCISES=null;
@@ -1217,7 +1229,7 @@ $("syncForm").onsubmit=async e=>{
     const list=await gh("/gists?per_page=100");
     let gist=(list.find(g=>g.files&&g.files[GIST_FILE])||{}).id;
     if(!gist){
-      const g=await gh("/gists",{method:"POST",body:JSON.stringify({description:"Coach Renfo – synchronisation",public:false,files:{[GIST_FILE]:{content:JSON.stringify(mergeSync(null).out)}}})});
+      const g=await gh("/gists",{method:"POST",body:JSON.stringify({description:"Renfo Batai – synchronisation",public:false,files:{[GIST_FILE]:{content:JSON.stringify(mergeSync(null).out)}}})});
       gist=g.id;
     }
     lsSet(SYNC_KEY,JSON.stringify({token,gist})); $("syncToken").value=""; showSyncUi(); sync();
@@ -1683,7 +1695,14 @@ $("genSave").onclick=()=>{
 };
 
 /* ---------- Commandes ---------- */
+$("prevToggle").onclick=()=>{
+  const pv=$("preview"), open=pv.hidden;
+  pv.hidden=!open;
+  $("prevToggle").setAttribute("aria-expanded",String(open));
+  $("prevToggle").textContent=open?"Masquer l'aperçu":"Voir l'aperçu";
+};
 $("startBtn").onclick=start;
+addEventListener("gesturestart",e=>e.preventDefault());
 $("playBtn").onclick=togglePlay;
 $("nextBtn").onclick=goNext;
 $("prevBtn").onclick=goPrev;

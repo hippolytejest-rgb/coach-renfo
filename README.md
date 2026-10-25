@@ -1,4 +1,4 @@
-# Coach Renfo
+# Renfo Batai
 
 Web app qui pilote une séance de renforcement musculaire comme un coach en vidéo :
 enchaînement automatique, timer travail/repos, voix (synthèse vocale du navigateur),
