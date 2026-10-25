@@ -123,6 +123,22 @@ body:has(#run:not([hidden])) .update{display:none} /* jamais par-dessus la séan
 .loaderr p{margin:0;color:#b3261e}
 .libdemo{background:color-mix(in srgb,var(--surface) 70%,var(--bg));border-radius:10px;overflow:hidden;aspect-ratio:240/170;width:100%;max-width:320px}
 .libdemo canvas{width:100%;height:100%;display:block}
+.genbox{background:var(--surface);border:1.5px solid var(--line);border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.genlist{list-style:none;margin:0;padding:0;max-height:340px;overflow-y:auto;border:1px solid var(--line);border-radius:8px;background:var(--bg)}
+.genlist li+li{border-top:1px solid var(--line)}
+.genlist label{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:4px 10px;align-items:center;padding:9px 12px;grid-template-areas:"c n t" ". m m"}
+.genlist input{grid-area:c;width:20px;height:20px}
+.genlist b{grid-area:n;overflow-wrap:anywhere}
+.genlist em{grid-area:t;font-style:normal;color:var(--muted);font-size:.85rem;white-space:nowrap}
+.genlist small{grid-area:m;color:var(--muted);overflow-wrap:anywhere}
+.genopts{display:flex;gap:8px 18px;flex-wrap:wrap;align-items:center}
+.genopts label{display:flex;gap:8px;align-items:center}
+.genopts input[type=number],.genname{font:inherit;font-size:1rem;background:var(--bg);color:var(--ink);border:1.5px solid var(--line);border-radius:8px;padding:8px 10px;box-sizing:border-box}
+.genopts input[type=number]{width:5.5em}
+.genname{flex:1 1 180px;min-width:0}
+.genprev{border:1px solid var(--line);border-radius:8px;padding:12px 12px 4px;background:var(--bg)}
+.genprev .sum{margin:0 0 8px}
+.genwarn{display:flex;flex-direction:column;gap:6px;align-items:flex-start;margin:0 0 10px}
 .panel{display:flex;flex-direction:column;gap:20px}
 .panel[hidden]{display:none}
 .stats{display:grid;grid-template-columns:1fr 1fr;gap:12px}
@@ -225,7 +241,7 @@ body:has(#run:not([hidden])) .update{display:none} /* jamais par-dessus la séan
     <button class="btn" type="submit">Créer</button>
   </form>
   <p id="pmsg" class="err" role="status"></p>
-  <footer class="foot">Version 1.8.0 · profils enregistrés sur cet appareil</footer>
+  <footer class="foot">Version 1.9.0 · profils enregistrés sur cet appareil</footer>
 </main>
 
 <div class="loaderr" id="loadErr" role="alert" hidden><p id="loadErrMsg"></p><button class="btn" id="loadRetry">Réessayer</button></div>
@@ -259,6 +275,26 @@ body:has(#run:not([hidden])) .update{display:none} /* jamais par-dessus la séan
   <div class="panel" id="tab-activites" role="tabpanel" aria-labelledby="tabB-activites" hidden>
     <div class="cats" id="cats" role="group" aria-label="Section"></div>
     <div class="panel" id="viewSeances">
+    <div class="row"><button class="btn" id="genOpen" aria-expanded="false" aria-controls="genBox">Créer une séance</button></div>
+    <section class="genbox" id="genBox" aria-label="Créer une séance" hidden>
+      <div class="cats" role="tablist" aria-label="Mode de création"><button role="tab" aria-selected="true" aria-pressed="true">À la main</button></div>
+      <input class="libsearch" id="genSearch" type="search" placeholder="Rechercher un exercice" autocomplete="off" aria-label="Rechercher un exercice à ajouter">
+      <div class="libfilters" id="genFilters"></div>
+      <p class="tips" id="genCount" style="margin:0"></p>
+      <ul class="genlist" id="genList"></ul>
+      <div class="genopts">
+        <label>Durée (min) <input type="number" id="genDur" min="5" max="120" step="1" value="20" inputmode="numeric"></label>
+        <label><input type="checkbox" id="genWarm" checked> Échauffement</label>
+        <label><input type="checkbox" id="genCool" checked> Retour au calme</label>
+      </div>
+      <div class="genprev" id="genPrev" aria-live="polite"></div>
+      <div class="row">
+        <input class="genname" id="genName" type="text" placeholder="Nom de la séance" aria-label="Nom de la séance" maxlength="60">
+        <button class="btn" id="genRun" disabled>Lancer</button>
+        <button class="btn" id="genSave" disabled>Enregistrer</button>
+      </div>
+      <p id="genMsg" class="ok" role="status"></p>
+    </section>
     <div class="grid">
       <section aria-labelledby="pick">
         <p class="eyebrow" id="pick">Programme</p>
@@ -336,7 +372,7 @@ body:has(#run:not([hidden])) .update{display:none} /* jamais par-dessus la séan
     </section>
   </div>
   <!-- À mettre à jour à chaque publication : ce pied de page, figure.js?v= plus bas, et VERSION dans sw.js -->
-  <footer class="foot">Version 1.8.0 · publiée le <time datetime="2026-10-25T18:30">25/10/2026 à 18:30</time></footer>
+  <footer class="foot">Version 1.9.0 · publiée le <time datetime="2026-10-25T19:30">25/10/2026 à 19:30</time></footer>
 </main>
 
 <section id="run" class="run" data-phase="prep" hidden>
@@ -386,7 +422,8 @@ body:has(#run:not([hidden])) .update{display:none} /* jamais par-dessus la séan
   <button class="start" id="againBtn" style="max-width:320px">Retour</button>
 </section>
 
-<script src="figure.js?v=1.8.0"></script>
+<script src="figure.js?v=1.9.0"></script>
+<script src="generator.js?v=1.9.0"></script>
 <script>
 /* ---------- Exercices (exercises.json) ---------- */
 let EXERCISES=null;
@@ -496,7 +533,7 @@ let profs=jget(PROFS_KEY,{list:[],last:null});
 let profile=null; // profil actif {id,name}
 function saveProfs(){return lsSet(PROFS_KEY,JSON.stringify(profs))}
 function pdata(){return jget(PDATA+profile.id,{})}
-const SYNCED=["custom","equip"]; // champs en « dernier modifié gagne » ; l'historique est fusionné
+const SYNCED=["custom","equip","sessions"]; // champs en « dernier modifié gagne » ; l'historique est fusionné
 function setPdata(patch){
   const mt=SYNCED.some(k=>k in patch)?{mt:Date.now()}:{};
   const ok=lsSet(PDATA+profile.id,JSON.stringify({...pdata(),...patch,...mt}));
@@ -564,8 +601,10 @@ function validate(p){
 /* ---------- Écran de préparation ---------- */
 const $=id=>document.getElementById(id);
 let selectedId="mobi-renfo", actView="seances";
-function allPrograms(){const c=loadCustom();return c?[...PROGRAMS.filter(p=>p.id!=="custom"),{...c,id:"custom",sub:c.sub||"Programme perso"}]:PROGRAMS}
-function getProg(){return allPrograms().find(p=>p.id===selectedId)||PROGRAMS[0]}
+function mySessions(){return profile?(pdata().sessions||[]).map(x=>({...x,sub:x.sub||"Ma séance",mine:true})):[]}
+function allPrograms(){const c=loadCustom();return [...(c?[...PROGRAMS.filter(p=>p.id!=="custom"),{...c,id:"custom",sub:c.sub||"Programme perso"}]:PROGRAMS),...mySessions()]}
+let tempProg=null; // séance générée lancée sans être enregistrée
+function getProg(){return selectedId==="gen"&&tempProg||allPrograms().find(p=>p.id===selectedId)||PROGRAMS[0]}
 function renderSetup(){
   $("startBtn").disabled=!EXERCISES;
   if(!EXERCISES){$("loadErr").hidden=false; return}
@@ -576,7 +615,9 @@ function renderSetup(){
     cb.appendChild(b);
   });
   const box=$("progs"); box.innerHTML="";
+  let mineShown=false;
   allPrograms().forEach(p=>{
+    if(p.mine&&!mineShown){mineShown=true; const h=document.createElement("p"); h.className="eyebrow"; h.style.margin="8px 0 0"; h.textContent="Mes séances"; box.appendChild(h)}
     const b=document.createElement("button"); b.className="prog"; b.setAttribute("aria-pressed",p.id===selectedId);
     b.innerHTML=`<span class="dot"></span><span><b></b><small></small></span><span class="dur tab">${fmt(totalOf(expand(p)))}</span>`;
     b.querySelector("b").textContent=p.name; b.querySelector("small").textContent=p.sub||"";
@@ -605,7 +646,16 @@ function renderSetup(){
     });
     d.appendChild(ol); pv.appendChild(d);
   });
-  const clean=JSON.parse(JSON.stringify(p)); delete clean.id; if(clean.sub==="Programme perso") delete clean.sub;
+  if(p.mine){
+    const del=document.createElement("button"); del.className="btn"; del.textContent="Supprimer cette séance"; del.style.marginBottom="12px";
+    let armed=false;
+    del.onclick=()=>{
+      if(!armed){armed=true; del.textContent="Confirmer la suppression"; setTimeout(()=>{armed=false; del.textContent="Supprimer cette séance"},3000); return}
+      setPdata({sessions:(pdata().sessions||[]).filter(x=>x.id!==p.id)}); selectedId="mobi-renfo"; renderSetup();
+    };
+    pv.appendChild(del);
+  }
+  const clean=JSON.parse(JSON.stringify(p)); delete clean.id; delete clean.mine; if(clean.sub==="Programme perso"||clean.sub==="Ma séance") delete clean.sub;
   $("jsonArea").value=JSON.stringify(clean,null,2);
   $("delCustom").hidden=!loadCustom();
   renderDash(); renderEquip();
@@ -1096,17 +1146,26 @@ function libItems(){
 }
 function equipLabel(list){return list.length?list.join(", "):"aucun"}
 const libTags=all=>[...new Set(all.flatMap(e=>e.tags||[]))].sort((a,b)=>a.localeCompare(b,"fr"));
-function fillLibFilters(all){
-  [["type","libType","Tous les types",[...new Set(all.map(e=>e.type))].sort((a,b)=>a.localeCompare(b,"fr"))],
-   ["muscle","libMuscle","Tous les muscles",LIB_MUSCLES],
-   ["equip","libEquip","Tout l'équipement",LIB_EQUIP],
-   ["impact","libImpact","Tous les impacts",LIB_IMPACT],
-   ["tag","libTag","Toutes les caractéristiques",libTags(all)]].forEach(([k,id,all0,vals])=>{
-    const sel=$(id);
+function libFilterDefs(all){return [
+  ["type","Tous les types",[...new Set(all.map(e=>e.type))].sort((a,b)=>a.localeCompare(b,"fr"))],
+  ["muscle","Tous les muscles",LIB_MUSCLES],
+  ["equip","Tout l'équipement",LIB_EQUIP],
+  ["impact","Tous les impacts",LIB_IMPACT],
+  ["tag","Toutes les caractéristiques",libTags(all)]]}
+function fillFilters(all,filt,selOf){
+  libFilterDefs(all).forEach(([k,all0,vals])=>{
+    const sel=selOf(k);
     sel.innerHTML=""; sel.add(new Option(all0,""));
     vals.forEach(v=>sel.add(new Option(v,v)));
-    sel.value=vals.includes(libFilt[k])?libFilt[k]:""; libFilt[k]=sel.value;
+    sel.value=vals.includes(filt[k])?filt[k]:""; filt[k]=sel.value;
   });
+}
+const LIB_FILTER_IDS={type:"libType",muscle:"libMuscle",equip:"libEquip",impact:"libImpact",tag:"libTag"};
+function fillLibFilters(all){fillFilters(all,libFilt,k=>$(LIB_FILTER_IDS[k]))}
+function libMatch(e,f,q){
+  return (!q||e.name.toLowerCase().includes(q)||(e.desc||"").toLowerCase().includes(q)||(e.tags||[]).some(t=>t.toLowerCase().includes(q)))
+    &&(!f.type||e.type===f.type)&&(!f.muscle||(e.muscles||[]).includes(f.muscle))&&(!f.equip||(e.equipment||[]).includes(f.equip))
+    &&(!f.impact||e.impact===f.impact)&&(!f.tag||(e.tags||[]).includes(f.tag));
 }
 const libCv=$("libCv"), libG=libCv.getContext("2d");
 let libKey=null, libT0=0, libRaf=0;
@@ -1135,9 +1194,7 @@ function renderLib(){
   if(!EXERCISES){$("libCount").textContent="Bibliothèque indisponible : exercises.json n'a pas pu être chargé."; $("libList").innerHTML=""; return}
   const q=$("libSearch").value.trim().toLowerCase(), all=libItems();
   if(!$("libType").options.length) fillLibFilters(all);
-  const items=all.filter(e=>(!q||e.name.toLowerCase().includes(q)||(e.desc||"").toLowerCase().includes(q)||(e.tags||[]).some(t=>t.toLowerCase().includes(q)))
-    &&(!libFilt.type||e.type===libFilt.type)&&(!libFilt.muscle||(e.muscles||[]).includes(libFilt.muscle))&&(!libFilt.equip||(e.equipment||[]).includes(libFilt.equip))
-    &&(!libFilt.impact||e.impact===libFilt.impact)&&(!libFilt.tag||(e.tags||[]).includes(libFilt.tag)));
+  const items=all.filter(e=>libMatch(e,libFilt,q));
   $("libCount").textContent=items.length===all.length?`${all.length} exercices`:`${items.length} sur ${all.length} exercices`;
   const ul=$("libList"); ul.innerHTML="";
   items.forEach(e=>{
@@ -1166,6 +1223,94 @@ function renderLib(){
 }
 [["libType","type"],["libMuscle","muscle"],["libEquip","equip"],["libImpact","impact"],["libTag","tag"]].forEach(([id,k])=>{$(id).onchange=()=>{libFilt[k]=$(id).value; renderLib()}});
 $("libSearch").oninput=renderLib;
+
+/* ---------- Créer une séance (À la main) ---------- */
+const genFilt={type:"",muscle:"",equip:"",impact:"",tag:""}, genSel=new Set();
+let genCur=null;
+const FILTER_LABELS={type:"type",muscle:"muscle",equip:"équipement",impact:"impact",tag:"caractéristique"};
+function genDurMin(){const v=parseInt($("genDur").value,10); return v>0?Math.min(v,240):0}
+function renderGenList(){
+  const all=libItems().sort((a,b)=>genRank(a.type)-genRank(b.type)); // ordre de la séance, puis alphabétique
+  const bar=$("genFilters");
+  if(!bar.children.length){
+    Object.keys(genFilt).forEach(k=>{
+      const sel=document.createElement("select"); sel.dataset.k=k; sel.setAttribute("aria-label","Filtrer par "+FILTER_LABELS[k]);
+      sel.onchange=()=>{genFilt[k]=sel.value; renderGenList()}; bar.appendChild(sel);
+    });
+    fillFilters(all,genFilt,k=>bar.querySelector(`[data-k="${k}"]`));
+  }
+  const q=$("genSearch").value.trim().toLowerCase(), items=all.filter(e=>libMatch(e,genFilt,q));
+  $("genCount").textContent=`${genSel.size} sélectionné${genSel.size>1?"s":""} · ${items.length} affiché${items.length>1?"s":""} sur ${all.length}`;
+  const ul=$("genList"); ul.innerHTML="";
+  items.forEach(e=>{
+    const li=document.createElement("li"), lab=document.createElement("label"), cb=document.createElement("input");
+    cb.type="checkbox"; cb.checked=genSel.has(e.id);
+    cb.onchange=()=>{cb.checked?genSel.add(e.id):genSel.delete(e.id); renderGenPreview(); $("genCount").textContent=$("genCount").textContent.replace(/^\d+ sélectionnés?/,`${genSel.size} sélectionné${genSel.size>1?"s":""}`)};
+    const n=document.createElement("b"); n.textContent=e.name;
+    const t=document.createElement("em"); t.textContent=e.type;
+    const m=document.createElement("small"); m.textContent=`${e.muscles.join(", ")} · ${equipLabel(e.equipment)} · impact ${e.impact||"aucun"}`;
+    lab.append(cb,n,t,m); li.appendChild(lab); ul.appendChild(li);
+  });
+}
+function renderGenPreview(){
+  const pv=$("genPrev"); pv.innerHTML=""; $("genMsg").textContent="";
+  genCur=null; $("genRun").disabled=$("genSave").disabled=true;
+  if(!genSel.size){pv.textContent="Coche des exercices pour voir l'aperçu."; pv.className="genprev tips"; return}
+  pv.className="genprev";
+  const dur=genDurMin();
+  if(!dur){pv.textContent="Indique une durée en minutes."; return}
+  const r=buildSession({exercices:[...genSel],duree:dur,avecEchauffement:$("genWarm").checked,avecRetour:$("genCool").checked});
+  genCur=r;
+  const sum=document.createElement("p"); sum.className="sum tab";
+  const works=expand(r.programme).filter(s=>s.type==="work");
+  sum.textContent=`${fmt(r.duree)} au total (visé : ${dur} min) · ${works.length} passages · ${r.programme.sub}`;
+  pv.appendChild(sum);
+  if(r.avertissements.length){
+    const w=document.createElement("div"); w.className="genwarn";
+    r.avertissements.forEach(t=>{const p=document.createElement("p"); p.className="err"; p.textContent=t; w.appendChild(p)});
+    if(r.proposition){
+      const b=document.createElement("button"); b.className="btn"; b.textContent=`Viser ${r.proposition.duree} min`;
+      b.onclick=()=>{$("genDur").value=r.proposition.duree; renderGenPreview()}; w.appendChild(b);
+    }
+    pv.appendChild(w);
+  }
+  resolveProg(r.programme).blocks.forEach(b=>{
+    const d=document.createElement("div"); d.className="blk";
+    const t=document.createElement("h3"); t.textContent=b.name;
+    const sp=document.createElement("span"); sp.textContent=b.rounds>1?`${b.rounds} tours`:"1 tour"; t.appendChild(sp); d.appendChild(t);
+    const ol=document.createElement("ol");
+    b.items.forEach(it=>{
+      const li=document.createElement("li"), n=document.createElement("span"), em=document.createElement("em"); em.className="tab";
+      n.textContent=it.name+(r.ajoutes.includes(it.ex)?" (ajouté)":"");
+      em.textContent=(it.sets>1?`${it.sets} × `:"")+`${it.work} s`+(it.sides?" / côté":"");
+      li.append(n,em); ol.appendChild(li);
+    });
+    d.appendChild(ol); pv.appendChild(d);
+  });
+  $("genRun").disabled=$("genSave").disabled=!r.programme;
+  if(!$("genName").value.trim()||$("genName").dataset.auto==="1"){$("genName").value=r.programme.name; $("genName").dataset.auto="1"}
+}
+$("genName").oninput=()=>{$("genName").dataset.auto="0"};
+$("genOpen").onclick=()=>{
+  const box=$("genBox"); box.hidden=!box.hidden; $("genOpen").setAttribute("aria-expanded",String(!box.hidden));
+  if(!box.hidden&&EXERCISES){renderGenList(); renderGenPreview()}
+};
+$("genSearch").oninput=renderGenList;
+["genDur","genWarm","genCool"].forEach(id=>$(id).addEventListener("input",renderGenPreview));
+$("genRun").onclick=()=>{
+  if(!genCur||!genCur.programme||!EXERCISES) return;
+  const prev=selectedId; tempProg={...genCur.programme,name:$("genName").value.trim()||genCur.programme.name,id:"gen"};
+  selectedId="gen"; start(); selectedId=prev;
+};
+$("genSave").onclick=()=>{
+  if(!genCur||!genCur.programme||!profile) return;
+  const prog={...genCur.programme,name:$("genName").value.trim()||genCur.programme.name,id:"s"+Date.now().toString(36)};
+  const ok=setPdata({sessions:[...(pdata().sessions||[]),prog]});
+  selectedId=prog.id; if(ok) setPdata({prog:prog.id});
+  renderSetup();
+  const m=$("genMsg"); m.className=ok?"ok":"err";
+  m.textContent=ok?"Séance enregistrée dans « Mes séances ».":"Ce navigateur bloque l'enregistrement : la séance reste dans cette page uniquement.";
+};
 
 /* ---------- Commandes ---------- */
 $("startBtn").onclick=start;
