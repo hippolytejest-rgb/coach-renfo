@@ -90,9 +90,11 @@ const ANIMS={
   legsWall:{dur:4000,props:[{type:"wall",x:108}],keys:[
     lying(116,145,{nl:leg(114,88,{foot:"along"}),fl:leg(113,89,{foot:"along"})}),
     lying(116,145,{h:-4,nl:leg(114,88,{foot:"along"}),fl:leg(113,89,{foot:"along"})})]},
-  gluteStretch:{dur:3200,focus:["nA"],keys:[
-    lying(130,145,{na:arm(128,125),fa:arm(127,126),fl:leg(104,FY,{bend:1,foot:-90}),nl:leg(115,118,{bend:1,foot:120})}),
-    lying(130,145,{na:arm(136,120),fa:arm(135,121),fl:leg(110,124,{bend:1,foot:-60}),nl:leg(139,113,{bend:1,foot:120})})]},
+  gluteStretch:{dur:5000,focus:["H"],keys:[
+    lying(130,145,{na:arm(137,123),fa:arm(136,126),fl:leg(100,FY,{bend:1,foot:-90}),nl:leg(110,118,{bend:1,foot:180})}),
+    lying(130,145,{na:arm(137,123),fa:arm(136,126),fl:leg(100,FY,{bend:1,foot:-90}),nl:leg(110,118,{bend:1,foot:180})}),
+    lying(130,145,{na:arm(142,125),fa:arm(140,128),fl:leg(100,FY,{bend:1,foot:-90}),nl:leg(116,117,{bend:1,foot:180})}),
+    lying(130,145,{na:arm(142,125),fa:arm(140,128),fl:leg(100,FY,{bend:1,foot:-90}),nl:leg(116,117,{bend:1,foot:180})})]},
   stepDown:{dur:3200,props:[{type:"step",x0:92,x1:132,y:128}],keys:[
     {H:[114,70],t:[5,5],na:[50,70],fa:[46,66],nl:leg(116,126),fl:leg(140,124,{foot:100})},
     {H:[112,95],t:[20,20],na:[65,80],fa:[60,76],nl:leg(116,126),fl:leg(140,145,{foot:110})}]},

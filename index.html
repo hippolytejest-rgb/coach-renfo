@@ -86,6 +86,7 @@ details.custom textarea{width:100%;box-sizing:border-box;min-height:240px;font-f
 .btn{border:1.5px solid var(--line);background:var(--bg);border-radius:8px;padding:6px 12px;font-weight:700;font-size:.9rem}
 .err{color:var(--danger);font-size:.86rem;margin:0}
 .ok{color:var(--work);font-size:.86rem;margin:0}
+.foot{margin:0;padding-top:14px;border-top:1px solid var(--line);color:var(--muted);font-size:.8rem;text-align:center}
 
 /* ---------- Run ---------- */
 .run{--c:var(--prep);--cbg:var(--prep-bg);min-height:100%;box-sizing:border-box;display:flex;flex-direction:column;gap:10px;background:var(--cbg);padding-left:max(14px,env(safe-area-inset-left,0px));padding-right:max(14px,env(safe-area-inset-right,0px));padding-block:10px 12px;transition:background-color .35s}
@@ -176,6 +177,8 @@ details.custom textarea{width:100%;box-sizing:border-box;min-height:240px;font-f
       <p id="jsonMsg" class="err" role="status"></p>
     </div>
   </details>
+  <!-- À mettre à jour à chaque publication -->
+  <footer class="foot">Version 1.1.0 · publiée le <time datetime="2026-10-25T13:05">25/10/2026 à 13:05</time></footer>
 </main>
 
 <section id="run" class="run" data-phase="prep" hidden>
