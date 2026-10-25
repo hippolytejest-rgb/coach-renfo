@@ -141,11 +141,11 @@ GEN.ZONES = {
   "fessiers-hanches": ["fessiers", "hanches"],
   "pied-cheville": ["pied-cheville"],
   "tronc": ["tronc"],
-  "haut-corps": ["dos", "épaules", "bras"],
+  "haut-corps": ["dos", "épaules", "bras", "pectoraux", "cou"],
   // zones à un seul muscle, utilisées par les préréglages (absentes de ZONE_LABELS : pas proposées au choix)
   "fessiers": ["fessiers"], "hanches": ["hanches"], "quadriceps": ["quadriceps"], "mollets": ["mollets"],
-  "ischio-jambiers": ["ischio-jambiers"], "dos": ["dos"], "épaules": ["épaules"], "cou": ["cou"],
-  "corps-entier": ["fessiers", "ischio-jambiers", "quadriceps", "mollets", "pied-cheville", "hanches", "tronc", "dos", "épaules", "bras"]
+  "ischio-jambiers": ["ischio-jambiers"], "dos": ["dos"], "épaules": ["épaules"], "cou": ["cou"], "pectoraux": ["pectoraux"],
+  "corps-entier": ["fessiers", "ischio-jambiers", "quadriceps", "mollets", "pied-cheville", "hanches", "tronc", "dos", "épaules", "bras", "pectoraux", "cou"]
 };
 GEN.ZONE_LABELS = {"jambes": "Jambes", "fessiers-hanches": "Fessiers et hanches", "pied-cheville": "Pied et cheville",
   "tronc": "Tronc", "haut-corps": "Haut du corps", "corps-entier": "Corps entier"};
@@ -171,12 +171,12 @@ const genConvientSport = (e, sport) => !sport || genSports(e).some(x => x === sp
 
 // Exercices admissibles : types (o.types, sinon TYPES_AUTO), sport, zones, matériel (null = pas de limite), impact.
 function genPool(lib, o) {
-  const dispo = o.materiel ? new Set([...GEN.TOUJOURS, ...o.materiel]) : null;
+  const dispo = o.materiel ? new Set([...GEN.TOUJOURS, ...o.materiel.map(m => m.toLowerCase())]) : null;
   return Object.keys(lib).filter(id => {
     const e = lib[id];
     return (o.types || GEN.TYPES_AUTO).includes(e.type)
       && genConvientSport(e, o.sport)
-      && (!dispo || (e.equipment || ["aucun"]).every(q => dispo.has(q)))
+      && (!dispo || (e.equipment || ["aucun"]).every(q => dispo.has(q.toLowerCase())))
       && (!o.sansImpact || (e.impact || "aucun") === "aucun")
       && genZonesOf(e, o.zones).length > 0;
   });
@@ -276,14 +276,14 @@ function buildAuto(opts, deps) {
 
 // Exercices équivalents à `id` : même type, au moins un muscle commun, mêmes contraintes ; les plus proches d'abord.
 function genEquivalents(lib, id, o) {
-  const e = lib[id], dispo = o.materiel ? new Set([...GEN.TOUJOURS, ...o.materiel]) : null, deja = new Set(o.courants || []);
+  const e = lib[id], dispo = o.materiel ? new Set([...GEN.TOUJOURS, ...o.materiel.map(m => m.toLowerCase())]) : null, deja = new Set(o.courants || []);
   const evites = new Set(o.evites || []);
   // une exigence (ex. « au moins un exercice d'équilibre ») que `id` est seul à satisfaire doit rester satisfaite
   const exigees = (o.exiger || []).filter(x => x.test(e) && !(o.courants || []).some(c => c !== id && x.test(lib[c])));
   return Object.keys(lib).filter(k => !deja.has(k) && lib[k].type === e.type
       && genConvientSport(lib[k], o.sport) && (!o.zones || genZonesOf(lib[k], o.zones).length > 0)
       && exigees.every(x => x.test(lib[k]))
-      && (!dispo || (lib[k].equipment || ["aucun"]).every(q => dispo.has(q)))
+      && (!dispo || (lib[k].equipment || ["aucun"]).every(q => dispo.has(q.toLowerCase())))
       && (!o.sansImpact || (lib[k].impact || "aucun") === "aucun"))
     .map(k => ({k, commun: (lib[k].muscles || []).filter(m => (e.muscles || []).includes(m)).length}))
     .filter(x => x.commun > 0)
