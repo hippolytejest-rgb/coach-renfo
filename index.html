@@ -1,0 +1,673 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Coach Renfo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Big+Shoulders+Display:wght@600;800&display=swap">
+<style>
+/* Base (remplace le gabarit de l'artifact) */
+[hidden]{display:none!important}
+:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);box-sizing:border-box}
+body{margin:0}
+/* Layout: écran de coach — rangée média (anneau de temps + silhouette animée), carte exercice, commandes en bas */
+:root{
+  --bg:#F2F3EF; --surface:#FFFFFF; --ink:#15171C; --muted:#5D636E; --line:#D9DCD4; --ghost:#A9AEB8;
+  --work:#2343D6; --work-bg:#E5EAFF;
+  --rest:#B86E0C; --rest-bg:#FAEED8;
+  --switch:#6E45C2; --switch-bg:#EEE6FB;
+  --prep:#3D4452; --prep-bg:#E6E8E3;
+  --danger:#B3261E;
+  --display:"Big Shoulders Display","Arial Narrow",Impact,sans-serif;
+  --body:"Atkinson Hyperlegible",system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0F1115; --surface:#181B21; --ink:#ECEEF2; --muted:#9AA1AD; --line:#2A2F38; --ghost:#5A6170;
+    --work:#8399FF; --work-bg:#151D45; --rest:#F2B25A; --rest-bg:#352610;
+    --switch:#B99DF2; --switch-bg:#261D3B; --prep:#C3C8D2; --prep-bg:#1E2128; --danger:#F2867E;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0F1115; --surface:#181B21; --ink:#ECEEF2; --muted:#9AA1AD; --line:#2A2F38; --ghost:#5A6170;
+  --work:#8399FF; --work-bg:#151D45; --rest:#F2B25A; --rest-bg:#352610;
+  --switch:#B99DF2; --switch-bg:#261D3B; --prep:#C3C8D2; --prep-bg:#1E2128; --danger:#F2867E;
+  color-scheme:dark;
+}
+html,body{height:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.45}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,textarea:focus-visible,label:focus-within{outline:3px solid var(--work);outline-offset:2px}
+.tab{font-variant-numeric:tabular-nums}
+svg.i{width:18px;height:18px;display:block;fill:currentColor}
+
+/* ---------- Setup ---------- */
+.setup{max-width:1000px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:22px 40px;display:flex;flex-direction:column;gap:22px}
+.brand{display:flex;align-items:baseline;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.brand h1{font-family:var(--display);font-weight:800;font-size:clamp(2.2rem,6vw,3.4rem);line-height:.9;margin:0;letter-spacing:.01em;text-transform:uppercase}
+.brand p{margin:0;color:var(--muted);max-width:44ch;font-size:.95rem}
+.grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.35fr);gap:20px;align-items:start}
+@media (max-width:820px){.grid{grid-template-columns:minmax(0,1fr)}}
+.eyebrow{font-size:.74rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:700;margin:0 0 8px}
+.progs{display:flex;flex-direction:column;gap:8px}
+.prog{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:12px;align-items:center;background:var(--surface);border:1.5px solid var(--line);border-radius:10px;padding:11px 14px;text-align:left}
+.prog[aria-pressed="true"]{border-color:var(--work);box-shadow:inset 4px 0 0 var(--work)}
+.prog .dot{width:12px;height:12px;border-radius:50%;border:2px solid var(--muted)}
+.prog[aria-pressed="true"] .dot{border-color:var(--work);background:var(--work)}
+.prog b{display:block;font-size:1rem}
+.prog small{color:var(--muted)}
+.prog .dur{font-family:var(--display);font-weight:800;font-size:1.4rem}
+.opts{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+.chk{display:inline-flex;align-items:center;gap:7px;background:var(--surface);border:1.5px solid var(--line);border-radius:999px;padding:6px 12px;font-size:.9rem}
+.chk input{accent-color:var(--work);width:16px;height:16px;margin:0}
+.voicebox{margin-top:12px;display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center}
+.voicebox p{margin:0;font-size:.86rem;color:var(--muted);flex:1 1 220px;min-width:0}
+.voicebox p.bad{color:var(--danger)}
+.start{margin-top:14px;width:100%;border:0;border-radius:10px;background:var(--work);color:var(--bg);font-family:var(--display);font-weight:800;font-size:1.6rem;letter-spacing:.04em;text-transform:uppercase;padding:11px 16px}
+.tips{margin:10px 0 0;color:var(--muted);font-size:.84rem}
+.preview{background:var(--surface);border:1.5px solid var(--line);border-radius:10px;padding:16px 16px 6px;min-width:0}
+.preview h2{font-family:var(--display);font-weight:800;font-size:1.6rem;line-height:1;margin:0 0 4px;text-transform:uppercase}
+.preview .sum{color:var(--muted);margin:0 0 12px;font-size:.9rem}
+.blk{border-top:1px solid var(--line);padding:10px 0}
+.blk h3{margin:0 0 4px;font-size:.9rem;display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.blk h3 span{color:var(--muted);font-weight:400}
+.blk ol{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.blk li{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;padding:3px 0;font-size:.9rem}
+.blk li em{font-style:normal;color:var(--muted);white-space:nowrap}
+details.custom{background:var(--surface);border:1.5px dashed var(--line);border-radius:10px;padding:10px 14px}
+details.custom summary{cursor:pointer;font-weight:700}
+details.custom p{color:var(--muted);font-size:.86rem;margin:10px 0}
+details.custom textarea{width:100%;box-sizing:border-box;min-height:240px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.8rem;background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:10px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.btn{border:1.5px solid var(--line);background:var(--bg);border-radius:8px;padding:6px 12px;font-weight:700;font-size:.9rem}
+.err{color:var(--danger);font-size:.86rem;margin:0}
+.ok{color:var(--work);font-size:.86rem;margin:0}
+
+/* ---------- Run ---------- */
+.run{--c:var(--prep);--cbg:var(--prep-bg);min-height:100%;box-sizing:border-box;display:flex;flex-direction:column;gap:10px;background:var(--cbg);padding-left:max(14px,env(safe-area-inset-left,0px));padding-right:max(14px,env(safe-area-inset-right,0px));padding-block:10px 12px;transition:background-color .35s}
+.run[data-phase="work"]{--c:var(--work);--cbg:var(--work-bg)}
+.run[data-phase="rest"]{--c:var(--rest);--cbg:var(--rest-bg)}
+.run[data-phase="switch"]{--c:var(--switch);--cbg:var(--switch-bg)}
+.top{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;font-size:.85rem}
+.top .meta{color:var(--muted);font-weight:700;letter-spacing:.03em;min-width:0}
+.top .meta b{color:var(--ink)}
+.iconbtn{border:1.5px solid color-mix(in srgb,var(--ink) 18%,transparent);background:transparent;border-radius:7px;padding:4px 10px;font-weight:700;font-size:.8rem}
+.stage{flex:1 0 auto;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;text-align:center}
+.media{--m:min(36vw,24vh,300px);display:flex;gap:12px;align-items:center;justify-content:center;max-width:100%}
+.ringwrap{position:relative;width:var(--m);height:var(--m);flex:none}
+.ringwrap svg{width:100%;height:100%;transform:rotate(-90deg);display:block}
+.ringwrap .trk{fill:none;stroke:color-mix(in srgb,var(--c) 18%,transparent);stroke-width:10}
+.ringwrap .bar{fill:none;stroke:var(--c);stroke-width:10;stroke-linecap:round;transition:stroke-dashoffset .12s linear}
+.ringc{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.phase{font-family:var(--display);font-weight:800;text-transform:uppercase;letter-spacing:.12em;color:var(--c);font-size:calc(var(--m)*.09)}
+.secs{font-family:var(--display);font-weight:800;line-height:.85;font-size:calc(var(--m)*.42);font-variant-numeric:tabular-nums;color:var(--ink)}
+.paused .secs{opacity:.35}
+.pausetag{font-weight:700;color:var(--muted);font-size:calc(var(--m)*.07);min-height:1.3em}
+.demo{position:relative;width:calc(var(--m)*1.41);height:var(--m);max-width:56vw;flex:none;background:color-mix(in srgb,var(--surface) 70%,transparent);border-radius:12px;overflow:hidden}
+.demo canvas{width:100%;height:100%;display:block}
+.demo span{position:absolute;left:8px;top:6px;font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;font-weight:700;color:var(--muted)}
+.card{display:flex;flex-direction:column;gap:7px;max-width:42rem;min-width:0;align-items:center}
+.kicker{margin:0;font-size:.74rem;letter-spacing:.14em;text-transform:uppercase;font-weight:700;color:var(--c)}
+.name{margin:0;font-family:var(--display);font-weight:800;text-transform:uppercase;line-height:.95;font-size:clamp(1.6rem,5vw,3.1rem);text-wrap:balance;overflow-wrap:anywhere}
+.chips{display:flex;flex-wrap:wrap;gap:6px;justify-content:center}
+.chip{border:1.5px solid var(--c);color:var(--c);border-radius:999px;padding:1px 10px;font-weight:700;font-size:.82rem}
+.chip.fill{background:var(--c);color:var(--cbg)}
+.desc{margin:0;font-size:clamp(.95rem,1.6vw,1.15rem);max-width:44ch;text-wrap:pretty}
+.upnext{margin:0;color:var(--muted);font-size:.88rem}
+.upnext b{color:var(--ink)}
+@media (min-width:900px){ .media{--m:min(24vw,40vh,360px);gap:20px} }
+.bottom{display:flex;flex-direction:column;gap:8px;flex:none}
+.pbar{height:5px;border-radius:3px;background:color-mix(in srgb,var(--ink) 12%,transparent);overflow:hidden}
+.pbar i{display:block;height:100%;background:var(--c);width:0}
+.times{display:flex;justify-content:space-between;color:var(--muted);font-size:.8rem;font-weight:700}
+.controls{display:flex;gap:8px;justify-content:center;align-items:center;flex-wrap:wrap}
+.ctl{display:inline-flex;align-items:center;justify-content:center;gap:4px;border:1.5px solid color-mix(in srgb,var(--ink) 20%,transparent);background:var(--surface);border-radius:9px;padding:8px 12px;font-weight:700;font-size:.85rem;min-width:44px;min-height:40px;box-sizing:border-box}
+.ctl.main{background:var(--c);border-color:var(--c);color:var(--cbg);font-family:var(--display);font-size:1.2rem;letter-spacing:.06em;text-transform:uppercase;padding:6px 18px;min-width:116px}
+.ctl[disabled]{opacity:.35;cursor:default}
+.ctl.warn{border-color:var(--danger);color:var(--danger)}
+
+/* ---------- Done ---------- */
+.done{height:100%;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;text-align:center;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:24px}
+.done h2{font-family:var(--display);font-weight:800;text-transform:uppercase;font-size:clamp(2.6rem,9vw,4.6rem);line-height:.9;margin:0;color:var(--work)}
+.done p{margin:0;color:var(--muted)}
+@media (prefers-reduced-motion:reduce){.run,.ringwrap .bar{transition:none}}
+</style>
+</head>
+<body>
+
+<main id="setup" class="setup">
+  <header class="brand">
+    <h1>Coach Renfo</h1>
+    <p>Lance la séance et pose l'écran. Une silhouette montre chaque mouvement, la voix l'annonce et les bips rythment les 3 dernières secondes.</p>
+  </header>
+  <div class="grid">
+    <section aria-labelledby="pick">
+      <p class="eyebrow" id="pick">Programme</p>
+      <div class="progs" id="progs"></div>
+      <div class="opts">
+        <label class="chk"><input type="checkbox" id="optVoice" checked> Voix</label>
+        <label class="chk"><input type="checkbox" id="optBeep" checked> Bips</label>
+        <label class="chk"><input type="checkbox" id="optDesc" checked> Lire les consignes</label>
+      </div>
+      <div class="voicebox">
+        <label class="chk" for="voiceSel" style="padding:4px 10px">Voix
+          <select id="voiceSel" style="font:inherit;border:0;background:transparent;color:inherit;max-width:180px"><option value="">Par défaut</option></select></label>
+        <button class="btn" id="testVoice">Tester le son</button>
+        <p id="voiceStatus" role="status">Teste avant de lancer la séance.</p>
+      </div>
+      <button class="start" id="startBtn">Démarrer</button>
+      <p class="tips">iPhone : coupe le mode silencieux et monte le volume. Mac : <b>Espace</b> pause, <b>← →</b> exercice précédent / suivant, <b>Échap</b> arrêter.</p>
+    </section>
+    <section class="preview" id="preview" aria-live="polite"></section>
+  </div>
+  <details class="custom" id="customBox">
+    <summary>Créer ou modifier un programme (JSON)</summary>
+    <p>Le JSON du programme sélectionné est chargé ci-dessous. Modifie-le et enregistre : il apparaît comme programme perso, gardé dans ce navigateur. Par exercice : <code>name</code>, <code>work</code> (s), <code>desc</code>, <code>reps</code>, <code>sides</code>, <code>sets</code>, <code>setRest</code>, <code>rest</code>, <code>anim</code>. Par bloc : <code>rounds</code>, <code>rest</code>, <code>roundRest</code>, <code>transition</code>.</p>
+    <p id="animList"></p>
+    <label for="jsonArea" class="eyebrow" style="display:block">JSON</label>
+    <textarea id="jsonArea" spellcheck="false"></textarea>
+    <div class="row" style="margin-top:10px">
+      <button class="btn" id="saveCustom">Enregistrer comme programme perso</button>
+      <button class="btn" id="delCustom" hidden>Supprimer le programme perso</button>
+      <p id="jsonMsg" class="err" role="status"></p>
+    </div>
+  </details>
+</main>
+
+<section id="run" class="run" data-phase="prep" hidden>
+  <div class="top">
+    <span class="meta tab" id="meta"></span>
+    <span class="row">
+      <button class="iconbtn" id="fsBtn">Plein écran</button>
+      <button class="iconbtn" id="muteBtn">Voix : on</button>
+    </span>
+  </div>
+  <div class="stage">
+    <div class="media">
+      <div class="ringwrap">
+        <svg viewBox="0 0 200 200" aria-hidden="true"><circle class="trk" cx="100" cy="100" r="90"/><circle class="bar" id="ringBar" cx="100" cy="100" r="90" stroke-dasharray="565.49" stroke-dashoffset="0"/></svg>
+        <div class="ringc">
+          <span class="phase" id="phase">Prêt</span>
+          <span class="secs" id="secs">10</span>
+          <span class="pausetag" id="pausetag"></span>
+        </div>
+      </div>
+      <div class="demo" id="demoBox"><canvas id="demo" aria-label="Démonstration animée du mouvement"></canvas><span id="demoTag">Démo</span></div>
+    </div>
+    <div class="card">
+      <p class="kicker" id="kicker">À suivre</p>
+      <h2 class="name" id="exName">—</h2>
+      <div class="chips" id="chips"></div>
+      <p class="desc" id="exDesc"></p>
+      <p class="upnext" id="upnext"></p>
+    </div>
+  </div>
+  <div class="bottom">
+    <div class="pbar"><i id="pfill"></i></div>
+    <div class="times tab"><span id="tElapsed">0:00</span><span id="tLeft">reste 0:00</span></div>
+    <div class="controls">
+      <button class="ctl" id="prevBtn" aria-label="Exercice précédent"><svg class="i" viewBox="0 0 24 24"><path d="M6 5h2v14H6zM20 5v14L9 12z"/></svg></button>
+      <button class="ctl main" id="playBtn">Pause</button>
+      <button class="ctl" id="nextBtn" aria-label="Passer à la suite"><svg class="i" viewBox="0 0 24 24"><path d="M16 5h2v14h-2zM4 5v14l11-7z"/></svg></button>
+      <button class="ctl" id="plusBtn" aria-label="Ajouter 10 secondes de récup">+10 s</button>
+      <button class="ctl" id="stopBtn" aria-label="Arrêter la séance"><svg class="i" viewBox="0 0 24 24"><path d="M6 6h12v12H6z"/></svg></button>
+    </div>
+  </div>
+</section>
+
+<section id="done" class="done" hidden>
+  <h2>Séance terminée</h2>
+  <p id="doneSum"></p>
+  <button class="start" id="againBtn" style="max-width:320px">Retour</button>
+</section>
+
+<script src="figure.js"></script>
+<script>
+const PROGRAMS = [
+{
+  id:"mobi-renfo", name:"Mobilité + renfo léger", sub:"Échauffement mobilité, circuit 2 tours, retour au calme",
+  prep:10, switchTime:5,
+  blocks:[
+    {name:"Mobilité", rounds:1, rest:8, transition:20, items:[
+      {name:"Marche sur place / jumping jacks doux", work:60, desc:"Rythme léger, épaules relâchées. On monte la température."},
+      {name:"Cercles de chevilles", work:20, sides:true, reps:"10 / sens", desc:"Pied décollé du sol, grands cercles lents dans les deux sens."},
+      {name:"Mobilité cheville genou-mur", work:30, sides:true, reps:"10", desc:"Talon au sol, amène le genou vers le mur sans forcer. Amplitude progressive."},
+      {name:"Cercles de hanches", work:30, reps:"10 / sens", desc:"Debout, mains sur les hanches, cercles amples. Change de sens à mi-temps."},
+      {name:"Fente avant dynamique + rotation", work:30, sides:true, reps:"6", desc:"Fente d'amplitude moyenne, rotation du buste vers la jambe avant."},
+      {name:"Chat-vache", work:40, reps:"10", desc:"À quatre pattes, enroule puis creuse le dos en suivant ta respiration."},
+      {name:"Ouvertures thoraciques", work:30, sides:true, reps:"8", desc:"Allongé sur le côté, genoux fléchis, ouvre le bras du dessus comme un livre."},
+      {name:"Balancés de jambe", work:30, sides:true, reps:"10 + 10", desc:"Avant-arrière puis latéral, buste stable. Main au mur si besoin."}
+    ]},
+    {name:"Achille", rounds:1, transition:20, items:[
+      {name:"Isométrie pointes de pieds", work:40, sets:3, setRest:20, reps:"mi-hauteur", desc:"Deux pieds, talons à mi-hauteur, on tient. Zéro douleur tolérée."}
+    ]},
+    {name:"Circuit", rounds:2, rest:20, roundRest:75, transition:20, items:[
+      {name:"Pont fessier", work:45, reps:"12 · tenue 2 s", desc:"Deux jambes. Pousse dans les talons, serre les fessiers 2 secondes en haut."},
+      {name:"Abduction couchée", work:40, sides:true, reps:"15", desc:"Allongé sur le côté, jambe du dessus tendue, montée lente, pointe de pied vers l'avant."},
+      {name:"Équilibre unipodal", work:30, sides:true, desc:"Genou légèrement fléchi, bassin horizontal, regard fixe."},
+      {name:"Planche", work:45, desc:"Sur les avant-bras, corps gainé de la tête aux talons. Dos qui ne creuse pas."},
+      {name:"Planche latérale", work:30, sides:true, desc:"Coude sous l'épaule, bassin haut, corps aligné."},
+      {name:"Dead bug", work:45, reps:"10", desc:"Lombaires plaquées au sol. Bras et jambe opposés s'allongent lentement."},
+      {name:"Bird dog lent", work:40, sides:true, reps:"8", desc:"À quatre pattes, bras et jambe opposés tendus, bassin immobile."},
+      {name:"Pompes", work:40, reps:"10–12", desc:"Corps gainé, descente contrôlée. Sur les genoux si la forme lâche."},
+      {name:"Rowing élastique", work:45, reps:"15", desc:"Tire les coudes vers l'arrière, serre les omoplates, retour lent."},
+      {name:"Élévations latérales", work:40, reps:"12", desc:"Élastique ou kettlebell 4 kg. Bras jusqu'à l'horizontale, sans hausser les épaules."}
+    ]},
+    {name:"Retour au calme", rounds:1, rest:8, items:[
+      {name:"Jambes au mur", work:60, desc:"Allongé, jambes contre le mur. Respiration lente par le ventre."},
+      {name:"Étirement fessier", work:40, sides:true, desc:"Allongé, cheville sur le genou opposé, tire doucement la cuisse vers toi."}
+    ]}
+  ]
+},
+{
+  id:"entretien", name:"Renfo entretien", sub:"Achille, hanches, quadriceps léger, gainage, pied — 2 tours",
+  prep:10, switchTime:5,
+  blocks:[
+    {name:"Mollet / Achille", rounds:1, transition:20, items:[
+      {name:"Isométrie pointes de pieds", work:40, sets:3, setRest:20, reps:"mi-hauteur", desc:"Deux pieds, talons à mi-hauteur, on tient. Zéro douleur tolérée."},
+      {name:"Montées sur pointes lentes", work:50, sets:2, setRest:30, reps:"12 · 3 s / 3 s", desc:"Seulement si l'isométrie est à 0 sur 10. Deux pieds, au sol, pas sur une marche."}
+    ]},
+    {name:"Circuit", rounds:2, rest:20, roundRest:75, items:[
+      {name:"Pont fessier une jambe", work:40, sides:true, reps:"10", desc:"Bassin horizontal, pousse dans le talon, monte sans cambrer."},
+      {name:"Abduction couchée", work:40, sides:true, reps:"15", desc:"Jambe du dessus tendue, montée lente, pointe de pied vers l'avant."},
+      {name:"Équilibre unipodal", work:30, sides:true, desc:"Yeux ouverts, genou légèrement fléchi, bassin stable."},
+      {name:"Step-down lent", work:45, sides:true, reps:"8", desc:"Sur le step, descente en 3 secondes, genou dans l'axe du pied."},
+      {name:"Chaise contre le mur", work:40, desc:"Dos au mur, cuisses proches de l'horizontale, genoux au-dessus des chevilles."},
+      {name:"Planche", work:45, desc:"Sur les avant-bras, corps gainé, dos qui ne creuse pas."},
+      {name:"Planche latérale", work:30, sides:true, desc:"Coude sous l'épaule, bassin haut, corps aligné."},
+      {name:"Dead bug", work:45, reps:"10", desc:"Lombaires plaquées au sol, mouvements lents."},
+      {name:"Short foot", work:40, reps:"10", desc:"Pied à plat, raccourcis le pied en rapprochant les orteils du talon, sans les plier. Ou serre une serviette."}
+    ]}
+  ]
+},
+{
+  id:"demo", name:"Démo 1 minute", sub:"Pour tester le son et l'enchaînement",
+  prep:5, switchTime:3,
+  blocks:[
+    {name:"Démo", rounds:2, rest:5, roundRest:8, items:[
+      {name:"Planche", work:10, desc:"Corps gainé de la tête aux talons."},
+      {name:"Fente arrière", work:8, sides:true, reps:"4", desc:"Grand pas en arrière, genou avant au-dessus de la cheville."}
+    ]}
+  ]
+}
+];
+
+/* ---------- Storage (confort uniquement) ---------- */
+const LS_KEY="coach-renfo-custom";
+function loadCustom(){try{const r=localStorage.getItem(LS_KEY);return r?JSON.parse(r):null}catch(e){return null}}
+function saveCustom(p){try{localStorage.setItem(LS_KEY,JSON.stringify(p));return true}catch(e){return false}}
+function clearCustom(){try{localStorage.removeItem(LS_KEY)}catch(e){}}
+
+/* ---------- Programme → séquence ---------- */
+function expand(p){
+  const segs=[]; const blocks=p.blocks;
+  blocks.forEach((b,bi)=>{
+    const rounds=b.rounds||1;
+    for(let r=1;r<=rounds;r++){
+      b.items.forEach((it,ii)=>{
+        const sets=it.sets||1;
+        for(let s=1;s<=sets;s++){
+          const sides=it.sides?["gauche","droit"]:[null];
+          sides.forEach((side,si)=>{
+            segs.push({type:"work",dur:it.work,name:it.name,desc:it.desc||"",reps:it.reps||"",anim:animFor(it),side,set:s,sets,block:b.name,round:r,rounds});
+            if(side && si===0) segs.push({type:"switch",dur:p.switchTime??5});
+          });
+          const lastSet=s===sets,lastItem=ii===b.items.length-1,lastRound=r===rounds,lastBlock=bi===blocks.length-1;
+          let rest,kind="rest";
+          if(!lastSet){rest=it.setRest??it.rest??b.rest??p.rest??20;kind="set"}
+          else if(!lastItem){rest=it.rest??b.rest??p.rest??20}
+          else if(!lastRound){rest=b.roundRest??60;kind="round"}
+          else if(!lastBlock){rest=b.transition??20;kind="block"}
+          else rest=0;
+          if(rest>0) segs.push({type:"rest",dur:rest,kind});
+        }
+      });
+    }
+  });
+  let nxt=null;
+  for(let k=segs.length-1;k>=0;k--){segs[k].next=nxt; if(segs[k].type==="work") nxt=segs[k];}
+  segs.unshift({type:"prep",dur:p.prep??10,next:nxt});
+  let wi=0; const totalWork=segs.filter(s=>s.type==="work").length;
+  segs.forEach(s=>{ if(s.type==="work"){wi++; s.wi=wi;} });
+  segs.forEach(s=>{ s.totalWork=totalWork; if(s.type!=="work"&&s.next){s.block=s.next.block;s.round=s.next.round;s.rounds=s.next.rounds;s.wi=s.next.wi;} });
+  return segs;
+}
+const fmt=t=>{t=Math.max(0,Math.round(t));return Math.floor(t/60)+":"+String(t%60).padStart(2,"0")};
+const totalOf=segs=>segs.reduce((a,s)=>a+s.dur,0);
+
+function validate(p){
+  if(!p||typeof p!=="object") return "Le JSON doit être un objet programme.";
+  if(!p.name) return "Il manque le champ \"name\" du programme.";
+  if(!Array.isArray(p.blocks)||!p.blocks.length) return "Il faut au moins un bloc dans \"blocks\".";
+  for(const b of p.blocks){
+    if(!Array.isArray(b.items)||!b.items.length) return `Le bloc "${b.name||"?"}" n'a pas d'exercices dans "items".`;
+    for(const it of b.items){
+      if(!it.name) return `Un exercice du bloc "${b.name||"?"}" n'a pas de "name".`;
+      if(!(typeof it.work==="number"&&it.work>0)) return `"${it.name}" : "work" doit être une durée en secondes.`;
+      if(it.anim&&!ANIMS[it.anim]) return `"${it.name}" : animation "${it.anim}" inconnue.`;
+    }
+  }
+  return null;
+}
+
+/* ---------- Écran de préparation ---------- */
+const $=id=>document.getElementById(id);
+let selectedId="mobi-renfo";
+function allPrograms(){const c=loadCustom();return c?[...PROGRAMS.filter(p=>p.id!=="custom"),{...c,id:"custom",sub:c.sub||"Programme perso"}]:PROGRAMS}
+function getProg(){return allPrograms().find(p=>p.id===selectedId)||PROGRAMS[0]}
+function renderSetup(){
+  const box=$("progs"); box.innerHTML="";
+  allPrograms().forEach(p=>{
+    const b=document.createElement("button"); b.className="prog"; b.setAttribute("aria-pressed",p.id===selectedId);
+    b.innerHTML=`<span class="dot"></span><span><b></b><small></small></span><span class="dur tab">${fmt(totalOf(expand(p)))}</span>`;
+    b.querySelector("b").textContent=p.name; b.querySelector("small").textContent=p.sub||"";
+    b.onclick=()=>{selectedId=p.id;renderSetup()};
+    box.appendChild(b);
+  });
+  const p=getProg(), segs=expand(p);
+  const pv=$("preview"); pv.innerHTML="";
+  const h=document.createElement("h2"); h.textContent=p.name; pv.appendChild(h);
+  const works=segs.filter(s=>s.type==="work");
+  const sum=document.createElement("p"); sum.className="sum tab";
+  sum.textContent=`${fmt(totalOf(segs))} au total · ${works.length} passages · ${fmt(works.reduce((a,s)=>a+s.dur,0))} d'effort`;
+  pv.appendChild(sum);
+  p.blocks.forEach(b=>{
+    const d=document.createElement("div"); d.className="blk";
+    const t=document.createElement("h3"); t.textContent=b.name;
+    const sp=document.createElement("span"); const r=b.rounds||1;
+    sp.textContent=(r>1?`${r} tours`:"1 tour")+(b.rest?` · récup ${b.rest} s`:""); t.appendChild(sp); d.appendChild(t);
+    const ol=document.createElement("ol");
+    b.items.forEach(it=>{
+      const li=document.createElement("li"); const n=document.createElement("span");
+      n.textContent=it.name+(it.reps?` — ${it.reps}`:"");
+      const em=document.createElement("em"); em.className="tab";
+      em.textContent=(it.sets>1?`${it.sets} × `:"")+`${it.work} s`+(it.sides?" / côté":"");
+      li.append(n,em); ol.appendChild(li);
+    });
+    d.appendChild(ol); pv.appendChild(d);
+  });
+  const clean=JSON.parse(JSON.stringify(p)); delete clean.id; if(clean.sub==="Programme perso") delete clean.sub;
+  $("jsonArea").value=JSON.stringify(clean,null,2);
+  $("delCustom").hidden=!loadCustom();
+}
+$("animList").textContent="Animations disponibles pour \"anim\" (sinon détectée d'après le nom) : "+Object.keys(ANIMS).join(", ")+".";
+$("saveCustom").onclick=()=>{
+  const msg=$("jsonMsg"); let p;
+  try{p=JSON.parse($("jsonArea").value)}catch(e){msg.className="err";msg.textContent="JSON invalide : "+e.message;return}
+  const err=validate(p); if(err){msg.className="err";msg.textContent=err;return}
+  if(saveCustom(p)){msg.className="ok";msg.textContent="Programme perso enregistré et sélectionné.";}
+  else{msg.className="err";msg.textContent="Ce navigateur bloque l'enregistrement. Le programme reste utilisable jusqu'au rechargement."; PROGRAMS.push({...p,id:"custom"});}
+  selectedId="custom"; renderSetup();
+};
+$("delCustom").onclick=()=>{clearCustom(); selectedId="mobi-renfo"; $("jsonMsg").textContent=""; renderSetup();};
+
+/* ---------- Son : bips ---------- */
+let actx=null;
+function unlockAudio(){
+  try{actx=actx||new (window.AudioContext||window.webkitAudioContext)(); if(actx.state!=="running") actx.resume()}catch(e){actx=null}
+}
+function beep(freq=660,len=.12,vol=.35,force=false){
+  if((!state.beep&&!force)||!actx) return;
+  try{const o=actx.createOscillator(),g=actx.createGain();o.type="sine";o.frequency.value=freq;
+    const t=actx.currentTime;g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(vol,t+.01);g.gain.exponentialRampToValueAtTime(.0001,t+len);
+    o.connect(g).connect(actx.destination);o.start(t);o.stop(t+len+.02);}catch(e){}
+}
+
+/* ---------- Son : voix ---------- */
+const HAS_TTS="speechSynthesis" in window && "SpeechSynthesisUtterance" in window;
+let frVoice=null, nVoices=0, nFr=0, voiceFailed=false;
+const VKEY="coach-renfo-voice";
+function savedVoice(){try{return localStorage.getItem(VKEY)||""}catch(e){return ""}}
+function pickVoice(){
+  if(!HAS_TTS) return;
+  try{
+    const v=speechSynthesis.getVoices(); nVoices=v.length; const fr=v.filter(x=>/^fr/i.test(x.lang)); nFr=fr.length;
+    const want=$("voiceSel").value||savedVoice();
+    const sel=$("voiceSel"); const keep=want;
+    sel.innerHTML='<option value="">Par défaut</option>'+fr.map(x=>`<option value="${esc(x.voiceURI)}">${esc(x.name)}${x.localService?"":" (en ligne)"}</option>`).join("");
+    sel.value=fr.some(x=>x.voiceURI===keep)?keep:"";
+    frVoice=fr.find(x=>x.voiceURI===sel.value)
+      ||fr.find(x=>x.localService&&/fr.?FR/i.test(x.lang))||fr.find(x=>x.localService)||null;
+  }catch(e){}
+}
+let sayQueue=[], flushTimer=null; const keepAlive=[]; let lastVoiceOk=false;
+function speakNow(text,onstart,retry){
+  const u=new SpeechSynthesisUtterance(text); u.lang="fr-FR"; if(frVoice&&!voiceFailed) u.voice=frVoice; u.rate=1.02;
+  let ok=false; const guard=setTimeout(()=>{ if(!ok&&!retry&&frVoice&&!voiceFailed){ voiceFailed=true; try{speechSynthesis.cancel()}catch(e){} speakNow(text,onstart,true);} },1800);
+  u.onstart=()=>{ok=true; clearTimeout(guard); lastVoiceOk=true; onstart&&onstart()};
+  u.onerror=e=>{ if(e.error&&!/interrupted|canceled/.test(e.error)) setVoiceStatus(`La voix a échoué (${e.error}).`,true); };
+  keepAlive.push(u); if(keepAlive.length>30) keepAlive.shift();
+  try{speechSynthesis.resume()}catch(e){}
+  speechSynthesis.speak(u);
+}
+function say(text,flush=false,onstart){
+  if(!state.voice||!HAS_TTS||!text) return;
+  try{
+    if(flush){
+      sayQueue=[[text,onstart]];
+      if(speechSynthesis.speaking||speechSynthesis.pending) speechSynthesis.cancel();
+      clearTimeout(flushTimer);
+      flushTimer=setTimeout(()=>{flushTimer=null; const q=sayQueue; sayQueue=[]; q.forEach(([t,f])=>speakNow(t,f))},90);
+    } else if(flushTimer) sayQueue.push([text,onstart]);
+    else speakNow(text,onstart);
+  }catch(e){}
+}
+function setVoiceStatus(t,bad){const el=$("voiceStatus"); el.textContent=t; el.classList.toggle("bad",!!bad)}
+$("testVoice").onclick=()=>{
+  unlockAudio(); beep(660,.15,.35,true); setTimeout(()=>beep(990,.3,.35,true),250);
+  if(!HAS_TTS){setVoiceStatus("Ce navigateur n'a pas de synthèse vocale. Ouvre la page dans Safari ou Chrome.",true);return}
+  pickVoice(); voiceFailed=false; const prev=state.voice; state.voice=true; let started=false;
+  say("Test de la voix. Un, deux, trois, c'est parti.",true,()=>{started=true; setVoiceStatus(`Voix OK${frVoice&&!voiceFailed?` (${frVoice.name})`:" (voix par défaut)"}. Bips joués juste avant.`)});
+  state.voice=prev;
+  setTimeout(()=>{ if(!started){
+    const info=`[${navigator.userAgent.match(/(Electron|Edg|Chrome|Firefox|Safari)\/[\d.]+/g)?.join(" ")||"?"} · ${nVoices} voix · ${nFr} FR · ${speechSynthesis.speaking?"parle":"muet"}]`;
+    if(nVoices===0) setVoiceStatus("Aucune voix de synthèse disponible dans cette fenêtre. Ouvre le lien de la page dans Safari ou Chrome.",true);
+    else if(nFr===0) setVoiceStatus(`Aucune voix française installée (${nVoices} voix au total). Réglages Système › Accessibilité › Contenu énoncé › Voix système.`,true);
+    else setVoiceStatus("La voix ne démarre pas ici. Choisis une autre voix dans la liste, ou ouvre la page dans Safari. "+info,true);
+    if(nVoices===0||nFr===0) $("voiceStatus").textContent+=" "+info;
+  }},4000);
+};
+
+/* ---------- Écran allumé ---------- */
+let wake=null;
+async function lockScreen(){try{if("wakeLock" in navigator&&document.visibilityState==="visible") wake=await navigator.wakeLock.request("screen")}catch(e){wake=null}}
+function unlockScreen(){try{wake&&wake.release()}catch(e){} wake=null}
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible"&&state.active&&state.running) lockScreen()});
+
+/* ---------- Silhouette animée ---------- */
+const cv=$("demo"), g2=cv.getContext("2d");
+let COL={};
+function readColors(){const cs=getComputedStyle($("run"));const v=n=>cs.getPropertyValue(n).trim();COL={ink:v("--ink"),ghost:v("--ghost"),line:v("--line"),muted:v("--muted"),c:v("--c")}}
+function sizeCanvas(){const r=cv.getBoundingClientRect(),d=window.devicePixelRatio||1;const w=Math.max(1,Math.round(r.width*d)),h=Math.max(1,Math.round(r.height*d));if(cv.width!==w||cv.height!==h){cv.width=w;cv.height=h}}
+try{new ResizeObserver(sizeCanvas).observe(cv)}catch(e){window.addEventListener("resize",sizeCanvas)}
+const REDUCED=window.matchMedia&&matchMedia("(prefers-reduced-motion: reduce)").matches;
+function drawFigure(key,ms){
+  const a=ANIMS[key]; const W=cv.width,H=cv.height; g2.setTransform(1,0,0,1,0,0); g2.clearRect(0,0,W,H);
+  if(!a) return;
+  const s=Math.min(W/FIG.W,H/FIG.H); g2.setTransform(s,0,0,s,(W-FIG.W*s)/2,(H-FIG.H*s)/2);
+  const J=REDUCED?solve(a.keys[Math.min(1,a.keys.length-1)]):frameAt(a,ms);
+  const line=(A,B,w,c)=>{g2.strokeStyle=c;g2.lineWidth=w;g2.lineCap="round";g2.lineJoin="round";g2.beginPath();g2.moveTo(A[0],A[1]);g2.lineTo(B[0],B[1]);g2.stroke()};
+  line([10,FIG.G+3],[FIG.W-10,FIG.G+3],2,COL.line);
+  for(const pr of a.props||[]){
+    g2.fillStyle=COL.line; g2.strokeStyle=COL.muted;
+    if(pr.type==="wall") g2.fillRect(pr.x-3,30,6,FIG.G-30+3);
+    if(pr.type==="step"||pr.type==="chair") g2.fillRect(pr.x0,pr.y+3,pr.x1-pr.x0,FIG.G-pr.y);
+    if(pr.type==="post") g2.fillRect(pr.x-2,pr.y-4,5,FIG.G-pr.y+7);
+    if(pr.type==="band") line(J[pr.from],[pr.x,pr.y],2,COL.c);
+  }
+  const far=a.front?COL.ink:COL.ghost;
+  const limb=(sd,c)=>{line(J.N,J[sd+"E"],7,c);line(J[sd+"E"],J[sd+"W"],6,c);line(J.H,J[sd+"K"],8,c);line(J[sd+"K"],J[sd+"A"],7,c);line(J[sd+"A"],J[sd+"T"],5,c)};
+  limb("f",far);
+  line(J.H,J.M,10,COL.ink); line(J.M,J.N,10,COL.ink);
+  g2.fillStyle=COL.ink; g2.beginPath(); g2.arc(J.C[0],J.C[1],FIG.HEAD,0,Math.PI*2); g2.fill();
+  limb("n",COL.ink);
+  for(const pr of a.props||[]) if(pr.type==="weight"){g2.fillStyle=COL.c;g2.beginPath();g2.arc(J[pr.at][0],J[pr.at][1],5,0,Math.PI*2);g2.fill()}
+  for(const f of a.focus||[]){ const r=11+(REDUCED?0:3*Math.sin(ms/260)); g2.strokeStyle=COL.c; g2.lineWidth=2.5; g2.beginPath(); g2.arc(J[f][0],J[f][1],r,0,Math.PI*2); g2.stroke(); }
+}
+let animKey=null, animT0=0;
+function loop(now){
+  if(!state.active) return;
+  requestAnimationFrame(loop);
+  if(animKey){ try{ drawFigure(animKey,Math.max(0,performance.now()-animT0)); }catch(e){ console.error(e); } }
+}
+
+/* ---------- Moteur ---------- */
+const state={active:false,running:false,segs:[],i:0,remaining:0,last:0,lastSec:null,voice:true,beep:true,readDesc:true,prog:null,stopArmed:false};
+const cur=()=>state.segs[state.i];
+function label(w){if(!w)return"";let s=w.name;if(w.side)s+=`, côté ${w.side}`;if(w.sets>1)s+=`, série ${w.set} sur ${w.sets}`;return s}
+function announce(s,prev){
+  const n=s.next;
+  if(s.type==="prep"){say(`${state.prog.name}. Premier exercice : ${label(n)}.`,true); if(state.readDesc&&n) say(n.desc); return}
+  if(s.type==="rest"){
+    const head=s.kind==="round"?`Fin du tour. Récupération ${s.dur} secondes.`:s.kind==="block"?`Bloc terminé. ${s.dur} secondes.`:`Repos.`;
+    say(`${head} Ensuite : ${label(n)}.`,true);
+    if(state.readDesc&&n&&s.kind!=="set"&&s.dur>=12) say(n.desc);
+    return;
+  }
+  if(s.type==="switch"){say("Changez de côté.",true);return}
+  if(s.type==="work"){
+    if(prev&&prev.type!=="work") say(s.side==="droit"&&prev.type==="switch"?"Côté droit, c'est parti.":"C'est parti !",true);
+    else{say(`${label(s)}.`,true); if(state.readDesc) say(s.desc)}
+  }
+}
+function enter(k,doAnnounce=true){
+  state.i=k; const s=cur(); state.remaining=s.dur*1000; state.lastSec=Math.ceil(state.remaining/1000); state.stopArmed=false;
+  if(doAnnounce) announce(s,state.segs[k-1]);
+  render();
+}
+function advance(){ if(state.i+1>=state.segs.length){finish();return} enter(state.i+1); }
+function tick(){
+  const now=performance.now();
+  if(state.active&&state.running){
+    state.remaining-=now-state.last;
+    const sec=Math.ceil(state.remaining/1000), s=cur();
+    if(sec!==state.lastSec){
+      state.lastSec=sec;
+      if(sec>=1&&sec<=3&&s.dur>=5) beep(660,.13);
+      if(s.type==="work"&&sec===10&&s.dur>=25) say("Dix secondes");
+      if(s.type==="rest"&&sec===5&&s.dur>=15) say("Prépare-toi");
+    }
+    if(state.remaining<=0){beep(s.type==="work"?520:990,.4,.4); advance();}
+    else renderTime();
+  }
+  state.last=now;
+}
+setInterval(tick,100);
+
+function start(){
+  const p=getProg(); state.prog=p; state.segs=expand(p);
+  state.voice=$("optVoice").checked; state.beep=$("optBeep").checked; state.readDesc=$("optDesc").checked;
+  unlockAudio(); pickVoice();
+  if(HAS_TTS){try{const u=new SpeechSynthesisUtterance(" ");u.volume=0;keepAlive.push(u);speechSynthesis.speak(u)}catch(e){}}
+  $("setup").hidden=true; $("done").hidden=true; $("run").hidden=false;
+  state.active=true; state.running=true; state.last=performance.now();
+  updateMute(); lockScreen(); sizeCanvas(); enter(0); requestAnimationFrame(loop);
+}
+function finish(){
+  state.active=false; state.running=false; unlockScreen();
+  const segs=state.segs, work=segs.filter(s=>s.type==="work");
+  say("Séance terminée. Bien joué.",true);
+  $("doneSum").textContent=`${state.prog.name} · ${fmt(totalOf(segs))} · ${work.length} passages`;
+  $("run").hidden=true; $("done").hidden=false;
+}
+function stop(){
+  state.active=false; state.running=false; unlockScreen();
+  try{speechSynthesis.cancel()}catch(e){}
+  $("run").hidden=true; $("done").hidden=true; $("setup").hidden=false; renderSetup();
+}
+function togglePlay(){
+  if(!state.active) return;
+  state.running=!state.running; state.last=performance.now();
+  if(state.running){lockScreen(); say("Reprise",true)} else {try{speechSynthesis.cancel()}catch(e){}}
+  render();
+}
+function goNext(){if(state.active) advance()}
+function goPrev(){
+  if(!state.active) return;
+  const s=cur(), elapsed=s.dur-state.remaining/1000;
+  if(elapsed>3||state.i===0){enter(state.i);return}
+  enter(state.i-1);
+}
+function plus10(){if(!state.active||cur().type==="work")return; state.remaining+=10000; cur().dur+=10; renderTime()}
+
+/* ---------- Affichage ---------- */
+const CIRC=565.49;
+function render(){
+  const s=cur(); const run=$("run");
+  run.dataset.phase=s.type; run.classList.toggle("paused",!state.running);
+  readColors();
+  $("phase").textContent={work:"Travail",rest:"Récup",switch:"Côté",prep:"Prêt"}[s.type];
+  $("pausetag").textContent=state.running?"":"En pause";
+  $("playBtn").textContent=state.running?"Pause":"Reprendre";
+  $("plusBtn").disabled=s.type==="work";
+  const stopB=$("stopBtn"); stopB.classList.toggle("warn",state.stopArmed);
+  stopB.innerHTML=state.stopArmed?"Confirmer ?":'<svg class="i" viewBox="0 0 24 24"><path d="M6 6h12v12H6z"/></svg>';
+  const show=s.type==="work"?s:s.next;
+  const r=s.rounds>1?` · Tour <b>${s.round}/${s.rounds}</b>`:"";
+  $("meta").innerHTML=`<b>${esc(s.block||"")}</b>${r} · Exo <b>${s.wi||1}/${s.totalWork}</b>`;
+  $("kicker").textContent=s.type==="work"?"Maintenant":s.type==="switch"?"Change de côté":"À suivre";
+  $("exName").textContent=show?show.name:"";
+  $("exDesc").textContent=show?show.desc:"";
+  const nk=show?show.anim:null;
+  if(nk!==animKey){animKey=nk; animT0=performance.now();}
+  $("demoBox").hidden=!animKey;
+  $("demoTag").textContent=s.type==="work"?"Démo":"Aperçu";
+  const chips=$("chips"); chips.innerHTML="";
+  if(show){
+    if(show.side) addChip(`Côté ${show.side}`,true);
+    if(show.reps) addChip(show.reps);
+    if(show.sets>1) addChip(`Série ${show.set}/${show.sets}`);
+    addChip(`${show.dur} s`);
+  }
+  let up="";
+  if(s.type==="work"){
+    const after=s.next, restSeg=state.segs[state.i+1];
+    up=after?`Ensuite${restSeg&&restSeg.type==="rest"?` (après ${restSeg.dur} s de récup)`:""} : <b>${esc(label(after))}</b>`:"Dernier exercice";
+  }
+  $("upnext").innerHTML=up;
+  renderTime();
+}
+function addChip(t,fill){const c=document.createElement("span");c.className="chip"+(fill?" fill":"");c.textContent=t;$("chips").appendChild(c)}
+function esc(t){return String(t).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]))}
+function renderTime(){
+  const s=cur(); if(!s) return;
+  const rem=Math.max(0,state.remaining/1000);
+  $("secs").textContent=Math.ceil(rem);
+  $("ringBar").setAttribute("stroke-dashoffset",(CIRC*(1-rem/s.dur)).toFixed(2));
+  const total=totalOf(state.segs); let left=rem;
+  for(let k=state.i+1;k<state.segs.length;k++) left+=state.segs[k].dur;
+  $("pfill").style.width=((1-left/total)*100).toFixed(2)+"%";
+  $("tElapsed").textContent=fmt(total-left); $("tLeft").textContent="reste "+fmt(left);
+}
+function updateMute(){$("muteBtn").textContent="Voix : "+(state.voice?"on":"off")}
+try{matchMedia("(prefers-color-scheme: dark)").addEventListener("change",()=>{if(state.active) readColors()})}catch(e){}
+try{new MutationObserver(()=>{if(state.active) readColors()}).observe(document.documentElement,{attributes:true,attributeFilter:["data-theme"]})}catch(e){}
+
+/* ---------- Commandes ---------- */
+$("startBtn").onclick=start;
+$("playBtn").onclick=togglePlay;
+$("nextBtn").onclick=goNext;
+$("prevBtn").onclick=goPrev;
+$("plusBtn").onclick=plus10;
+$("stopBtn").onclick=()=>{ if(state.stopArmed) stop(); else {state.stopArmed=true; render(); setTimeout(()=>{if(state.stopArmed){state.stopArmed=false; if(state.active) render()}},3000)} };
+$("againBtn").onclick=stop;
+$("muteBtn").onclick=()=>{state.voice=!state.voice; if(!state.voice){try{speechSynthesis.cancel()}catch(e){}} updateMute()};
+$("fsBtn").onclick=async()=>{try{if(document.fullscreenElement) await document.exitFullscreen(); else await document.documentElement.requestFullscreen()}catch(e){$("fsBtn").hidden=true}};
+if(!document.documentElement.requestFullscreen) $("fsBtn").hidden=true;
+document.addEventListener("keydown",e=>{
+  if(!state.active||e.target.tagName==="TEXTAREA") return;
+  if(e.code==="Space"){e.preventDefault();togglePlay()}
+  else if(e.key==="ArrowRight"){goNext()}
+  else if(e.key==="ArrowLeft"){goPrev()}
+  else if(e.key==="Escape"){stop()}
+});
+$("voiceSel").onchange=()=>{try{localStorage.setItem(VKEY,$("voiceSel").value)}catch(e){} voiceFailed=false; pickVoice();};
+if(HAS_TTS){try{speechSynthesis.addEventListener("voiceschanged",pickVoice)}catch(e){speechSynthesis.onvoiceschanged=pickVoice}}
+renderSetup(); pickVoice(); setTimeout(pickVoice,600);
+</script>
+</body>
+</html>
