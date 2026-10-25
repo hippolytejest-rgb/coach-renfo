@@ -95,8 +95,27 @@ body:has(#run:not([hidden])) .update{display:none} /* jamais par-dessus la séan
 
 /* ---------- Onglets ---------- */
 .tabs{display:flex;gap:6px;border-bottom:1.5px solid var(--line)}
-.tabs button{flex:1;border:0;background:transparent;padding:10px 6px;font-weight:700;color:var(--muted);border-bottom:3px solid transparent;margin-bottom:-1.5px}
+.tabs button{display:flex;flex-direction:column;align-items:center;gap:2px;flex:1;border:0;background:transparent;padding:10px 6px;font-weight:700;color:var(--muted);border-bottom:3px solid transparent;margin-bottom:-1.5px}
 .tabs button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--work)}
+.tabs svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+@media (max-width:820px){
+  .tabs{position:fixed;left:0;right:0;bottom:0;z-index:9;gap:0;background:var(--bg);border-top:1.5px solid var(--line);border-bottom:0;padding-bottom:env(safe-area-inset-bottom,0px)}
+  .tabs button{margin:0;border-bottom:0;border-top:3px solid transparent;padding:7px 4px 5px;font-size:.72rem}
+  .tabs button[aria-selected="true"]{border-top-color:var(--work)}
+  .setup{padding-block-end:calc(86px + env(safe-area-inset-bottom,0px))}
+  body:has(#setup:not([hidden])) .update{bottom:calc(62px + env(safe-area-inset-bottom,0px))}
+}
+.libsearch{font:inherit;font-size:1rem;background:var(--surface);color:var(--ink);border:1.5px solid var(--line);border-radius:10px;padding:10px 12px;min-width:0;width:100%;box-sizing:border-box}
+.lib{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.lib li{background:var(--surface);border:1.5px solid var(--line);border-radius:10px;min-width:0}
+.lib li>button{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center;width:100%;text-align:left;border:0;background:transparent;padding:11px 14px}
+.lib li>button b{font-size:1rem;overflow-wrap:anywhere}
+.lib li>button em{font-style:normal;color:var(--muted);font-size:.85rem;white-space:nowrap}
+.lib .more{padding:0 14px 12px;display:flex;flex-direction:column;gap:8px}
+.lib .more p{margin:0;font-size:.9rem}
+.lib .more .used{color:var(--muted);font-size:.84rem}
+.libdemo{background:color-mix(in srgb,var(--surface) 70%,var(--bg));border-radius:10px;overflow:hidden;aspect-ratio:240/170;width:100%;max-width:320px}
+.libdemo canvas{width:100%;height:100%;display:block}
 .panel{display:flex;flex-direction:column;gap:20px}
 .panel[hidden]{display:none}
 .stats{display:grid;grid-template-columns:1fr 1fr;gap:12px}
@@ -104,7 +123,9 @@ body:has(#run:not([hidden])) .update{display:none} /* jamais par-dessus la séan
 .stat b{display:block;font-family:var(--display);font-weight:800;font-size:2.6rem;line-height:.95}
 .stat span{color:var(--muted);font-size:.86rem}
 .hist{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
-.hist li{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;padding:8px 0;border-top:1px solid var(--line);font-size:.92rem}
+.hist li{display:grid;grid-template-columns:minmax(0,1fr) auto auto;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--line);font-size:.92rem}
+.hist .hdel{border:1.5px solid var(--line);background:var(--surface);border-radius:8px;padding:2px 10px;font-weight:700;font-size:.8rem;color:var(--muted)}
+.hist .hdel.warn{border-color:var(--danger);color:var(--danger)}
 .hist li small{color:var(--muted);display:block}
 .cats{display:flex;gap:6px;flex-wrap:wrap}
 .cats button{border:1.5px solid var(--line);background:var(--surface);border-radius:999px;padding:6px 16px;font-weight:700}
@@ -197,7 +218,7 @@ body:has(#run:not([hidden])) .update{display:none} /* jamais par-dessus la séan
     <button class="btn" type="submit">Créer</button>
   </form>
   <p id="pmsg" class="err" role="status"></p>
-  <footer class="foot">Version 1.5.0 · profils enregistrés sur cet appareil</footer>
+  <footer class="foot">Version 1.7.0 · profils enregistrés sur cet appareil</footer>
 </main>
 
 <main id="setup" class="setup" hidden>
@@ -207,9 +228,9 @@ body:has(#run:not([hidden])) .update{display:none} /* jamais par-dessus la séan
     <p>Lance la séance et pose l'écran. Une silhouette montre chaque mouvement, la voix l'annonce et les bips rythment les 3 dernières secondes.</p>
   </header>
   <div class="tabs" role="tablist" aria-label="Sections">
-    <button role="tab" id="tabB-dash" aria-controls="tab-dash" aria-selected="true" data-tab="dash">Tableau de bord</button>
-    <button role="tab" id="tabB-seances" aria-controls="tab-seances" aria-selected="false" data-tab="seances">Séances</button>
-    <button role="tab" id="tabB-options" aria-controls="tab-options" aria-selected="false" data-tab="options">Options</button>
+    <button role="tab" id="tabB-dash" aria-controls="tab-dash" aria-selected="true" data-tab="dash"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 20V11M12 20V4M19 20v-6"/></svg><span>Tableau de bord</span></button>
+    <button role="tab" id="tabB-activites" aria-controls="tab-activites" aria-selected="false" data-tab="activites"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12h4l3-7 4 14 3-7h4"/></svg><span>Activités</span></button>
+    <button role="tab" id="tabB-options" aria-controls="tab-options" aria-selected="false" data-tab="options"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/></svg><span>Options</span></button>
   </div>
 
   <div class="panel" id="tab-dash" role="tabpanel" aria-labelledby="tabB-dash">
@@ -220,13 +241,16 @@ body:has(#run:not([hidden])) .update{display:none} /* jamais par-dessus la séan
       <div class="stat"><b class="tab" id="stWeekTime">0:00</b><span>temps depuis 7 jours</span></div>
     </div>
     <section>
-      <p class="eyebrow">Dernières séances</p>
+      <p class="eyebrow">Historique des séances</p>
       <ul class="hist" id="histList"></ul>
+      <button class="btn" id="histMore" hidden style="margin-top:10px"></button>
+      <p class="tips" id="dashSync"></p>
     </section>
   </div>
 
-  <div class="panel" id="tab-seances" role="tabpanel" aria-labelledby="tabB-seances" hidden>
-    <div class="cats" id="cats" role="group" aria-label="Type de séance"></div>
+  <div class="panel" id="tab-activites" role="tabpanel" aria-labelledby="tabB-activites" hidden>
+    <div class="cats" id="cats" role="group" aria-label="Section"></div>
+    <div class="panel" id="viewSeances">
     <div class="grid">
       <section aria-labelledby="pick">
         <p class="eyebrow" id="pick">Programme</p>
@@ -248,6 +272,13 @@ body:has(#run:not([hidden])) .update{display:none} /* jamais par-dessus la séan
       <p id="jsonMsg" class="err" role="status"></p>
     </div>
   </details>
+    </div>
+    <div class="panel" id="viewBiblio" hidden>
+      <input class="libsearch" id="libSearch" type="search" placeholder="Rechercher un exercice" autocomplete="off" aria-label="Rechercher un exercice">
+      <p class="tips" id="libCount"></p>
+      <ul class="lib" id="libList"></ul>
+      <div class="libdemo" id="libDemo" hidden><canvas id="libCv" aria-label="Démonstration animée du mouvement"></canvas></div>
+    </div>
   </div>
 
   <div class="panel" id="tab-options" role="tabpanel" aria-labelledby="tabB-options" hidden>
@@ -290,7 +321,7 @@ body:has(#run:not([hidden])) .update{display:none} /* jamais par-dessus la séan
     </section>
   </div>
   <!-- À mettre à jour à chaque publication : ce pied de page, figure.js?v= plus bas, et VERSION dans sw.js -->
-  <footer class="foot">Version 1.5.0 · publiée le <time datetime="2026-10-25T17:00">25/10/2026 à 17:00</time></footer>
+  <footer class="foot">Version 1.7.0 · publiée le <time datetime="2026-10-25T20:00">25/10/2026 à 20:00</time></footer>
 </main>
 
 <section id="run" class="run" data-phase="prep" hidden>
@@ -340,7 +371,7 @@ body:has(#run:not([hidden])) .update{display:none} /* jamais par-dessus la séan
   <button class="start" id="againBtn" style="max-width:320px">Retour</button>
 </section>
 
-<script src="figure.js?v=1.5.0"></script>
+<script src="figure.js?v=1.7.0"></script>
 <script>
 const PROGRAMS = [
 {
@@ -487,22 +518,18 @@ function validate(p){
 
 /* ---------- Écran de préparation ---------- */
 const $=id=>document.getElementById(id);
-let selectedId="mobi-renfo";
-const CATS=[["entretien","Entretien"],["mobilite","Mobilité"],["biblio","Bibliothèque"]];
-const CAT_OF={"entretien":"entretien","mobi-renfo":"mobilite"};
-function catOf(p){return CAT_OF[p.id]||"biblio"}
+let selectedId="mobi-renfo", actView="seances";
 function allPrograms(){const c=loadCustom();return c?[...PROGRAMS.filter(p=>p.id!=="custom"),{...c,id:"custom",sub:c.sub||"Programme perso"}]:PROGRAMS}
 function getProg(){return allPrograms().find(p=>p.id===selectedId)||PROGRAMS[0]}
 function renderSetup(){
-  const cat=catOf(getProg());
   const cb=$("cats"); cb.innerHTML="";
-  CATS.forEach(([k,label])=>{
-    const b=document.createElement("button"); b.textContent=label; b.setAttribute("aria-pressed",k===cat);
-    b.onclick=()=>{const f=allPrograms().find(p=>catOf(p)===k); if(f){selectedId=f.id; if(profile) setPdata({prog:f.id}); renderSetup()}};
+  [["seances","Séances"],["biblio","Bibliothèque"]].forEach(([k,label])=>{
+    const b=document.createElement("button"); b.textContent=label; b.setAttribute("aria-pressed",k===actView);
+    b.onclick=()=>showView(k);
     cb.appendChild(b);
   });
   const box=$("progs"); box.innerHTML="";
-  allPrograms().filter(p=>catOf(p)===cat).forEach(p=>{
+  allPrograms().forEach(p=>{
     const b=document.createElement("button"); b.className="prog"; b.setAttribute("aria-pressed",p.id===selectedId);
     b.innerHTML=`<span class="dot"></span><span><b></b><small></small></span><span class="dur tab">${fmt(totalOf(expand(p)))}</span>`;
     b.querySelector("b").textContent=p.name; b.querySelector("small").textContent=p.sub||"";
@@ -622,32 +649,32 @@ document.addEventListener("visibilitychange",()=>{if(document.visibilityState===
 /* ---------- Silhouette animée ---------- */
 const cv=$("demo"), g2=cv.getContext("2d");
 let COL={};
-function readColors(){const cs=getComputedStyle($("run"));const v=n=>cs.getPropertyValue(n).trim();COL={ink:v("--ink"),ghost:v("--ghost"),line:v("--line"),muted:v("--muted"),c:v("--c")}}
+function readColors(el=$("run")){const cs=getComputedStyle(el);const v=n=>cs.getPropertyValue(n).trim();COL={ink:v("--ink"),ghost:v("--ghost"),line:v("--line"),muted:v("--muted"),c:v("--c")||v("--work")}}
 function sizeCanvas(){const r=cv.getBoundingClientRect(),d=window.devicePixelRatio||1;const w=Math.max(1,Math.round(r.width*d)),h=Math.max(1,Math.round(r.height*d));if(cv.width!==w||cv.height!==h){cv.width=w;cv.height=h}}
 try{new ResizeObserver(sizeCanvas).observe(cv)}catch(e){window.addEventListener("resize",sizeCanvas)}
 const REDUCED=window.matchMedia&&matchMedia("(prefers-reduced-motion: reduce)").matches;
-function drawFigure(key,ms){
-  const a=ANIMS[key]; const W=cv.width,H=cv.height; g2.setTransform(1,0,0,1,0,0); g2.clearRect(0,0,W,H);
+function drawFigure(key,ms,cnv=cv,ctx=g2){
+  const a=ANIMS[key]; const W=cnv.width,H=cnv.height; ctx.setTransform(1,0,0,1,0,0); ctx.clearRect(0,0,W,H);
   if(!a) return;
-  const s=Math.min(W/FIG.W,H/FIG.H); g2.setTransform(s,0,0,s,(W-FIG.W*s)/2,(H-FIG.H*s)/2);
+  const s=Math.min(W/FIG.W,H/FIG.H); ctx.setTransform(s,0,0,s,(W-FIG.W*s)/2,(H-FIG.H*s)/2);
   const J=REDUCED?solve(a.keys[Math.min(1,a.keys.length-1)]):frameAt(a,ms);
-  const line=(A,B,w,c)=>{g2.strokeStyle=c;g2.lineWidth=w;g2.lineCap="round";g2.lineJoin="round";g2.beginPath();g2.moveTo(A[0],A[1]);g2.lineTo(B[0],B[1]);g2.stroke()};
+  const line=(A,B,w,c)=>{ctx.strokeStyle=c;ctx.lineWidth=w;ctx.lineCap="round";ctx.lineJoin="round";ctx.beginPath();ctx.moveTo(A[0],A[1]);ctx.lineTo(B[0],B[1]);ctx.stroke()};
   line([10,FIG.G+3],[FIG.W-10,FIG.G+3],2,COL.line);
   for(const pr of a.props||[]){
-    g2.fillStyle=COL.line; g2.strokeStyle=COL.muted;
-    if(pr.type==="wall") g2.fillRect(pr.x-3,30,6,FIG.G-30+3);
-    if(pr.type==="step"||pr.type==="chair") g2.fillRect(pr.x0,pr.y+3,pr.x1-pr.x0,FIG.G-pr.y);
-    if(pr.type==="post") g2.fillRect(pr.x-2,pr.y-4,5,FIG.G-pr.y+7);
+    ctx.fillStyle=COL.line; ctx.strokeStyle=COL.muted;
+    if(pr.type==="wall") ctx.fillRect(pr.x-3,30,6,FIG.G-30+3);
+    if(pr.type==="step"||pr.type==="chair") ctx.fillRect(pr.x0,pr.y+3,pr.x1-pr.x0,FIG.G-pr.y);
+    if(pr.type==="post") ctx.fillRect(pr.x-2,pr.y-4,5,FIG.G-pr.y+7);
     if(pr.type==="band") line(J[pr.from],[pr.x,pr.y],2,COL.c);
   }
   const far=a.front?COL.ink:COL.ghost;
   const limb=(sd,c)=>{line(J.N,J[sd+"E"],7,c);line(J[sd+"E"],J[sd+"W"],6,c);line(J.H,J[sd+"K"],8,c);line(J[sd+"K"],J[sd+"A"],7,c);line(J[sd+"A"],J[sd+"T"],5,c)};
   limb("f",far);
   line(J.H,J.M,10,COL.ink); line(J.M,J.N,10,COL.ink);
-  g2.fillStyle=COL.ink; g2.beginPath(); g2.arc(J.C[0],J.C[1],FIG.HEAD,0,Math.PI*2); g2.fill();
+  ctx.fillStyle=COL.ink; ctx.beginPath(); ctx.arc(J.C[0],J.C[1],FIG.HEAD,0,Math.PI*2); ctx.fill();
   limb("n",COL.ink);
-  for(const pr of a.props||[]) if(pr.type==="weight"){g2.fillStyle=COL.c;g2.beginPath();g2.arc(J[pr.at][0],J[pr.at][1],5,0,Math.PI*2);g2.fill()}
-  for(const f of a.focus||[]){ const r=11+(REDUCED?0:3*Math.sin(ms/260)); g2.strokeStyle=COL.c; g2.lineWidth=2.5; g2.beginPath(); g2.arc(J[f][0],J[f][1],r,0,Math.PI*2); g2.stroke(); }
+  for(const pr of a.props||[]) if(pr.type==="weight"){ctx.fillStyle=COL.c;ctx.beginPath();ctx.arc(J[pr.at][0],J[pr.at][1],5,0,Math.PI*2);ctx.fill()}
+  for(const f of a.focus||[]){ const r=11+(REDUCED?0:3*Math.sin(ms/260)); ctx.strokeStyle=COL.c; ctx.lineWidth=2.5; ctx.beginPath(); ctx.arc(J[f][0],J[f][1],r,0,Math.PI*2); ctx.stroke(); }
 }
 let animKey=null, animT0=0;
 function loop(now){
@@ -711,7 +738,7 @@ function start(){
 function finish(){
   state.active=false; state.running=false; unlockScreen();
   const segs=state.segs, work=segs.filter(s=>s.type==="work");
-  if(profile&&state.prog.id!=="demo") setPdata({hist:[...(pdata().hist||[]),{d:Date.now(),p:state.prog.name,s:Math.round(totalOf(segs))}]});
+  if(profile) setPdata({hist:[...(pdata().hist||[]),{d:Date.now(),p:state.prog.name,s:Math.round(totalOf(segs))}]});
   say("Séance terminée. Bien joué.",true);
   $("doneSum").textContent=`${state.prog.name} · ${fmt(totalOf(segs))} · ${work.length} passages`;
   $("run").hidden=true; $("done").hidden=false;
@@ -851,22 +878,42 @@ $("switchProf").onclick=closeProfile;
 }));
 
 /* ---------- Onglets, tableau de bord, équipement ---------- */
+$("histMore").onclick=()=>{histAll=!histAll; renderDash()};
 function showTab(k){
   document.querySelectorAll(".tabs button").forEach(b=>b.setAttribute("aria-selected",b.dataset.tab===k));
-  document.querySelectorAll(".panel").forEach(p=>p.hidden=p.id!=="tab-"+k);
+  document.querySelectorAll(".tabs ~ .panel").forEach(p=>p.hidden=p.id!=="tab-"+k);
+  if(k!=="activites") closeLibDemo();
 }
 document.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>showTab(b.dataset.tab));
+let histAll=false;
+function renderDashSync(){
+  const c=syncCfg(), on=!!(c&&c.gist), el=$("dashSync");
+  el.textContent=on?$("syncMsg").textContent:"Synchronisation désactivée : l'historique reste sur cet appareil. Active-la dans Options pour le retrouver partout.";
+}
 function renderDash(){
   const h=(profile&&pdata().hist)||[], wk=h.filter(x=>x.d>Date.now()-7*864e5);
   const sum=a=>a.reduce((t,x)=>t+x.s,0);
   $("stCount").textContent=h.length; $("stTime").textContent=fmt(sum(h));
   $("stWeekCount").textContent=wk.length; $("stWeekTime").textContent=fmt(sum(wk));
+  renderDashSync();
   const ul=$("histList"); ul.innerHTML="";
   if(!h.length){const li=document.createElement("li"); li.textContent="Aucune séance terminée pour l'instant."; ul.appendChild(li)}
-  h.slice(-5).reverse().forEach(x=>{
+  const shown=histAll?h.length:Math.min(h.length,10);
+  $("histMore").hidden=h.length<=10; $("histMore").textContent=histAll?"Réduire":`Voir tout (${h.length})`;
+  h.slice(-shown).reverse().forEach(x=>{
     const li=document.createElement("li"), n=document.createElement("span"), em=document.createElement("em");
-    n.textContent=x.p; const sm=document.createElement("small"); sm.textContent=new Date(x.d).toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long"}); n.appendChild(sm);
-    em.className="tab"; em.style.fontStyle="normal"; em.textContent=fmt(x.s); li.append(n,em); ul.appendChild(li);
+    n.textContent=x.p; const sm=document.createElement("small"); sm.textContent=new Date(x.d).toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long",year:"numeric"})+" · "+new Date(x.d).toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"}); n.appendChild(sm);
+    em.className="tab"; em.style.fontStyle="normal"; em.textContent=fmt(x.s);
+    const del=document.createElement("button"); del.className="hdel"; del.textContent="Suppr."; del.setAttribute("aria-label","Supprimer la séance "+x.p);
+    del.onclick=()=>{
+      if(del.classList.contains("warn")){
+        const d=pdata(); setPdata({hist:(d.hist||[]).filter(y=>y.d!==x.d),hgone:[...(d.hgone||[]),x.d]}); renderDash();
+      } else {
+        del.classList.add("warn"); del.textContent="Confirmer ?";
+        setTimeout(()=>{if(del.isConnected){del.classList.remove("warn"); del.textContent="Suppr."}},3000);
+      }
+    };
+    li.append(n,em,del); ul.appendChild(li);
   });
 }
 const EQUIP_DEFAULT=["Balle de massage","Rouleau de massage","Élastique","Kettlebell"];
@@ -926,17 +973,18 @@ function mergeSync(r){
   const data={};
   profs.list.forEach(p=>{
     const key=PDATA+p.id, L=jget(key,{}), R=(r.data||{})[p.id]||{};
-    const seen=new Set(), hist=[...(L.hist||[]),...(R.hist||[])].filter(x=>!seen.has(x.d)&&seen.add(x.d)).sort((a,b)=>a.d-b.d);
+    const hg=[...new Set([...(L.hgone||[]),...(R.hgone||[])])], gs=new Set(hg); // séances supprimées
+    const seen=new Set(), hist=[...(L.hist||[]),...(R.hist||[])].filter(x=>!gs.has(x.d)&&!seen.has(x.d)&&seen.add(x.d)).sort((a,b)=>a.d-b.d);
     const src=(R.mt||0)>(L.mt||0)?R:L;
-    const m={...L,hist}; SYNCED.forEach(k=>{if(src[k]===undefined) delete m[k]; else m[k]=src[k]});
+    const m={...L,hist}; if(hg.length) m.hgone=hg; SYNCED.forEach(k=>{if(src[k]===undefined) delete m[k]; else m[k]=src[k]});
     if(src.mt) m.mt=src.mt;
     if(JSON.stringify(m)!==JSON.stringify(L)){lsSet(key,JSON.stringify(m)); changed=true}
-    const o={hist}; SYNCED.forEach(k=>{if(m[k]!==undefined) o[k]=m[k]}); if(m.mt) o.mt=m.mt; data[p.id]=o;
+    const o={hist}; if(hg.length) o.hgone=hg; SYNCED.forEach(k=>{if(m[k]!==undefined) o[k]=m[k]}); if(m.mt) o.mt=m.mt; data[p.id]=o;
   });
   saveProfs();
   return {out:{v:1,profs:profs.list.map(p=>({id:p.id,name:p.name})),gone,data},changed};
 }
-function setSyncMsg(t,bad){const m=$("syncMsg"); m.textContent=t; m.className="tips"+(bad?" err":"")}
+function setSyncMsg(t,bad){const m=$("syncMsg"); m.textContent=t; m.className="tips"+(bad?" err":""); if(typeof renderDashSync==="function") renderDashSync()}
 function showSyncUi(){const on=!!(syncCfg()&&syncCfg().gist); $("syncOff").hidden=on; $("syncOn").hidden=!on}
 let syncing=false, again=false, syncTimer=null;
 function scheduleSync(){if(syncCfg()){clearTimeout(syncTimer); syncTimer=setTimeout(sync,1500)}}
@@ -978,6 +1026,72 @@ document.addEventListener("visibilitychange",()=>{if(!document.hidden) sync()});
 addEventListener("online",sync);
 showSyncUi(); sync();
 
+/* ---------- Activités : séances / bibliothèque ---------- */
+function showView(k){
+  actView=k;
+  $("viewSeances").hidden=k!=="seances"; $("viewBiblio").hidden=k!=="biblio";
+  [...$("cats").children].forEach((b,i)=>b.setAttribute("aria-pressed",["seances","biblio"][i]===k));
+  if(k==="biblio") renderLib(); else closeLibDemo();
+}
+function libItems(){
+  const map=new Map();
+  allPrograms().forEach(p=>p.blocks.forEach(b=>b.items.forEach(it=>{
+    const key=it.name.trim().toLowerCase();
+    let e=map.get(key); if(!e){e={name:it.name,desc:it.desc||"",reps:it.reps||"",work:it.work,sides:!!it.sides,anim:animFor(it),used:[]};map.set(key,e)}
+    if(!e.desc&&it.desc) e.desc=it.desc;
+    if(!e.used.includes(p.name)) e.used.push(p.name);
+  })));
+  return [...map.values()].sort((a,b)=>a.name.localeCompare(b.name,"fr"));
+}
+const libCv=$("libCv"), libG=libCv.getContext("2d");
+let libKey=null, libT0=0, libRaf=0;
+function closeLibDemo(){
+  libKey=null; cancelAnimationFrame(libRaf);
+  const box=$("libDemo"); box.hidden=true; $("viewBiblio").appendChild(box); // sort la démo de la liste avant qu'elle soit vidée
+  document.querySelectorAll("#libList li").forEach(x=>{x.classList.remove("open"); x.querySelector(".more").hidden=true; x.querySelector("button").setAttribute("aria-expanded","false")});
+}
+function libLoop(){
+  if(!libKey||$("viewBiblio").hidden||$("tab-activites").hidden) return;
+  try{drawFigure(libKey,performance.now()-libT0,libCv,libG)}catch(e){console.error(e)}
+  libRaf=requestAnimationFrame(libLoop);
+}
+function openLibDemo(li,e){
+  closeLibDemo();
+  li.classList.add("open"); li.querySelector("button").setAttribute("aria-expanded","true");
+  if(!e.anim) return;
+  const holder=li.querySelector(".more"), box=$("libDemo");
+  holder.insertBefore(box,holder.firstChild); box.hidden=false;
+  const r=libCv.getBoundingClientRect(), d=window.devicePixelRatio||1;
+  libCv.width=Math.max(1,Math.round(r.width*d)); libCv.height=Math.max(1,Math.round(r.height*d));
+  readColors($("setup")); libKey=e.anim; libT0=performance.now(); libLoop();
+}
+function renderLib(){
+  closeLibDemo();
+  const q=$("libSearch").value.trim().toLowerCase(), all=libItems();
+  const items=all.filter(e=>!q||e.name.toLowerCase().includes(q)||e.desc.toLowerCase().includes(q));
+  $("libCount").textContent=items.length===all.length?`${all.length} exercices`:`${items.length} sur ${all.length} exercices`;
+  const ul=$("libList"); ul.innerHTML="";
+  items.forEach(e=>{
+    const li=document.createElement("li"), b=document.createElement("button");
+    b.setAttribute("aria-expanded","false");
+    const n=document.createElement("b"); n.textContent=e.name;
+    const em=document.createElement("em"); em.className="tab"; em.textContent=`${e.work} s`+(e.sides?" / côté":"");
+    b.append(n,em);
+    const more=document.createElement("div"); more.className="more";
+    if(e.desc){const p=document.createElement("p"); p.textContent=e.desc; more.appendChild(p)}
+    if(e.reps){const p=document.createElement("p"); p.textContent="Répétitions : "+e.reps; more.appendChild(p)}
+    const u=document.createElement("p"); u.className="used"; u.textContent="Dans : "+e.used.join(", "); more.appendChild(u);
+    more.hidden=true;
+    b.onclick=()=>{
+      const was=li.classList.contains("open");
+      closeLibDemo();
+      if(!was){more.hidden=false; openLibDemo(li,e)}
+    };
+    li.append(b,more); ul.appendChild(li);
+  });
+}
+$("libSearch").oninput=renderLib;
+
 /* ---------- Commandes ---------- */
 $("startBtn").onclick=start;
 $("playBtn").onclick=togglePlay;
@@ -985,7 +1099,7 @@ $("nextBtn").onclick=goNext;
 $("prevBtn").onclick=goPrev;
 $("plusBtn").onclick=plus10;
 $("stopBtn").onclick=()=>{ if(state.stopArmed) stop(); else {state.stopArmed=true; render(); setTimeout(()=>{if(state.stopArmed){state.stopArmed=false; if(state.active) render()}},3000)} };
-$("againBtn").onclick=stop;
+$("againBtn").onclick=()=>{stop(); showTab("dash")};
 $("muteBtn").onclick=()=>{state.voice=!state.voice; if(!state.voice){try{speechSynthesis.cancel()}catch(e){}} updateMute()};
 $("fsBtn").onclick=async()=>{try{if(document.fullscreenElement) await document.exitFullscreen(); else await document.documentElement.requestFullscreen()}catch(e){$("fsBtn").hidden=true}};
 if(!document.documentElement.requestFullscreen) $("fsBtn").hidden=true;
