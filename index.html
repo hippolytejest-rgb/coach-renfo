@@ -88,6 +88,42 @@ details.custom textarea{width:100%;box-sizing:border-box;min-height:240px;font-f
 .ok{color:var(--work);font-size:.86rem;margin:0}
 .foot{margin:0;padding-top:14px;border-top:1px solid var(--line);color:var(--muted);font-size:.8rem;text-align:center}
 
+/* ---------- Onglets ---------- */
+.tabs{display:flex;gap:6px;border-bottom:1.5px solid var(--line)}
+.tabs button{flex:1;border:0;background:transparent;padding:10px 6px;font-weight:700;color:var(--muted);border-bottom:3px solid transparent;margin-bottom:-1.5px}
+.tabs button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--work)}
+.panel{display:flex;flex-direction:column;gap:20px}
+.panel[hidden]{display:none}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.stat{background:var(--surface);border:1.5px solid var(--line);border-radius:10px;padding:14px}
+.stat b{display:block;font-family:var(--display);font-weight:800;font-size:2.6rem;line-height:.95}
+.stat span{color:var(--muted);font-size:.86rem}
+.hist{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.hist li{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;padding:8px 0;border-top:1px solid var(--line);font-size:.92rem}
+.hist li small{color:var(--muted);display:block}
+.cats{display:flex;gap:6px;flex-wrap:wrap}
+.cats button{border:1.5px solid var(--line);background:var(--surface);border-radius:999px;padding:6px 16px;font-weight:700}
+.cats button[aria-pressed="true"]{background:var(--work);border-color:var(--work);color:var(--bg)}
+.equip{display:flex;flex-wrap:wrap;gap:8px}
+.equip .chk button{border:0;background:transparent;color:var(--muted);font-weight:700;padding:0 0 0 4px}
+.eqnew{display:flex;gap:8px;margin-top:10px}
+.eqnew input{flex:1;min-width:0;font:inherit;background:var(--surface);color:var(--ink);border:1.5px solid var(--line);border-radius:10px;padding:8px 12px}
+
+/* ---------- Profils ---------- */
+.profiles{max-width:520px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:22px 40px;display:flex;flex-direction:column;gap:18px}
+.plist{display:flex;flex-direction:column;gap:8px}
+.prow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:stretch}
+.pbtn{display:flex;align-items:center;gap:12px;background:var(--surface);border:1.5px solid var(--line);border-radius:10px;padding:12px 14px;text-align:left;min-width:0}
+.pbtn .av{flex:none;width:36px;height:36px;border-radius:50%;background:var(--work);color:var(--bg);display:flex;align-items:center;justify-content:center;font-family:var(--display);font-weight:800;font-size:1.3rem;text-transform:uppercase}
+.pbtn b{font-size:1.05rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pdel{border:1.5px solid var(--line);background:var(--surface);border-radius:10px;padding:0 12px;font-weight:700;font-size:.85rem;color:var(--muted)}
+.pdel.warn{border-color:var(--danger);color:var(--danger)}
+.pnew{display:flex;gap:8px}
+.pnew input{flex:1;min-width:0;font:inherit;font-size:1rem;background:var(--surface);color:var(--ink);border:1.5px solid var(--line);border-radius:10px;padding:10px 12px}
+.pnew .btn{padding:6px 16px}
+.who{display:flex;align-items:center;gap:8px;font-size:.9rem;color:var(--muted)}
+.who b{color:var(--ink)}
+
 /* ---------- Run ---------- */
 .run{--c:var(--prep);--cbg:var(--prep-bg);min-height:100%;box-sizing:border-box;display:flex;flex-direction:column;gap:10px;background:var(--cbg);padding-left:max(14px,env(safe-area-inset-left,0px));padding-right:max(14px,env(safe-area-inset-right,0px));padding-block:10px 12px;transition:background-color .35s}
 .run[data-phase="work"]{--c:var(--work);--cbg:var(--work-bg)}
@@ -140,31 +176,56 @@ details.custom textarea{width:100%;box-sizing:border-box;min-height:240px;font-f
 </head>
 <body>
 
-<main id="setup" class="setup">
+<main id="profiles" class="profiles">
+  <header class="brand"><h1>Coach Renfo</h1></header>
+  <section aria-labelledby="whoPick">
+    <p class="eyebrow" id="whoPick">Qui s'entraîne ?</p>
+    <div class="plist" id="plist"></div>
+  </section>
+  <form class="pnew" id="pnew">
+    <input id="pname" type="text" maxlength="24" placeholder="Nouveau profil : ton prénom" autocomplete="off" aria-label="Nom du nouveau profil">
+    <button class="btn" type="submit">Créer</button>
+  </form>
+  <p id="pmsg" class="err" role="status"></p>
+  <footer class="foot">Version 1.2.0 · profils enregistrés sur cet appareil</footer>
+</main>
+
+<main id="setup" class="setup" hidden>
   <header class="brand">
     <h1>Coach Renfo</h1>
+    <div class="who"><span>Profil : <b id="whoName"></b></span><button class="btn" id="switchProf">Changer</button></div>
     <p>Lance la séance et pose l'écran. Une silhouette montre chaque mouvement, la voix l'annonce et les bips rythment les 3 dernières secondes.</p>
   </header>
-  <div class="grid">
-    <section aria-labelledby="pick">
-      <p class="eyebrow" id="pick">Programme</p>
-      <div class="progs" id="progs"></div>
-      <div class="opts">
-        <label class="chk"><input type="checkbox" id="optVoice" checked> Voix</label>
-        <label class="chk"><input type="checkbox" id="optBeep" checked> Bips</label>
-        <label class="chk"><input type="checkbox" id="optDesc" checked> Lire les consignes</label>
-      </div>
-      <div class="voicebox">
-        <label class="chk" for="voiceSel" style="padding:4px 10px">Voix
-          <select id="voiceSel" style="font:inherit;border:0;background:transparent;color:inherit;max-width:180px"><option value="">Par défaut</option></select></label>
-        <button class="btn" id="testVoice">Tester le son</button>
-        <p id="voiceStatus" role="status">Teste avant de lancer la séance.</p>
-      </div>
-      <button class="start" id="startBtn">Démarrer</button>
-      <p class="tips">iPhone : coupe le mode silencieux et monte le volume. Mac : <b>Espace</b> pause, <b>← →</b> exercice précédent / suivant, <b>Échap</b> arrêter.</p>
-    </section>
-    <section class="preview" id="preview" aria-live="polite"></section>
+  <div class="tabs" role="tablist" aria-label="Sections">
+    <button role="tab" id="tabB-dash" aria-controls="tab-dash" aria-selected="true" data-tab="dash">Tableau de bord</button>
+    <button role="tab" id="tabB-seances" aria-controls="tab-seances" aria-selected="false" data-tab="seances">Séances</button>
+    <button role="tab" id="tabB-options" aria-controls="tab-options" aria-selected="false" data-tab="options">Options</button>
   </div>
+
+  <div class="panel" id="tab-dash" role="tabpanel" aria-labelledby="tabB-dash">
+    <div class="stats">
+      <div class="stat"><b class="tab" id="stCount">0</b><span>activités</span></div>
+      <div class="stat"><b class="tab" id="stTime">0:00</b><span>temps total d'activité</span></div>
+      <div class="stat"><b class="tab" id="stWeekCount">0</b><span>activités depuis 7 jours</span></div>
+      <div class="stat"><b class="tab" id="stWeekTime">0:00</b><span>temps depuis 7 jours</span></div>
+    </div>
+    <section>
+      <p class="eyebrow">Dernières séances</p>
+      <ul class="hist" id="histList"></ul>
+    </section>
+  </div>
+
+  <div class="panel" id="tab-seances" role="tabpanel" aria-labelledby="tabB-seances" hidden>
+    <div class="cats" id="cats" role="group" aria-label="Type de séance"></div>
+    <div class="grid">
+      <section aria-labelledby="pick">
+        <p class="eyebrow" id="pick">Programme</p>
+        <div class="progs" id="progs"></div>
+        <button class="start" id="startBtn">Démarrer</button>
+        <p class="tips">Mac : <b>Espace</b> pause, <b>← →</b> exercice précédent / suivant, <b>Échap</b> arrêter.</p>
+      </section>
+      <section class="preview" id="preview" aria-live="polite"></section>
+    </div>
   <details class="custom" id="customBox">
     <summary>Créer ou modifier un programme (JSON)</summary>
     <p>Le JSON du programme sélectionné est chargé ci-dessous. Modifie-le et enregistre : il apparaît comme programme perso, gardé dans ce navigateur. Par exercice : <code>name</code>, <code>work</code> (s), <code>desc</code>, <code>reps</code>, <code>sides</code>, <code>sets</code>, <code>setRest</code>, <code>rest</code>, <code>anim</code>. Par bloc : <code>rounds</code>, <code>rest</code>, <code>roundRest</code>, <code>transition</code>.</p>
@@ -177,8 +238,35 @@ details.custom textarea{width:100%;box-sizing:border-box;min-height:240px;font-f
       <p id="jsonMsg" class="err" role="status"></p>
     </div>
   </details>
+  </div>
+
+  <div class="panel" id="tab-options" role="tabpanel" aria-labelledby="tabB-options" hidden>
+    <section>
+      <p class="eyebrow">Son et consignes</p>
+      <div class="opts">
+        <label class="chk"><input type="checkbox" id="optVoice" checked> Voix</label>
+        <label class="chk"><input type="checkbox" id="optBeep" checked> Bips</label>
+        <label class="chk"><input type="checkbox" id="optDesc" checked> Lire les consignes</label>
+      </div>
+      <div class="voicebox">
+        <label class="chk" for="voiceSel" style="padding:4px 10px">Voix
+          <select id="voiceSel" style="font:inherit;border:0;background:transparent;color:inherit;max-width:180px"><option value="">Par défaut</option></select></label>
+        <button class="btn" id="testVoice">Tester le son</button>
+        <p id="voiceStatus" role="status">Teste avant de lancer la séance.</p>
+      </div>
+      <p class="tips">iPhone : coupe le mode silencieux et monte le volume.</p>
+    </section>
+    <section>
+      <p class="eyebrow">Équipement disponible</p>
+      <div class="equip" id="equip"></div>
+      <form class="eqnew" id="eqnew">
+        <input id="eqname" type="text" maxlength="30" placeholder="Ajouter un équipement" autocomplete="off" aria-label="Nom de l'équipement">
+        <button class="btn" type="submit">Ajouter</button>
+      </form>
+    </section>
+  </div>
   <!-- À mettre à jour à chaque publication -->
-  <footer class="foot">Version 1.1.0 · publiée le <time datetime="2026-10-25T13:05">25/10/2026 à 13:05</time></footer>
+  <footer class="foot">Version 1.3.0 · publiée le <time datetime="2026-10-25T15:00">25/10/2026 à 15:00</time></footer>
 </main>
 
 <section id="run" class="run" data-phase="prep" hidden>
@@ -300,10 +388,20 @@ const PROGRAMS = [
 ];
 
 /* ---------- Storage (confort uniquement) ---------- */
-const LS_KEY="coach-renfo-custom";
-function loadCustom(){try{const r=localStorage.getItem(LS_KEY);return r?JSON.parse(r):null}catch(e){return null}}
-function saveCustom(p){try{localStorage.setItem(LS_KEY,JSON.stringify(p));return true}catch(e){return false}}
-function clearCustom(){try{localStorage.removeItem(LS_KEY)}catch(e){}}
+const PROFS_KEY="coach-renfo-profiles", PDATA="coach-renfo-p-", LEGACY_CUSTOM="coach-renfo-custom", LEGACY_VOICE="coach-renfo-voice";
+const mem={}; // repli si localStorage est bloqué
+function lsGet(k){try{const r=localStorage.getItem(k);return r===null?(mem[k]??null):r}catch(e){return mem[k]??null}}
+function lsSet(k,v){mem[k]=v;try{localStorage.setItem(k,v);return true}catch(e){return false}}
+function lsDel(k){delete mem[k];try{localStorage.removeItem(k)}catch(e){}}
+function jget(k,d){try{const r=lsGet(k);return r?JSON.parse(r):d}catch(e){return d}}
+let profs=jget(PROFS_KEY,{list:[],last:null});
+let profile=null; // profil actif {id,name}
+function saveProfs(){return lsSet(PROFS_KEY,JSON.stringify(profs))}
+function pdata(){return jget(PDATA+profile.id,{})}
+function setPdata(patch){return lsSet(PDATA+profile.id,JSON.stringify({...pdata(),...patch}))}
+function loadCustom(){return pdata().custom||null}
+function saveCustom(p){return setPdata({custom:p})}
+function clearCustom(){const d=pdata(); delete d.custom; lsSet(PDATA+profile.id,JSON.stringify(d))}
 
 /* ---------- Programme → séquence ---------- */
 function expand(p){
@@ -360,15 +458,25 @@ function validate(p){
 /* ---------- Écran de préparation ---------- */
 const $=id=>document.getElementById(id);
 let selectedId="mobi-renfo";
+const CATS=[["entretien","Entretien"],["mobilite","Mobilité"],["biblio","Bibliothèque"]];
+const CAT_OF={"entretien":"entretien","mobi-renfo":"mobilite"};
+function catOf(p){return CAT_OF[p.id]||"biblio"}
 function allPrograms(){const c=loadCustom();return c?[...PROGRAMS.filter(p=>p.id!=="custom"),{...c,id:"custom",sub:c.sub||"Programme perso"}]:PROGRAMS}
 function getProg(){return allPrograms().find(p=>p.id===selectedId)||PROGRAMS[0]}
 function renderSetup(){
+  const cat=catOf(getProg());
+  const cb=$("cats"); cb.innerHTML="";
+  CATS.forEach(([k,label])=>{
+    const b=document.createElement("button"); b.textContent=label; b.setAttribute("aria-pressed",k===cat);
+    b.onclick=()=>{const f=allPrograms().find(p=>catOf(p)===k); if(f){selectedId=f.id; if(profile) setPdata({prog:f.id}); renderSetup()}};
+    cb.appendChild(b);
+  });
   const box=$("progs"); box.innerHTML="";
-  allPrograms().forEach(p=>{
+  allPrograms().filter(p=>catOf(p)===cat).forEach(p=>{
     const b=document.createElement("button"); b.className="prog"; b.setAttribute("aria-pressed",p.id===selectedId);
     b.innerHTML=`<span class="dot"></span><span><b></b><small></small></span><span class="dur tab">${fmt(totalOf(expand(p)))}</span>`;
     b.querySelector("b").textContent=p.name; b.querySelector("small").textContent=p.sub||"";
-    b.onclick=()=>{selectedId=p.id;renderSetup()};
+    b.onclick=()=>{selectedId=p.id;if(profile)setPdata({prog:p.id});renderSetup()};
     box.appendChild(b);
   });
   const p=getProg(), segs=expand(p);
@@ -396,6 +504,7 @@ function renderSetup(){
   const clean=JSON.parse(JSON.stringify(p)); delete clean.id; if(clean.sub==="Programme perso") delete clean.sub;
   $("jsonArea").value=JSON.stringify(clean,null,2);
   $("delCustom").hidden=!loadCustom();
+  renderDash(); renderEquip();
 }
 $("animList").textContent="Animations disponibles pour \"anim\" (sinon détectée d'après le nom) : "+Object.keys(ANIMS).join(", ")+".";
 $("saveCustom").onclick=()=>{
@@ -423,8 +532,7 @@ function beep(freq=660,len=.12,vol=.35,force=false){
 /* ---------- Son : voix ---------- */
 const HAS_TTS="speechSynthesis" in window && "SpeechSynthesisUtterance" in window;
 let frVoice=null, nVoices=0, nFr=0, voiceFailed=false;
-const VKEY="coach-renfo-voice";
-function savedVoice(){try{return localStorage.getItem(VKEY)||""}catch(e){return ""}}
+function savedVoice(){return profile&&pdata().voice||""}
 function pickVoice(){
   if(!HAS_TTS) return;
   try{
@@ -573,6 +681,7 @@ function start(){
 function finish(){
   state.active=false; state.running=false; unlockScreen();
   const segs=state.segs, work=segs.filter(s=>s.type==="work");
+  if(profile&&state.prog.id!=="demo") setPdata({hist:[...(pdata().hist||[]),{d:Date.now(),p:state.prog.name,s:Math.round(totalOf(segs))}]});
   say("Séance terminée. Bien joué.",true);
   $("doneSum").textContent=`${state.prog.name} · ${fmt(totalOf(segs))} · ${work.length} passages`;
   $("run").hidden=true; $("done").hidden=false;
@@ -650,6 +759,108 @@ function updateMute(){$("muteBtn").textContent="Voix : "+(state.voice?"on":"off"
 try{matchMedia("(prefers-color-scheme: dark)").addEventListener("change",()=>{if(state.active) readColors()})}catch(e){}
 try{new MutationObserver(()=>{if(state.active) readColors()}).observe(document.documentElement,{attributes:true,attributeFilter:["data-theme"]})}catch(e){}
 
+/* ---------- Profils ---------- */
+function initials(n){return (n.trim()[0]||"?")}
+function renderProfiles(){
+  const box=$("plist"); box.innerHTML="";
+  profs.list.forEach(p=>{
+    const row=document.createElement("div"); row.className="prow";
+    const b=document.createElement("button"); b.className="pbtn";
+    b.innerHTML='<span class="av"></span><b></b>';
+    b.querySelector(".av").textContent=initials(p.name); b.querySelector("b").textContent=p.name;
+    b.onclick=()=>openProfile(p.id);
+    const d=document.createElement("button"); d.className="pdel"; d.textContent="Suppr."; d.setAttribute("aria-label","Supprimer le profil "+p.name);
+    d.onclick=()=>{
+      if(d.classList.contains("warn")){
+        profs.list=profs.list.filter(x=>x.id!==p.id); if(profs.last===p.id) profs.last=null;
+        lsDel(PDATA+p.id); saveProfs(); renderProfiles();
+      } else {
+        d.classList.add("warn"); d.textContent="Confirmer ?";
+        setTimeout(()=>{if(d.isConnected){d.classList.remove("warn"); d.textContent="Suppr."}},3000);
+      }
+    };
+    row.append(b,d); box.appendChild(row);
+  });
+  if(!profs.list.length){const e=document.createElement("p"); e.className="tips"; e.textContent="Aucun profil pour l'instant : crée le tien ci-dessous."; box.appendChild(e)}
+}
+function openProfile(id){
+  profile=profs.list.find(p=>p.id===id); if(!profile) return;
+  profs.last=id; saveProfs();
+  const d=pdata();
+  selectedId=d.prog||"mobi-renfo";
+  const o=d.opts||{}; $("optVoice").checked=o.voice!==false; $("optBeep").checked=o.beep!==false; $("optDesc").checked=o.desc!==false;
+  $("whoName").textContent=profile.name; $("jsonMsg").textContent="";
+  $("profiles").hidden=true; $("setup").hidden=false; showTab("dash");
+  renderSetup(); pickVoice();
+}
+function closeProfile(){
+  profile=null; $("setup").hidden=true; $("profiles").hidden=false; renderProfiles();
+}
+$("pnew").onsubmit=e=>{
+  e.preventDefault();
+  const name=$("pname").value.trim().replace(/\s+/g," "), msg=$("pmsg");
+  if(!name){msg.textContent="Entre un nom.";return}
+  if(profs.list.some(p=>p.name.toLowerCase()===name.toLowerCase())){msg.textContent="Ce profil existe déjà.";return}
+  msg.textContent="";
+  const p={id:Date.now().toString(36),name};
+  const first=!profs.list.length;
+  profs.list.push(p);
+  if(!saveProfs()) msg.textContent="Ce navigateur bloque l'enregistrement : le profil ne sera pas conservé.";
+  if(first){ // reprend les réglages d'avant les profils
+    const patch={}, c=jget(LEGACY_CUSTOM,null), v=lsGet(LEGACY_VOICE);
+    if(c) patch.custom=c; if(v) patch.voice=v;
+    if(Object.keys(patch).length) lsSet(PDATA+p.id,JSON.stringify(patch));
+  }
+  $("pname").value=""; openProfile(p.id);
+};
+$("switchProf").onclick=closeProfile;
+["optVoice","optBeep","optDesc"].forEach(id=>$(id).addEventListener("change",()=>{
+  if(profile) setPdata({opts:{voice:$("optVoice").checked,beep:$("optBeep").checked,desc:$("optDesc").checked}});
+}));
+
+/* ---------- Onglets, tableau de bord, équipement ---------- */
+function showTab(k){
+  document.querySelectorAll(".tabs button").forEach(b=>b.setAttribute("aria-selected",b.dataset.tab===k));
+  document.querySelectorAll(".panel").forEach(p=>p.hidden=p.id!=="tab-"+k);
+}
+document.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>showTab(b.dataset.tab));
+function renderDash(){
+  const h=(profile&&pdata().hist)||[], wk=h.filter(x=>x.d>Date.now()-7*864e5);
+  const sum=a=>a.reduce((t,x)=>t+x.s,0);
+  $("stCount").textContent=h.length; $("stTime").textContent=fmt(sum(h));
+  $("stWeekCount").textContent=wk.length; $("stWeekTime").textContent=fmt(sum(wk));
+  const ul=$("histList"); ul.innerHTML="";
+  if(!h.length){const li=document.createElement("li"); li.textContent="Aucune séance terminée pour l'instant."; ul.appendChild(li)}
+  h.slice(-5).reverse().forEach(x=>{
+    const li=document.createElement("li"), n=document.createElement("span"), em=document.createElement("em");
+    n.textContent=x.p; const sm=document.createElement("small"); sm.textContent=new Date(x.d).toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long"}); n.appendChild(sm);
+    em.className="tab"; em.style.fontStyle="normal"; em.textContent=fmt(x.s); li.append(n,em); ul.appendChild(li);
+  });
+}
+const EQUIP_DEFAULT=["Balle de massage","Rouleau de massage","Élastique","Kettlebell"];
+function equipData(){const d=pdata().equip||{}; return {list:d.list||EQUIP_DEFAULT, have:d.have||[]}}
+function renderEquip(){
+  const {list,have}=equipData(), box=$("equip"); box.innerHTML="";
+  list.forEach(n=>{
+    const l=document.createElement("label"); l.className="chk";
+    const c=document.createElement("input"); c.type="checkbox"; c.checked=have.includes(n);
+    c.onchange=()=>{const e=equipData(); e.have=c.checked?[...e.have,n]:e.have.filter(x=>x!==n); setPdata({equip:e})};
+    l.append(c,document.createTextNode(" "+n));
+    if(!EQUIP_DEFAULT.includes(n)){
+      const x=document.createElement("button"); x.type="button"; x.textContent="×"; x.setAttribute("aria-label","Retirer "+n);
+      x.onclick=e=>{e.preventDefault(); const d=equipData(); setPdata({equip:{list:d.list.filter(y=>y!==n),have:d.have.filter(y=>y!==n)}}); renderEquip()};
+      l.appendChild(x);
+    }
+    box.appendChild(l);
+  });
+}
+$("eqnew").onsubmit=e=>{
+  e.preventDefault(); const n=$("eqname").value.trim().replace(/\s+/g," "); if(!n||!profile) return;
+  const d=equipData();
+  if(!d.list.some(x=>x.toLowerCase()===n.toLowerCase())){d.list=[...d.list,n]; d.have=[...d.have,n]; setPdata({equip:d})}
+  $("eqname").value=""; renderEquip();
+};
+
 /* ---------- Commandes ---------- */
 $("startBtn").onclick=start;
 $("playBtn").onclick=togglePlay;
@@ -668,9 +879,9 @@ document.addEventListener("keydown",e=>{
   else if(e.key==="ArrowLeft"){goPrev()}
   else if(e.key==="Escape"){stop()}
 });
-$("voiceSel").onchange=()=>{try{localStorage.setItem(VKEY,$("voiceSel").value)}catch(e){} voiceFailed=false; pickVoice();};
+$("voiceSel").onchange=()=>{if(profile) setPdata({voice:$("voiceSel").value}); voiceFailed=false; pickVoice();};
 if(HAS_TTS){try{speechSynthesis.addEventListener("voiceschanged",pickVoice)}catch(e){speechSynthesis.onvoiceschanged=pickVoice}}
-renderSetup(); pickVoice(); setTimeout(pickVoice,600);
+renderProfiles(); pickVoice(); setTimeout(pickVoice,600);
 </script>
 </body>
 </html>
