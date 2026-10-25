@@ -51,7 +51,8 @@ function buildSession(opts, deps) {
   const ids = [...new Set(opts.exercices || [])];
   const connus = ids.filter(id => lib[id]);
   ids.filter(id => !lib[id]).forEach(id => avertissements.push(`Exercice inconnu ignoré : « ${id} ».`));
-  const choisis = connus.map((id, i) => ({id, i})).sort((a, b) =>
+  // ordreLibre : le circuit garde l'ordre fourni (génération automatique) ; sinon tri par type
+  const choisis = opts.ordreLibre ? connus : connus.map((id, i) => ({id, i})).sort((a, b) =>
     genRank(lib[a.id].type) - genRank(lib[b.id].type) || a.i - b.i).map(x => x.id);
   const typeOf = id => lib[id].type;
   const parts = {
@@ -128,4 +129,130 @@ function buildSession(opts, deps) {
     parametres: parts.circuit.length ? best.p : null, ajoutes};
 }
 
-if (typeof module !== "undefined") module.exports = {buildSession, GEN};
+/* ---------- Génération automatique ---------- */
+
+GEN.ZONES = {
+  "jambes": ["quadriceps", "ischio-jambiers", "mollets"],
+  "fessiers-hanches": ["fessiers", "hanches"],
+  "pied-cheville": ["pied-cheville"],
+  "tronc": ["tronc"],
+  "haut-corps": ["dos", "épaules", "bras"],
+  "corps-entier": ["fessiers", "ischio-jambiers", "quadriceps", "mollets", "pied-cheville", "hanches", "tronc", "dos", "épaules", "bras"]
+};
+GEN.ZONE_LABELS = {"jambes": "Jambes", "fessiers-hanches": "Fessiers et hanches", "pied-cheville": "Pied et cheville",
+  "tronc": "Tronc", "haut-corps": "Haut du corps", "corps-entier": "Corps entier"};
+GEN.TYPES_AUTO = ["mobilité", "équilibre", "renfo", "gainage", "étirement"]; // échauffement et retour au calme : ajoutés par buildSession
+GEN.TOUJOURS = ["aucun", "tapis", "mur", "chaise", "step"];
+GEN.MIN_EXOS = 3;
+GEN.MAX_PAR_TYPE = {"mobilité": 2, "étirement": 2}; // blocs séparés du circuit : on les limite
+GEN.MAX_SUITE = 2;                                  // jamais plus de 2 exercices du même type d'affilée
+
+// Générateur pseudo-aléatoire à graine (mulberry32) et jitter stable par (graine, exercice)
+function genRand(seed) {
+  let a = seed >>> 0;
+  return () => {a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296};
+}
+function genHash(str) {let h = 2166136261; for (let i = 0; i < str.length; i++) {h ^= str.charCodeAt(i); h = Math.imul(h, 16777619)} return h >>> 0}
+const genJitter = (seed, id) => genRand((seed ^ genHash(id)) >>> 0)();
+
+function genZonesOf(e, zones) {return zones.filter(z => (e.muscles || []).some(m => GEN.ZONES[z].includes(m)))}
+
+// Exercices admissibles : zones, matériel (null = pas de limite), impact.
+function genPool(lib, o) {
+  const dispo = o.materiel ? new Set([...GEN.TOUJOURS, ...o.materiel]) : null;
+  return Object.keys(lib).filter(id => {
+    const e = lib[id];
+    return GEN.TYPES_AUTO.includes(e.type)
+      && (!dispo || (e.equipment || ["aucun"]).every(q => dispo.has(q)))
+      && (!o.sansImpact || (e.impact || "aucun") === "aucun")
+      && genZonesOf(e, o.zones).length > 0;
+  });
+}
+
+// Choisit n exercices dans le pool et les ordonne : alternance des groupes musculaires, pas plus de 2 du même type d'affilée,
+// exercices récents (evites) en dernier recours.
+function genPick(lib, pool, o, n) {
+  const evites = new Set(o.evites || []), restants = pool.slice(), res = [], circ = [];
+  const couvert = new Set(), parType = {};
+  const prim = id => (lib[id].muscles || [])[0];
+  while (res.length < n && restants.length) {
+    // alternance et suites de types calculées sur le circuit seul : mobilités et étirements ont leurs propres blocs
+    const pid = circ[circ.length - 1], prev = pid && lib[pid], prev2 = circ.length > 1 && lib[circ[circ.length - 2]];
+    let best = null;
+    restants.forEach(id => {
+      const e = lib[id], zs = genZonesOf(e, o.zones), enCircuit = !GEN.MAX_PAR_TYPE[e.type];
+      if (!enCircuit && (parType[e.type] || 0) >= GEN.MAX_PAR_TYPE[e.type]) return;
+      let sc = genJitter(o.graine, id) * 1.5;
+      if (!evites.has(id)) sc += 2;
+      if (zs.some(z => !couvert.has(z))) sc += 4;
+      if (enCircuit && prev) {
+        if (prim(pid) !== prim(id)) sc += 3;
+        if (!zs.some(z => genZonesOf(prev, o.zones).includes(z))) sc += 1;
+        if (prev2 && prev.type === e.type && prev2.type === e.type) sc -= 100;
+      }
+      if (!best || sc > best.sc) best = {id, sc};
+    });
+    if (!best) break;
+    res.push(best.id); restants.splice(restants.indexOf(best.id), 1);
+    const e = lib[best.id]; parType[e.type] = (parType[e.type] || 0) + 1;
+    if (!GEN.MAX_PAR_TYPE[e.type]) circ.push(best.id);
+    genZonesOf(e, o.zones).forEach(z => couvert.add(z));
+  }
+  return res;
+}
+
+const GEN_ZONE_NOMS = z => (GEN.ZONE_LABELS[z] || z).toLowerCase();
+
+/* buildAuto({zones, duree, sansImpact, materiel, evites, graine, avecEchauffement, avecRetour}, deps)
+   → {programme, duree, avertissements, proposition, parametres, ajoutes, exercices} ou {erreur}. */
+function buildAuto(opts, deps) {
+  deps = deps || {};
+  const lib = deps.bibliotheque || (typeof EXERCISES !== "undefined" ? EXERCISES : null);
+  const zones = (opts.zones || []).filter(z => GEN.ZONES[z]);
+  if (!zones.length) return {erreur: "Choisis au moins une zone."};
+  const o = {zones, sansImpact: !!opts.sansImpact, materiel: opts.materiel || null, evites: opts.evites || [], graine: opts.graine || 1};
+  const pool = genPool(lib, o);
+  const sansZone = zones.filter(z => z !== "corps-entier" && !pool.some(id => genZonesOf(lib[id], [z]).length));
+  const conseil = " Élargis les zones, décoche « sans impact » ou coche du matériel dans ton profil.";
+  if (sansZone.length) return {erreur: `Aucun exercice disponible pour : ${sansZone.map(GEN_ZONE_NOMS).join(", ")}, avec ces contraintes.` + conseil};
+  if (pool.length < GEN.MIN_EXOS) return {erreur: `Seulement ${pool.length} exercice${pool.length > 1 ? "s" : ""} correspond${pool.length > 1 ? "ent" : ""} à ces contraintes ; il en faut au moins ${GEN.MIN_EXOS} pour une séance.` + conseil};
+
+  const cible = Math.round((opts.duree || 0) * 60), tol = GEN.TOL;
+  const essai = n => {
+    const ex = genPick(lib, pool, o, n);
+    const r = buildSession({exercices: ex, duree: opts.duree, avecEchauffement: opts.avecEchauffement, avecRetour: opts.avecRetour, ordreLibre: true}, deps);
+    return {r, ex};
+  };
+  // Nombre d'exercices : estimation, puis ajustement d'après la durée mesurée
+  let n = Math.max(GEN.MIN_EXOS, Math.min(pool.length, Math.round((cible - 180) / 130))), vus = new Set(), cur = null;
+  for (;;) {
+    cur = essai(n); vus.add(n);
+    const trop = cur.r.duree - cible;
+    const suivant = trop > tol ? n - 1 : trop < -tol ? n + 1 : n;
+    if (suivant === n || vus.has(suivant) || suivant < GEN.MIN_EXOS || suivant > pool.length) break;
+    n = suivant;
+  }
+  const ecart = cur.r.duree - cible;
+  if (ecart < -tol) {
+    // Même avec tous les exercices disponibles la durée n'est pas atteignable : on le dit plutôt que livrer une séance incomplète
+    const maxi = essai(pool.length);
+    return {erreur: `Avec ces contraintes, la bibliothèque ne permet d'aller que jusqu'à environ ${Math.round(maxi.r.duree / 60)} min (${maxi.ex.length} exercices). ` +
+      `Réduis la durée à ${Math.round(maxi.r.duree / 60)} min ou moins, ou élargis les zones, le matériel ou l'impact.`};
+  }
+  return {...cur.r, exercices: cur.ex};
+}
+
+// Exercices équivalents à `id` : même type, au moins un muscle commun, mêmes contraintes ; les plus proches d'abord.
+function genEquivalents(lib, id, o) {
+  const e = lib[id], dispo = o.materiel ? new Set([...GEN.TOUJOURS, ...o.materiel]) : null, deja = new Set(o.courants || []);
+  const evites = new Set(o.evites || []);
+  return Object.keys(lib).filter(k => !deja.has(k) && lib[k].type === e.type
+      && (!dispo || (lib[k].equipment || ["aucun"]).every(q => dispo.has(q)))
+      && (!o.sansImpact || (lib[k].impact || "aucun") === "aucun"))
+    .map(k => ({k, commun: (lib[k].muscles || []).filter(m => (e.muscles || []).includes(m)).length}))
+    .filter(x => x.commun > 0)
+    .sort((a, b) => (evites.has(a.k) - evites.has(b.k)) || b.commun - a.commun || genJitter(o.graine || 1, a.k) - genJitter(o.graine || 1, b.k))
+    .map(x => x.k);
+}
+
+if (typeof module !== "undefined") module.exports = {buildSession, buildAuto, genEquivalents, GEN};

@@ -136,6 +136,12 @@ body:has(#run:not([hidden])) .update{display:none} /* jamais par-dessus la séan
 .genopts input[type=number],.genname{font:inherit;font-size:1rem;background:var(--bg);color:var(--ink);border:1.5px solid var(--line);border-radius:8px;padding:8px 10px;box-sizing:border-box}
 .genopts input[type=number]{width:5.5em}
 .genname{flex:1 1 180px;min-width:0}
+.genpane{display:flex;flex-direction:column;gap:12px;min-width:0}
+.genpane[hidden]{display:none}
+.genzones{border:0;margin:0;padding:0;min-width:0}
+.genzones legend{padding:0}
+.gright{display:flex;gap:8px;align-items:center;justify-content:flex-end}
+.genrep{padding:2px 8px;font-size:.8rem;color:var(--muted)}
 .genprev{border:1px solid var(--line);border-radius:8px;padding:12px 12px 4px;background:var(--bg)}
 .genprev .sum{margin:0 0 8px}
 .genwarn{display:flex;flex-direction:column;gap:6px;align-items:flex-start;margin:0 0 10px}
@@ -241,7 +247,7 @@ body:has(#run:not([hidden])) .update{display:none} /* jamais par-dessus la séan
     <button class="btn" type="submit">Créer</button>
   </form>
   <p id="pmsg" class="err" role="status"></p>
-  <footer class="foot">Version 1.9.0 · profils enregistrés sur cet appareil</footer>
+  <footer class="foot">Version 1.10.0 · profils enregistrés sur cet appareil</footer>
 </main>
 
 <div class="loaderr" id="loadErr" role="alert" hidden><p id="loadErrMsg"></p><button class="btn" id="loadRetry">Réessayer</button></div>
@@ -277,11 +283,22 @@ body:has(#run:not([hidden])) .update{display:none} /* jamais par-dessus la séan
     <div class="panel" id="viewSeances">
     <div class="row"><button class="btn" id="genOpen" aria-expanded="false" aria-controls="genBox">Créer une séance</button></div>
     <section class="genbox" id="genBox" aria-label="Créer une séance" hidden>
-      <div class="cats" role="tablist" aria-label="Mode de création"><button role="tab" aria-selected="true" aria-pressed="true">À la main</button></div>
-      <input class="libsearch" id="genSearch" type="search" placeholder="Rechercher un exercice" autocomplete="off" aria-label="Rechercher un exercice à ajouter">
-      <div class="libfilters" id="genFilters"></div>
-      <p class="tips" id="genCount" style="margin:0"></p>
-      <ul class="genlist" id="genList"></ul>
+      <div class="cats" role="tablist" aria-label="Mode de création"><button role="tab" id="genTabMain" aria-selected="true" aria-pressed="true">À la main</button><button role="tab" id="genTabAuto" aria-selected="false" aria-pressed="false">Automatique</button></div>
+      <div class="genpane" id="genManual">
+        <input class="libsearch" id="genSearch" type="search" placeholder="Rechercher un exercice" autocomplete="off" aria-label="Rechercher un exercice à ajouter">
+        <div class="libfilters" id="genFilters"></div>
+        <p class="tips" id="genCount" style="margin:0"></p>
+        <ul class="genlist" id="genList"></ul>
+      </div>
+      <div class="genpane" id="genAuto" hidden>
+        <fieldset class="genzones"><legend class="eyebrow">Zones à travailler</legend><div class="genopts" id="autoZones"></div></fieldset>
+        <div class="genopts">
+          <label><input type="checkbox" id="autoNoImpact"> Sans impact</label>
+          <label><input type="checkbox" id="autoEquip" checked> Matériel limité à mon profil</label>
+        </div>
+        <p class="tips" id="autoEquipInfo" style="margin:0"></p>
+        <div class="row"><button class="btn" id="autoAnother">Autre proposition</button></div>
+      </div>
       <div class="genopts">
         <label>Durée (min) <input type="number" id="genDur" min="5" max="120" step="1" value="20" inputmode="numeric"></label>
         <label><input type="checkbox" id="genWarm" checked> Échauffement</label>
@@ -372,7 +389,7 @@ body:has(#run:not([hidden])) .update{display:none} /* jamais par-dessus la séan
     </section>
   </div>
   <!-- À mettre à jour à chaque publication : ce pied de page, figure.js?v= plus bas, et VERSION dans sw.js -->
-  <footer class="foot">Version 1.9.0 · publiée le <time datetime="2026-10-25T19:30">25/10/2026 à 19:30</time></footer>
+  <footer class="foot">Version 1.10.0 · publiée le <time datetime="2026-10-25T18:44">25/10/2026 à 18:44</time></footer>
 </main>
 
 <section id="run" class="run" data-phase="prep" hidden>
@@ -422,8 +439,8 @@ body:has(#run:not([hidden])) .update{display:none} /* jamais par-dessus la séan
   <button class="start" id="againBtn" style="max-width:320px">Retour</button>
 </section>
 
-<script src="figure.js?v=1.9.0"></script>
-<script src="generator.js?v=1.9.0"></script>
+<script src="figure.js?v=1.10.0"></script>
+<script src="generator.js?v=1.10.0"></script>
 <script>
 /* ---------- Exercices (exercises.json) ---------- */
 let EXERCISES=null;
@@ -835,7 +852,7 @@ function start(){
 function finish(){
   state.active=false; state.running=false; unlockScreen();
   const segs=state.segs, work=segs.filter(s=>s.type==="work");
-  if(profile) setPdata({hist:[...(pdata().hist||[]),{d:Date.now(),p:state.prog.name,s:Math.round(totalOf(segs))}]});
+  if(profile) setPdata({hist:[...(pdata().hist||[]),{d:Date.now(),p:state.prog.name,s:Math.round(totalOf(segs)),x:[...new Set(state.prog.blocks.flatMap(b=>b.items.map(i=>i.ex).filter(Boolean)))]}]});
   say("Séance terminée. Bien joué.",true);
   $("doneSum").textContent=`${state.prog.name} · ${fmt(totalOf(segs))} · ${work.length} passages`;
   $("run").hidden=true; $("done").hidden=false;
@@ -1252,51 +1269,107 @@ function renderGenList(){
     lab.append(cb,n,t,m); li.appendChild(lab); ul.appendChild(li);
   });
 }
-function renderGenPreview(){
-  const pv=$("genPrev"); pv.innerHTML=""; $("genMsg").textContent="";
+/* Mode automatique : état local (zones, graine, liste éventuellement modifiée par « Remplacer ») */
+let genMode="main", autoZones=new Set(["corps-entier"]), autoSeed=1+Math.floor(Math.random()*1e6), autoOver=null;
+function recentIds(k=2){ // exercices des k dernières séances (champ x, ou retrouvés par le nom pour l'ancien historique)
+  const h=[...((profile&&pdata().hist)||[])].sort((a,b)=>b.d-a.d).slice(0,k), ids=new Set();
+  h.forEach(x=>{
+    const list=x.x||(()=>{const p=allPrograms().find(q=>q.name===x.p); return p?p.blocks.flatMap(b=>b.items.map(i=>i.ex).filter(Boolean)):[]})();
+    list.forEach(i=>ids.add(i));
+  });
+  return [...ids];
+}
+function autoMateriel(){return $("autoEquip").checked&&profile?equipData().have.map(x=>x.toLowerCase()):null}
+function genCompute(){
+  const dur=genDurMin(); if(!dur) return {msg:"Indique une durée en minutes."};
+  const c={duree:dur,avecEchauffement:$("genWarm").checked,avecRetour:$("genCool").checked};
+  if(genMode==="main"){
+    if(!genSel.size) return {msg:"Coche des exercices pour voir l'aperçu."};
+    return {r:buildSession({...c,exercices:[...genSel]})};
+  }
+  if(!autoZones.size) return {msg:"Choisis au moins une zone."};
+  if(autoOver) return {r:{...buildSession({...c,exercices:autoOver,ordreLibre:true}),exercices:autoOver}};
+  const r=buildAuto({...c,zones:[...autoZones],sansImpact:$("autoNoImpact").checked,materiel:autoMateriel(),evites:recentIds(2),graine:autoSeed});
+  return r.erreur?{err:r.erreur}:{r};
+}
+function replaceAuto(id){
+  const ids=[...genCur.exercices];
+  const cand=genEquivalents(EXERCISES,id,{materiel:autoMateriel(),sansImpact:$("autoNoImpact").checked,courants:ids,evites:recentIds(2),graine:1+Math.floor(Math.random()*1e6)});
+  if(!cand.length){renderGenPreview(true); const m=$("genMsg"); m.className="err"; m.textContent="Aucun exercice équivalent disponible avec ces contraintes."; return}
+  ids[ids.indexOf(id)]=cand[0]; autoOver=ids; renderGenPreview();
+}
+function renderGenPreview(keep){
+  const pv=$("genPrev"); pv.innerHTML=""; if(keep!==true) $("genMsg").textContent="";
   genCur=null; $("genRun").disabled=$("genSave").disabled=true;
-  if(!genSel.size){pv.textContent="Coche des exercices pour voir l'aperçu."; pv.className="genprev tips"; return}
-  pv.className="genprev";
-  const dur=genDurMin();
-  if(!dur){pv.textContent="Indique une durée en minutes."; return}
-  const r=buildSession({exercices:[...genSel],duree:dur,avecEchauffement:$("genWarm").checked,avecRetour:$("genCool").checked});
-  genCur=r;
+  const {r,msg,err}=genCompute();
+  if(msg||err){pv.className="genprev"+(err?"":" tips"); const p=document.createElement("p"); p.className=err?"err":""; p.style.margin="0 0 8px"; p.textContent=msg||err; pv.appendChild(p); return}
+  pv.className="genprev"; genCur=r;
   const sum=document.createElement("p"); sum.className="sum tab";
   const works=expand(r.programme).filter(s=>s.type==="work");
-  sum.textContent=`${fmt(r.duree)} au total (visé : ${dur} min) · ${works.length} passages · ${r.programme.sub}`;
+  sum.textContent=`${fmt(r.duree)} au total (visé : ${genDurMin()} min) · ${works.length} passages · ${r.programme.sub}`;
   pv.appendChild(sum);
   if(r.avertissements.length){
     const w=document.createElement("div"); w.className="genwarn";
     r.avertissements.forEach(t=>{const p=document.createElement("p"); p.className="err"; p.textContent=t; w.appendChild(p)});
     if(r.proposition){
       const b=document.createElement("button"); b.className="btn"; b.textContent=`Viser ${r.proposition.duree} min`;
-      b.onclick=()=>{$("genDur").value=r.proposition.duree; renderGenPreview()}; w.appendChild(b);
+      b.onclick=()=>{$("genDur").value=r.proposition.duree; autoOver=null; renderGenPreview()}; w.appendChild(b);
     }
     pv.appendChild(w);
   }
-  resolveProg(r.programme).blocks.forEach(b=>{
+  resolveProg(r.programme).blocks.forEach((b,bi)=>{
     const d=document.createElement("div"); d.className="blk";
     const t=document.createElement("h3"); t.textContent=b.name;
     const sp=document.createElement("span"); sp.textContent=b.rounds>1?`${b.rounds} tours`:"1 tour"; t.appendChild(sp); d.appendChild(t);
     const ol=document.createElement("ol");
-    b.items.forEach(it=>{
-      const li=document.createElement("li"), n=document.createElement("span"), em=document.createElement("em"); em.className="tab";
-      n.textContent=it.name+(r.ajoutes.includes(it.ex)?" (ajouté)":"");
+    b.items.forEach((it,ii)=>{
+      const id=r.programme.blocks[bi].items[ii].ex; // resolveItem retire la clé ex
+      const li=document.createElement("li"), n=document.createElement("span"), right=document.createElement("span"), em=document.createElement("em"); em.className="tab"; right.className="gright";
+      n.textContent=it.name+(r.ajoutes.includes(id)?" (ajouté)":"");
       em.textContent=(it.sets>1?`${it.sets} × `:"")+`${it.work} s`+(it.sides?" / côté":"");
-      li.append(n,em); ol.appendChild(li);
+      right.appendChild(em);
+      if(genMode==="auto"&&(r.exercices||[]).includes(id)){
+        const rb=document.createElement("button"); rb.className="btn genrep"; rb.textContent="Remplacer"; rb.setAttribute("aria-label","Remplacer "+it.name);
+        rb.onclick=()=>replaceAuto(id); right.appendChild(rb);
+      }
+      li.append(n,right); ol.appendChild(li);
     });
     d.appendChild(ol); pv.appendChild(d);
   });
   $("genRun").disabled=$("genSave").disabled=!r.programme;
   if(!$("genName").value.trim()||$("genName").dataset.auto==="1"){$("genName").value=r.programme.name; $("genName").dataset.auto="1"}
 }
+function setGenMode(m){
+  genMode=m;
+  $("genManual").hidden=m!=="main"; $("genAuto").hidden=m!=="auto";
+  [["genTabMain","main"],["genTabAuto","auto"]].forEach(([id,k])=>{$(id).setAttribute("aria-selected",String(k===m)); $(id).setAttribute("aria-pressed",String(k===m))});
+  if(!EXERCISES) return;
+  if(m==="main") renderGenList(); else renderGenAuto();
+  renderGenPreview();
+}
+function renderGenAuto(){
+  const box=$("autoZones");
+  if(!box.children.length){
+    Object.keys(GEN.ZONE_LABELS).forEach(k=>{
+      const l=document.createElement("label"), c=document.createElement("input"); c.type="checkbox"; c.checked=autoZones.has(k);
+      c.onchange=()=>{c.checked?autoZones.add(k):autoZones.delete(k); autoOver=null; renderGenPreview()};
+      l.append(c,document.createTextNode(" "+GEN.ZONE_LABELS[k])); box.appendChild(l);
+    });
+  }
+  const have=profile?equipData().have:[];
+  $("autoEquipInfo").textContent="Toujours disponible : tapis, mur, chaise, step. Coché dans le profil : "+(have.length?have.join(", "):"rien d'autre")+".";
+}
 $("genName").oninput=()=>{$("genName").dataset.auto="0"};
 $("genOpen").onclick=()=>{
   const box=$("genBox"); box.hidden=!box.hidden; $("genOpen").setAttribute("aria-expanded",String(!box.hidden));
-  if(!box.hidden&&EXERCISES){renderGenList(); renderGenPreview()}
+  if(!box.hidden) setGenMode(genMode);
 };
+$("genTabMain").onclick=()=>setGenMode("main");
+$("genTabAuto").onclick=()=>setGenMode("auto");
+["autoNoImpact","autoEquip"].forEach(id=>$(id).addEventListener("change",()=>{autoOver=null; renderGenPreview()}));
+$("autoAnother").onclick=()=>{autoSeed=1+Math.floor(Math.random()*1e6); autoOver=null; renderGenPreview()};
 $("genSearch").oninput=renderGenList;
-["genDur","genWarm","genCool"].forEach(id=>$(id).addEventListener("input",renderGenPreview));
+["genDur","genWarm","genCool"].forEach(id=>$(id).addEventListener("input",()=>{autoOver=null; renderGenPreview()}));
 $("genRun").onclick=()=>{
   if(!genCur||!genCur.programme||!EXERCISES) return;
   const prev=selectedId; tempProg={...genCur.programme,name:$("genName").value.trim()||genCur.programme.name,id:"gen"};
