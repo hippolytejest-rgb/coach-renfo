@@ -16,3 +16,4 @@ Puis ouvrir http://localhost:8000 dans Chrome ou Safari.
 
 - `index.html` : interface, programmes, moteur de séance, voix et bips
 - `figure.js` : silhouettes animées (poses clés + cinématique inverse)
+- `img/cards/<id>.svg` : visuels des cartes de l'onglet Activités (provisoires ; un dégradé s'affiche si le fichier manque)

@@ -1,9 +1,13 @@
 /* Service worker : mode hors ligne + mise à jour avec bandeau.
    À chaque publication, changer VERSION ici ET dans index.html (pied de page, figure.js?v= et generator.js?v=). */
-const VERSION = "1.12.0";
+const VERSION = "1.13.0";
 const CACHE = "coach-renfo-" + VERSION;
 const FONTS = "coach-renfo-fonts"; // polices Google, conservées d'une version à l'autre
-const FILES = ["./", "index.html", "figure.js?v=" + VERSION, "generator.js?v=" + VERSION, "exercises.json"];
+const CARDS = ["quotidien", "echauffement", "recuperation", "biblio"].concat(
+  ["quotidien-quick-gym", "quotidien-par-zone", "quotidien-renfo-trail"],
+  ["echauffement", "recuperation"].flatMap(r => ["par-zone", "trail", "cyclisme"].map(k => r + "-" + k))
+).map(id => "img/cards/" + id + ".svg");
+const FILES = ["./", "index.html", "figure.js?v=" + VERSION, "generator.js?v=" + VERSION, "exercises.json"].concat(CARDS);
 
 self.addEventListener("install", e => {
   // Pas de skipWaiting ici : la nouvelle version attend le clic sur « Recharger ».
@@ -28,8 +32,13 @@ self.addEventListener("fetch", e => {
   const url = new URL(req.url);
   if (url.origin === location.origin) {
     // Cache d'abord (ignoreSearch : figure.js?v=… retrouve son fichier), réseau en repli.
+    // Les images de img/ absentes du cache (ajoutées plus tard) y sont rangées au premier chargement.
+    const isImg = url.pathname.includes("/img/");
     e.respondWith(
-      caches.open(CACHE).then(c => c.match(req, {ignoreSearch: true})).then(hit => hit || fetch(req))
+      caches.open(CACHE).then(c => c.match(req, {ignoreSearch: true}).then(hit => hit || fetch(req).then(r => {
+        if (isImg && r.ok) c.put(req, r.clone());
+        return r;
+      })))
     );
   } else if (url.hostname === "fonts.googleapis.com" || url.hostname === "fonts.gstatic.com") {
     // Polices : on sert le cache et on le rafraîchit en arrière-plan.

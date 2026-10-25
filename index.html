@@ -156,6 +156,35 @@ body:has(#run:not([hidden])) .update{display:none} /* jamais par-dessus la séan
 .hist .hdel{border:1.5px solid var(--line);background:var(--surface);border-radius:8px;padding:2px 10px;font-weight:700;font-size:.8rem;color:var(--muted)}
 .hist .hdel.warn{border-color:var(--danger);color:var(--danger)}
 .hist li small{color:var(--muted);display:block}
+.acthead{display:flex;align-items:center;gap:12px}
+.acthead h2,.actsoon h2{font-family:var(--display);font-size:1.6rem;margin:0}
+.acthead h2:focus,.actsoon h2:focus{outline:none}
+.sechead{font-family:var(--display);font-size:1.4rem;margin:0}
+.actsoon p{margin:0;color:var(--muted);font-weight:700}
+.acard{display:flex;flex-direction:column;width:100%;padding:0;overflow:hidden;text-align:left;font:inherit;color:var(--ink);background:var(--surface);border:1.5px solid var(--line);border-radius:14px}
+.acard:focus-visible,.carbtn:focus-visible,.cardot:focus-visible,.acthead .btn:focus-visible{outline:3px solid var(--work);outline-offset:2px}
+.apic{display:block;aspect-ratio:5/3;background:var(--prep-bg)}
+.apic img{display:block;width:100%;height:100%;object-fit:cover}
+.apic.fb{display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,var(--work),var(--switch))}
+.apic.fb svg{width:40%;height:40%;fill:none;stroke:#fff;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.atxt{display:flex;flex-direction:column;gap:2px;padding:10px 12px 12px}
+.atxt b{font-size:1.05rem}
+.atxt small{color:var(--muted)}
+.agrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px}
+.carwrap{position:relative;min-width:0}
+.car{display:flex;flex-direction:column;gap:6px;min-width:0}
+.cartrack{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;overscroll-behavior-x:contain;padding:4px;margin:-4px;scroll-padding-inline:4px}
+.cartrack::-webkit-scrollbar{display:none}
+.carslide{flex:0 0 80%;max-width:340px;scroll-snap-align:start;display:flex}
+.cardots{display:flex;justify-content:center}
+.cardot{width:24px;height:24px;border:0;background:transparent;padding:0;display:flex;align-items:center;justify-content:center}
+.cardot::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--ghost)}
+.cardot[aria-current="true"]::before{background:var(--work);width:10px;height:10px}
+.carbtn{display:none;position:absolute;top:calc(50% - 30px);width:40px;height:40px;border-radius:50%;border:1.5px solid var(--line);background:var(--surface);color:var(--ink);align-items:center;justify-content:center;padding:0}
+.carbtn svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.carbtn.prev{left:-8px}.carbtn.next{right:-8px}
+.carbtn:disabled{opacity:.35}
+@media (min-width:700px){.carbtn{display:flex}}
 .cats{display:flex;gap:6px;flex-wrap:wrap}
 .cats button{border:1.5px solid var(--line);background:var(--surface);border-radius:999px;padding:6px 16px;font-weight:700}
 .cats button[aria-pressed="true"]{background:var(--work);border-color:var(--work);color:var(--bg)}
@@ -255,7 +284,7 @@ body:has(#run:not([hidden])) .update{display:none} /* jamais par-dessus la séan
     <button class="btn" type="submit">Créer</button>
   </form>
   <p id="pmsg" class="err" role="status"></p>
-  <footer class="foot">Version 1.12.0 · profils enregistrés sur cet appareil</footer>
+  <footer class="foot">Version 1.13.0 · profils enregistrés sur cet appareil</footer>
 </main>
 
 <div class="loaderr" id="loadErr" role="alert" hidden><p id="loadErrMsg"></p><button class="btn" id="loadRetry">Réessayer</button></div>
@@ -291,7 +320,29 @@ body:has(#run:not([hidden])) .update{display:none} /* jamais par-dessus la séan
   </div>
 
   <div class="panel" id="tab-activites" role="tabpanel" aria-labelledby="tabB-activites" hidden>
-    <div class="cats" id="cats" role="group" aria-label="Section"></div>
+    <div class="acthead" id="actHead" hidden>
+      <button class="btn" id="actBack" type="button">← Retour</button>
+      <h2 id="actTitle" tabindex="-1"></h2>
+    </div>
+    <div class="panel" id="actHome">
+      <div class="carwrap">
+        <section class="car" id="car" role="region" aria-roledescription="carrousel" aria-label="Rubriques">
+          <div class="cartrack" id="carTrack"></div>
+          <div class="cardots" id="carDots"></div>
+        </section>
+        <button class="carbtn prev" id="carPrev" type="button" aria-label="Rubrique précédente"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>
+        <button class="carbtn next" id="carNext" type="button" aria-label="Rubrique suivante"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></button>
+      </div>
+    </div>
+    <div class="agrid" id="actSection" hidden></div>
+    <section class="panel actsoon" id="actSoon" aria-labelledby="soonTitle" hidden>
+      <h2 id="soonTitle" tabindex="-1"></h2>
+      <p>Bientôt disponible</p>
+      <div class="row"><button class="btn" id="soonBack" type="button">Retour</button></div>
+    </section>
+    <div class="panel" id="viewBiblio" hidden>
+    <section class="panel" aria-labelledby="secMine">
+    <h2 class="sechead" id="secMine">Mes séances</h2>
     <div class="panel" id="viewSeances">
     <div class="row"><button class="btn" id="genOpen" aria-expanded="false" aria-controls="genBox">Créer une séance</button></div>
     <section class="genbox" id="genBox" aria-label="Créer une séance" hidden>
@@ -346,7 +397,10 @@ body:has(#run:not([hidden])) .update{display:none} /* jamais par-dessus la séan
     </div>
   </details>
     </div>
-    <div class="panel" id="viewBiblio" hidden>
+    </section>
+    <section class="panel" aria-labelledby="secEx">
+    <h2 class="sechead" id="secEx">Exercices</h2>
+    <div class="panel" id="libSection">
       <input class="libsearch" id="libSearch" type="search" placeholder="Rechercher un exercice" autocomplete="off" aria-label="Rechercher un exercice">
       <div class="libfilters">
         <select id="libType" aria-label="Filtrer par type"></select>
@@ -358,6 +412,8 @@ body:has(#run:not([hidden])) .update{display:none} /* jamais par-dessus la séan
       <p class="tips" id="libCount"></p>
       <ul class="lib" id="libList"></ul>
       <div class="libdemo" id="libDemo" hidden><canvas id="libCv" aria-label="Démonstration animée du mouvement"></canvas></div>
+    </div>
+    </section>
     </div>
   </div>
 
@@ -405,7 +461,7 @@ body:has(#run:not([hidden])) .update{display:none} /* jamais par-dessus la séan
     </section>
   </div>
   <!-- À mettre à jour à chaque publication : ce pied de page, figure.js?v= plus bas, et VERSION dans sw.js -->
-  <footer class="foot">Version 1.12.0 · publiée le <time datetime="2026-10-25T19:05">25/10/2026 à 19:05</time></footer>
+  <footer class="foot">Version 1.13.0 · publiée le <time datetime="2026-10-25T19:26">25/10/2026 à 19:26</time></footer>
 </main>
 
 <section id="run" class="run" data-phase="prep" hidden>
@@ -455,8 +511,8 @@ body:has(#run:not([hidden])) .update{display:none} /* jamais par-dessus la séan
   <button class="start" id="againBtn" style="max-width:320px">Retour</button>
 </section>
 
-<script src="figure.js?v=1.12.0"></script>
-<script src="generator.js?v=1.12.0"></script>
+<script src="figure.js?v=1.13.0"></script>
+<script src="generator.js?v=1.13.0"></script>
 <script>
 /* ---------- Exercices (exercises.json) ---------- */
 let EXERCISES=null;
@@ -633,7 +689,7 @@ function validate(p){
 
 /* ---------- Écran de préparation ---------- */
 const $=id=>document.getElementById(id);
-let selectedId="mobi-renfo", actView="seances";
+let selectedId="mobi-renfo";
 function mySessions(){return profile?(pdata().sessions||[]).map(x=>({...x,sub:x.sub||"Ma séance",mine:true})):[]}
 function allPrograms(){const c=loadCustom();return [...(c?[...PROGRAMS.filter(p=>p.id!=="custom"),{...c,id:"custom",sub:c.sub||"Programme perso"}]:PROGRAMS),...mySessions()]}
 let tempProg=null; // séance générée lancée sans être enregistrée
@@ -641,16 +697,12 @@ function getProg(){return selectedId==="gen"&&tempProg||allPrograms().find(p=>p.
 function renderSetup(){
   $("startBtn").disabled=!EXERCISES;
   if(!EXERCISES){$("loadErr").hidden=false; return}
-  const cb=$("cats"); cb.innerHTML="";
-  [["seances","Séances"],["biblio","Bibliothèque"]].forEach(([k,label])=>{
-    const b=document.createElement("button"); b.textContent=label; b.setAttribute("aria-pressed",k===actView);
-    b.onclick=()=>showView(k);
-    cb.appendChild(b);
-  });
   const box=$("progs"); box.innerHTML="";
-  let mineShown=false;
+  let mineShown=false, readyShown=false;
+  const sub=t=>{const h=document.createElement("p"); h.className="eyebrow"; h.style.margin="8px 0 0"; h.textContent=t; box.appendChild(h)};
   allPrograms().forEach(p=>{
-    if(p.mine&&!mineShown){mineShown=true; const h=document.createElement("p"); h.className="eyebrow"; h.style.margin="8px 0 0"; h.textContent="Mes séances"; box.appendChild(h)}
+    if(!p.mine&&!readyShown){readyShown=true; sub("Prêts à l'emploi")}
+    if(p.mine&&!mineShown){mineShown=true; sub("Enregistrées")}
     const b=document.createElement("button"); b.className="prog"; b.setAttribute("aria-pressed",p.id===selectedId);
     b.innerHTML=`<span class="dot"></span><span><b></b><small></small></span><span class="dur tab">${fmt(totalOf(expand(p)))}</span>`;
     b.querySelector("b").textContent=p.name; b.querySelector("small").textContent=p.sub||"";
@@ -1012,7 +1064,8 @@ $("histMore").onclick=()=>{histAll=!histAll; renderDash()};
 function showTab(k){
   document.querySelectorAll(".tabs button").forEach(b=>b.setAttribute("aria-selected",b.dataset.tab===k));
   document.querySelectorAll(".tabs ~ .panel").forEach(p=>p.hidden=p.id!=="tab-"+k);
-  if(k!=="activites") closeLibDemo();
+  if(k!=="activites"){closeLibDemo(); actReset()}
+  else carSync();
 }
 document.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>showTab(b.dataset.tab));
 let histAll=false;
@@ -1172,12 +1225,103 @@ document.addEventListener("visibilitychange",()=>{if(!document.hidden) sync()});
 addEventListener("online",sync);
 showSyncUi(); sync();
 
-/* ---------- Activités : séances / bibliothèque ---------- */
-function showView(k){
-  actView=k;
-  $("viewSeances").hidden=k!=="seances"; $("viewBiblio").hidden=k!=="biblio";
-  [...$("cats").children].forEach((b,i)=>b.setAttribute("aria-pressed",["seances","biblio"][i]===k));
-  if(k==="biblio") renderLib(); else closeLibDemo();
+/* ---------- Activités : rubriques et pile d'écrans ---------- */
+/* Niveau 1 : carrousel de rubriques. Niveau 2 : page de la rubrique. Niveau 3 : « Bientôt disponible ».
+   La pile est dans history.state ({act:[…]}) : le retour du navigateur et le geste de retour iPhone remontent d'un niveau. */
+const ACT_SECTIONS=[
+  {id:"quotidien",title:"Quotidien",sub:"Les séances de tous les jours",items:[["quick-gym","Quick gym","Court et efficace"],["par-zone","Par zone","Cible un groupe musculaire"],["renfo-trail","Renfo trail","Pour courir plus loin"]]},
+  {id:"echauffement",title:"Échauffement",sub:"Avant l'effort",items:[["par-zone","Par zone","Cible un groupe musculaire"],["trail","Trail","Avant une sortie en nature"],["cyclisme","Cyclisme","Avant une sortie à vélo"]]},
+  {id:"recuperation",title:"Récupération",sub:"Après l'effort",items:[["par-zone","Par zone","Cible un groupe musculaire"],["trail","Trail","Après une sortie en nature"],["cyclisme","Cyclisme","Après une sortie à vélo"]]},
+  {id:"biblio",title:"Bibliothèque",sub:"Mes séances et tous les exercices"}
+];
+const CARD_FALLBACK='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 20l6-11 4 6 3-4 5 9z"/></svg>';
+/* Carte réutilisable : image img/cards/<id>.svg, visuel provisoire (dégradé + pictogramme) si elle manque */
+function makeCard({id,title,sub,onClick}){
+  const b=document.createElement("button"); b.type="button"; b.className="acard"; b.dataset.card=id;
+  const pic=document.createElement("span"); pic.className="apic";
+  const img=new Image(); img.alt=""; img.src=`img/cards/${id}.svg`;
+  img.onerror=()=>{img.remove(); pic.classList.add("fb"); pic.innerHTML=CARD_FALLBACK};
+  pic.appendChild(img);
+  const t=document.createElement("span"); t.className="atxt";
+  t.innerHTML="<b></b><small></small>"; t.firstChild.textContent=title; t.lastChild.textContent=sub||"";
+  b.append(pic,t); b.onclick=onClick;
+  return b;
+}
+let actStack=[];
+function actGo(stack){history.pushState({act:stack},""); renderAct(stack,true)}
+function actReset(){
+  const n=actStack.length; if(!n) return;
+  renderAct([]); history.go(-n); // les entrées d'historique de la pile sont dépilées
+}
+function renderAct(stack,focus){
+  const prev=actStack, sec=ACT_SECTIONS.find(x=>x.id===stack[0]);
+  const item=sec&&sec.items&&sec.items.find(i=>i[0]===stack[1]);
+  stack=sec?(item?[sec.id,item[0]]:[sec.id]):[]; actStack=stack;
+  const biblio=!!sec&&sec.id==="biblio", list=!!sec&&!!sec.items&&!item;
+  $("actHome").hidden=!!sec; $("actSection").hidden=!list; $("actSoon").hidden=!item; $("viewBiblio").hidden=!biblio;
+  $("actHead").hidden=!sec||!!item;
+  if(sec) $("actTitle").textContent=sec.title;
+  if(list){
+    const g=$("actSection"); g.innerHTML="";
+    sec.items.forEach(([k,title,sub])=>g.appendChild(makeCard({id:sec.id+"-"+k,title,sub,onClick:()=>actGo([sec.id,k])})));
+  }
+  if(item){$("soonTitle").textContent=sec.title+" · "+item[1]}
+  if(biblio) renderLib(); else closeLibDemo();
+  if(!sec) carSync();
+  if(!focus) return;
+  window.scrollTo(0,0);
+  const el=item?$("soonTitle"):sec?$("actTitle"):document.querySelector(`#carTrack [data-card="${prev[0]}"]`);
+  if(el) el.focus({preventScroll:true});
+}
+$("actBack").onclick=$("soonBack").onclick=()=>history.back();
+addEventListener("popstate",e=>{
+  const s=(e.state&&e.state.act)||[];
+  if(s.length&&$("tab-activites").hidden&&!$("setup").hidden) showTab("activites");
+  renderAct(s,true);
+});
+
+/* Carrousel */
+const carReduce=matchMedia("(prefers-reduced-motion: reduce)");
+function carIndex(){
+  const t=$("carTrack"), sl=[...t.children];
+  if(!sl.length) return 0;
+  if(t.scrollLeft+t.clientWidth>=t.scrollWidth-2) return sl.length-1;
+  const x=t.getBoundingClientRect().left; let best=0, bd=1e9;
+  sl.forEach((c,i)=>{const d=Math.abs(c.getBoundingClientRect().left-x); if(d<bd){bd=d; best=i}});
+  return best;
+}
+function carTo(i){
+  const t=$("carTrack"), sl=t.children; i=Math.max(0,Math.min(sl.length-1,i));
+  t.scrollTo({left:sl[i].offsetLeft-sl[0].offsetLeft,behavior:carReduce.matches?"auto":"smooth"});
+}
+function carSync(){
+  const i=carIndex(), n=$("carTrack").children.length;
+  [...$("carDots").children].forEach((d,k)=>{if(k===i) d.setAttribute("aria-current","true"); else d.removeAttribute("aria-current")});
+  $("carPrev").disabled=i<=0; $("carNext").disabled=i>=n-1;
+}
+function buildCarousel(){
+  const t=$("carTrack"), d=$("carDots"), n=ACT_SECTIONS.length;
+  ACT_SECTIONS.forEach((s,i)=>{
+    const sl=document.createElement("div"); sl.className="carslide"; sl.setAttribute("role","group");
+    sl.setAttribute("aria-roledescription","diapositive"); sl.setAttribute("aria-label",`${i+1} sur ${n}`);
+    sl.appendChild(makeCard({id:s.id,title:s.title,sub:s.sub,onClick:()=>actGo([s.id])}));
+    t.appendChild(sl);
+    const dot=document.createElement("button"); dot.type="button"; dot.className="cardot";
+    dot.setAttribute("aria-label",`${s.title}, ${i+1} sur ${n}`); dot.onclick=()=>carTo(i);
+    d.appendChild(dot);
+  });
+  let raf=0; t.addEventListener("scroll",()=>{cancelAnimationFrame(raf); raf=requestAnimationFrame(carSync)},{passive:true});
+  addEventListener("resize",carSync);
+  $("carPrev").onclick=()=>carTo(carIndex()-1); $("carNext").onclick=()=>carTo(carIndex()+1);
+  $("car").addEventListener("keydown",e=>{
+    if(e.key!=="ArrowRight"&&e.key!=="ArrowLeft") return;
+    e.preventDefault();
+    const dots=[...d.children], sl=[...t.children], cur=e.target.closest(".carslide"), onDot=dots.indexOf(e.target);
+    const from=cur?sl.indexOf(cur):onDot>=0?onDot:carIndex();
+    const to=Math.max(0,Math.min(n-1,from+(e.key==="ArrowRight"?1:-1)));
+    (onDot>=0?dots[to]:sl[to].firstChild).focus({preventScroll:true}); carTo(to);
+  });
+  carSync();
 }
 const libFilt={type:"",muscle:"",equip:"",impact:"",tag:""};
 /* Listes fermées : les mêmes que dans exercises.json */
@@ -1220,7 +1364,7 @@ const libCv=$("libCv"), libG=libCv.getContext("2d");
 let libKey=null, libT0=0, libRaf=0;
 function closeLibDemo(){
   libKey=null; cancelAnimationFrame(libRaf);
-  const box=$("libDemo"); box.hidden=true; $("viewBiblio").appendChild(box); // sort la démo de la liste avant qu'elle soit vidée
+  const box=$("libDemo"); box.hidden=true; $("libSection").appendChild(box); // sort la démo de la liste avant qu'elle soit vidée
   document.querySelectorAll("#libList li").forEach(x=>{x.classList.remove("open"); x.querySelector(".more").hidden=true; x.querySelector("button").setAttribute("aria-expanded","false")});
 }
 function libLoop(){
@@ -1439,6 +1583,9 @@ $("voiceSel").onchange=()=>{if(profile) setPdata({voice:$("voiceSel").value}); v
 if(HAS_TTS){try{speechSynthesis.addEventListener("voiceschanged",pickVoice)}catch(e){speechSynthesis.onvoiceschanged=pickVoice}}
 $("loadRetry").onclick=async()=>{if(await loadExercises()&&!$("setup").hidden) renderSetup()};
 renderProfiles(); pickVoice(); setTimeout(pickVoice,600);
+buildCarousel();
+history.replaceState({act:[]},"");
+renderAct([]);
 loadExercises().then(ok=>{if(ok&&!$("setup").hidden) renderSetup()});
 
 /* ---------- Hors ligne et mises à jour ---------- */
