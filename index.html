@@ -114,6 +114,13 @@ body:has(#run:not([hidden])) .update{display:none} /* jamais par-dessus la séan
 .lib .more{padding:0 14px 12px;display:flex;flex-direction:column;gap:8px}
 .lib .more p{margin:0;font-size:.9rem}
 .lib .more .used{color:var(--muted);font-size:.84rem}
+.libfilters{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px}
+.libfilters select{font:inherit;font-size:1rem;background:var(--surface);color:var(--ink);border:1.5px solid var(--line);border-radius:10px;padding:10px 12px;min-width:0;width:100%;box-sizing:border-box}
+.lib li>button{grid-template-areas:"n e" "m m"}
+.lib li>button b{grid-area:n}.lib li>button em{grid-area:e}
+.lib .libmeta{grid-area:m;margin:0;color:var(--muted);font-size:.84rem;overflow-wrap:anywhere}
+.loaderr{margin:12px 16px;padding:12px 14px;border:1.5px solid var(--line);border-radius:10px;background:var(--surface);display:flex;flex-direction:column;gap:8px;align-items:flex-start}
+.loaderr p{margin:0;color:#b3261e}
 .libdemo{background:color-mix(in srgb,var(--surface) 70%,var(--bg));border-radius:10px;overflow:hidden;aspect-ratio:240/170;width:100%;max-width:320px}
 .libdemo canvas{width:100%;height:100%;display:block}
 .panel{display:flex;flex-direction:column;gap:20px}
@@ -218,9 +225,10 @@ body:has(#run:not([hidden])) .update{display:none} /* jamais par-dessus la séan
     <button class="btn" type="submit">Créer</button>
   </form>
   <p id="pmsg" class="err" role="status"></p>
-  <footer class="foot">Version 1.7.0 · profils enregistrés sur cet appareil</footer>
+  <footer class="foot">Version 1.8.0 · profils enregistrés sur cet appareil</footer>
 </main>
 
+<div class="loaderr" id="loadErr" role="alert" hidden><p id="loadErrMsg"></p><button class="btn" id="loadRetry">Réessayer</button></div>
 <main id="setup" class="setup" hidden>
   <header class="brand">
     <h1>Coach Renfo</h1>
@@ -262,7 +270,7 @@ body:has(#run:not([hidden])) .update{display:none} /* jamais par-dessus la séan
     </div>
   <details class="custom" id="customBox">
     <summary>Créer ou modifier un programme (JSON)</summary>
-    <p>Le JSON du programme sélectionné est chargé ci-dessous. Modifie-le et enregistre : il apparaît comme programme perso, gardé dans ce navigateur. Par exercice : <code>name</code>, <code>work</code> (s), <code>desc</code>, <code>reps</code>, <code>sides</code>, <code>sets</code>, <code>setRest</code>, <code>rest</code>, <code>anim</code>. Par bloc : <code>rounds</code>, <code>rest</code>, <code>roundRest</code>, <code>transition</code>.</p>
+    <p>Le JSON du programme sélectionné est chargé ci-dessous. Modifie-le et enregistre : il apparaît comme programme perso, gardé dans ce navigateur. Par exercice : <code>ex</code> (identifiant de la Bibliothèque, ex. <code>"planche"</code>) puis les valeurs de séance <code>work</code> (s), <code>reps</code>, <code>sets</code>, <code>setRest</code>, <code>rest</code>, qui priment sur les valeurs par défaut de l'exercice. L'ancien format reste accepté : <code>name</code>, <code>desc</code>, <code>sides</code>, <code>anim</code> en ligne. Par bloc : <code>rounds</code>, <code>rest</code>, <code>roundRest</code>, <code>transition</code>.</p>
     <p id="animList"></p>
     <label for="jsonArea" class="eyebrow" style="display:block">JSON</label>
     <textarea id="jsonArea" spellcheck="false"></textarea>
@@ -275,6 +283,11 @@ body:has(#run:not([hidden])) .update{display:none} /* jamais par-dessus la séan
     </div>
     <div class="panel" id="viewBiblio" hidden>
       <input class="libsearch" id="libSearch" type="search" placeholder="Rechercher un exercice" autocomplete="off" aria-label="Rechercher un exercice">
+      <div class="libfilters">
+        <select id="libType" aria-label="Filtrer par type"></select>
+        <select id="libMuscle" aria-label="Filtrer par muscle"></select>
+        <select id="libEquip" aria-label="Filtrer par équipement"></select>
+      </div>
       <p class="tips" id="libCount"></p>
       <ul class="lib" id="libList"></ul>
       <div class="libdemo" id="libDemo" hidden><canvas id="libCv" aria-label="Démonstration animée du mouvement"></canvas></div>
@@ -321,7 +334,7 @@ body:has(#run:not([hidden])) .update{display:none} /* jamais par-dessus la séan
     </section>
   </div>
   <!-- À mettre à jour à chaque publication : ce pied de page, figure.js?v= plus bas, et VERSION dans sw.js -->
-  <footer class="foot">Version 1.7.0 · publiée le <time datetime="2026-10-25T20:00">25/10/2026 à 20:00</time></footer>
+  <footer class="foot">Version 1.8.0 · publiée le <time datetime="2026-10-25T18:30">25/10/2026 à 18:30</time></footer>
 </main>
 
 <section id="run" class="run" data-phase="prep" hidden>
@@ -371,41 +384,69 @@ body:has(#run:not([hidden])) .update{display:none} /* jamais par-dessus la séan
   <button class="start" id="againBtn" style="max-width:320px">Retour</button>
 </section>
 
-<script src="figure.js?v=1.7.0"></script>
+<script src="figure.js?v=1.8.0"></script>
 <script>
+/* ---------- Exercices (exercises.json) ---------- */
+let EXERCISES=null;
+const ALWAYS_EQUIP=["tapis","mur","step","chaise"]; // considérés comme toujours disponibles
+async function loadExercises(){
+  try{
+    const r=await fetch("exercises.json",{cache:"no-cache"});
+    if(!r.ok) throw new Error("HTTP "+r.status);
+    const j=await r.json();
+    if(!j||typeof j!=="object"||Array.isArray(j)||!Object.keys(j).length) throw new Error("fichier vide ou mal formé");
+    EXERCISES=j; $("loadErr").hidden=true; return true;
+  }catch(e){
+    EXERCISES=null;
+    $("loadErrMsg").textContent="Impossible de charger exercises.json ("+(e.message||"erreur réseau")+"). Les séances ne peuvent pas démarrer sans cette liste. Vérifie la connexion puis réessaie.";
+    $("loadErr").hidden=false; return false;
+  }
+}
+/* Un exercice de programme = référence ex:"id" + valeurs de séance (work, reps, sets, setRest, rest) qui priment sur defaults.
+   Ancien format (name/desc/sides en ligne, sans ex) : inchangé. */
+function resolveItem(it){
+  if(!it.ex) return it;
+  const e=EXERCISES&&EXERCISES[it.ex]; if(!e) return {...it,name:it.name||it.ex,unknown:true};
+  const d=e.defaults||{}, r={name:e.name,desc:e.desc||"",sides:!!e.unilateral,anim:e.anim};
+  ["work","reps","sets","setRest","rest"].forEach(k=>{ if(d[k]!=null) r[k]=d[k]; });
+  Object.keys(it).forEach(k=>{ if(k!=="ex"&&it[k]!==undefined) r[k]=it[k]; });
+  return r;
+}
+function resolveProg(p){return {...p,blocks:p.blocks.map(b=>({...b,items:b.items.map(resolveItem)}))}}
+
 const PROGRAMS = [
 {
   id:"mobi-renfo", name:"Mobilité + renfo léger", sub:"Échauffement mobilité, circuit 2 tours, retour au calme",
   prep:10, switchTime:5,
   blocks:[
     {name:"Mobilité", rounds:1, rest:8, transition:20, items:[
-      {name:"Marche sur place / jumping jacks doux", work:60, desc:"Rythme léger, épaules relâchées. On monte la température."},
-      {name:"Cercles de chevilles", work:20, sides:true, reps:"10 / sens", desc:"Pied décollé du sol, grands cercles lents dans les deux sens."},
-      {name:"Mobilité cheville genou-mur", work:30, sides:true, reps:"10", desc:"Talon au sol, amène le genou vers le mur sans forcer. Amplitude progressive."},
-      {name:"Cercles de hanches", work:30, reps:"10 / sens", desc:"Debout, mains sur les hanches, cercles amples. Change de sens à mi-temps."},
-      {name:"Fente avant dynamique + rotation", work:30, sides:true, reps:"6", desc:"Fente d'amplitude moyenne, rotation du buste vers la jambe avant."},
-      {name:"Chat-vache", work:40, reps:"10", desc:"À quatre pattes, enroule puis creuse le dos en suivant ta respiration."},
-      {name:"Ouvertures thoraciques", work:30, sides:true, reps:"8", desc:"Allongé sur le côté, genoux fléchis, ouvre le bras du dessus comme un livre."},
-      {name:"Balancés de jambe", work:30, sides:true, reps:"10 + 10", desc:"Avant-arrière puis latéral, buste stable. Main au mur si besoin."}
+      {ex:"marche-jumping", work:60},
+      {ex:"cercles-chevilles", work:20, reps:"10 / sens"},
+      {ex:"mobilite-cheville-genou-mur", work:30, reps:"10"},
+      {ex:"cercles-hanches", work:30, reps:"10 / sens"},
+      {ex:"fente-avant-rotation", work:30, reps:"6"},
+      {ex:"chat-vache", work:40, reps:"10"},
+      {ex:"ouvertures-thoraciques", work:30, reps:"8"},
+      {ex:"balances-jambe", work:30, reps:"10 + 10"}
     ]},
     {name:"Achille", rounds:1, transition:20, items:[
-      {name:"Isométrie pointes de pieds", work:40, sets:3, setRest:20, reps:"mi-hauteur", desc:"Deux pieds, talons à mi-hauteur, on tient. Zéro douleur tolérée."}
+      {ex:"isometrie-pointes-pieds", work:40, sets:3, setRest:20, reps:"mi-hauteur"}
     ]},
     {name:"Circuit", rounds:2, rest:20, roundRest:75, transition:20, items:[
-      {name:"Pont fessier", work:45, reps:"12 · tenue 2 s", desc:"Deux jambes. Pousse dans les talons, serre les fessiers 2 secondes en haut."},
-      {name:"Abduction couchée", work:40, sides:true, reps:"15", desc:"Allongé sur le côté, jambe du dessus tendue, montée lente, pointe de pied vers l'avant."},
-      {name:"Équilibre unipodal", work:30, sides:true, desc:"Genou légèrement fléchi, bassin horizontal, regard fixe."},
-      {name:"Planche", work:45, desc:"Sur les avant-bras, corps gainé de la tête aux talons. Dos qui ne creuse pas."},
-      {name:"Planche latérale", work:30, sides:true, desc:"Coude sous l'épaule, bassin haut, corps aligné."},
-      {name:"Dead bug", work:45, reps:"10", desc:"Lombaires plaquées au sol. Bras et jambe opposés s'allongent lentement."},
-      {name:"Bird dog lent", work:40, sides:true, reps:"8", desc:"À quatre pattes, bras et jambe opposés tendus, bassin immobile."},
-      {name:"Pompes", work:40, reps:"10–12", desc:"Corps gainé, descente contrôlée. Sur les genoux si la forme lâche."},
-      {name:"Rowing élastique", work:45, reps:"15", desc:"Tire les coudes vers l'arrière, serre les omoplates, retour lent."},
-      {name:"Élévations latérales", work:40, reps:"12", desc:"Élastique ou kettlebell 4 kg. Bras jusqu'à l'horizontale, sans hausser les épaules."}
+      {ex:"pont-fessier", work:45, reps:"12 · tenue 2 s"},
+      {ex:"abduction-couchee", work:40, reps:"15"},
+      {ex:"equilibre-unipodal", work:30},
+      {ex:"planche", work:45},
+      {ex:"planche-laterale", work:30},
+      {ex:"dead-bug", work:45, reps:"10"},
+      {ex:"bird-dog", work:40, reps:"8"},
+      {ex:"pompes", work:40, reps:"10–12"},
+      {ex:"rowing-elastique", work:45, reps:"15"},
+      {ex:"elevations-laterales", work:40, reps:"12"}
     ]},
     {name:"Retour au calme", rounds:1, rest:8, items:[
-      {name:"Jambes au mur", work:60, desc:"Allongé, jambes contre le mur. Respiration lente par le ventre."},
-      {name:"Étirement fessier", work:40, sides:true, desc:"Allongé, cheville sur le genou opposé, tire doucement la cuisse vers toi."}
+      {ex:"jambes-au-mur", work:60},
+      {ex:"etirement-fessier", work:40}
     ]}
   ]
 },
@@ -414,19 +455,19 @@ const PROGRAMS = [
   prep:10, switchTime:5,
   blocks:[
     {name:"Mollet / Achille", rounds:1, transition:20, items:[
-      {name:"Isométrie pointes de pieds", work:40, sets:3, setRest:20, reps:"mi-hauteur", desc:"Deux pieds, talons à mi-hauteur, on tient. Zéro douleur tolérée."},
-      {name:"Montées sur pointes lentes", work:50, sets:2, setRest:30, reps:"12 · 3 s / 3 s", desc:"Seulement si l'isométrie est à 0 sur 10. Deux pieds, au sol, pas sur une marche."}
+      {ex:"isometrie-pointes-pieds", work:40, sets:3, setRest:20, reps:"mi-hauteur"},
+      {ex:"montees-pointes-lentes", work:50, sets:2, setRest:30, reps:"12 · 3 s / 3 s"}
     ]},
     {name:"Circuit", rounds:2, rest:20, roundRest:75, items:[
-      {name:"Pont fessier une jambe", work:40, sides:true, reps:"10", desc:"Bassin horizontal, pousse dans le talon, monte sans cambrer."},
-      {name:"Abduction couchée", work:40, sides:true, reps:"15", desc:"Jambe du dessus tendue, montée lente, pointe de pied vers l'avant."},
-      {name:"Équilibre unipodal", work:30, sides:true, desc:"Yeux ouverts, genou légèrement fléchi, bassin stable."},
-      {name:"Step-down lent", work:45, sides:true, reps:"8", desc:"Sur le step, descente en 3 secondes, genou dans l'axe du pied."},
-      {name:"Chaise contre le mur", work:40, desc:"Dos au mur, cuisses proches de l'horizontale, genoux au-dessus des chevilles."},
-      {name:"Planche", work:45, desc:"Sur les avant-bras, corps gainé, dos qui ne creuse pas."},
-      {name:"Planche latérale", work:30, sides:true, desc:"Coude sous l'épaule, bassin haut, corps aligné."},
-      {name:"Dead bug", work:45, reps:"10", desc:"Lombaires plaquées au sol, mouvements lents."},
-      {name:"Short foot", work:40, reps:"10", desc:"Pied à plat, raccourcis le pied en rapprochant les orteils du talon, sans les plier. Ou serre une serviette."}
+      {ex:"pont-fessier-une-jambe", work:40, reps:"10"},
+      {ex:"abduction-couchee", work:40, reps:"15"},
+      {ex:"equilibre-unipodal", work:30},
+      {ex:"step-down-lent", work:45, reps:"8"},
+      {ex:"chaise-mur", work:40},
+      {ex:"planche", work:45},
+      {ex:"planche-laterale", work:30},
+      {ex:"dead-bug", work:45, reps:"10"},
+      {ex:"short-foot", work:40, reps:"10"}
     ]}
   ]
 },
@@ -435,8 +476,8 @@ const PROGRAMS = [
   prep:5, switchTime:3,
   blocks:[
     {name:"Démo", rounds:2, rest:5, roundRest:8, items:[
-      {name:"Planche", work:10, desc:"Corps gainé de la tête aux talons."},
-      {name:"Fente arrière", work:8, sides:true, reps:"4", desc:"Grand pas en arrière, genou avant au-dessus de la cheville."}
+      {ex:"planche", work:10},
+      {ex:"fente-arriere", work:8, reps:"4"}
     ]}
   ]
 }
@@ -466,7 +507,7 @@ function clearCustom(){setPdata({custom:undefined})}
 
 /* ---------- Programme → séquence ---------- */
 function expand(p){
-  const segs=[]; const blocks=p.blocks;
+  const segs=[]; const blocks=resolveProg(p).blocks;
   blocks.forEach((b,bi)=>{
     const rounds=b.rounds||1;
     for(let r=1;r<=rounds;r++){
@@ -508,9 +549,11 @@ function validate(p){
   for(const b of p.blocks){
     if(!Array.isArray(b.items)||!b.items.length) return `Le bloc "${b.name||"?"}" n'a pas d'exercices dans "items".`;
     for(const it of b.items){
-      if(!it.name) return `Un exercice du bloc "${b.name||"?"}" n'a pas de "name".`;
-      if(!(typeof it.work==="number"&&it.work>0)) return `"${it.name}" : "work" doit être une durée en secondes.`;
-      if(it.anim&&!ANIMS[it.anim]) return `"${it.name}" : animation "${it.anim}" inconnue.`;
+      if(it.ex&&EXERCISES&&!EXERCISES[it.ex]) return `Exercice inconnu : ex:"${it.ex}" n'existe pas dans exercises.json.`;
+      if(!it.ex&&!it.name) return `Un exercice du bloc "${b.name||"?"}" n'a pas de "ex" ni de "name".`;
+      const r=resolveItem(it);
+      if(!(typeof r.work==="number"&&r.work>0)) return `"${r.name}" : "work" doit être une durée en secondes.`;
+      if(r.anim&&!ANIMS[r.anim]) return `"${r.name}" : animation "${r.anim}" inconnue.`;
     }
   }
   return null;
@@ -522,6 +565,8 @@ let selectedId="mobi-renfo", actView="seances";
 function allPrograms(){const c=loadCustom();return c?[...PROGRAMS.filter(p=>p.id!=="custom"),{...c,id:"custom",sub:c.sub||"Programme perso"}]:PROGRAMS}
 function getProg(){return allPrograms().find(p=>p.id===selectedId)||PROGRAMS[0]}
 function renderSetup(){
+  $("startBtn").disabled=!EXERCISES;
+  if(!EXERCISES){$("loadErr").hidden=false; return}
   const cb=$("cats"); cb.innerHTML="";
   [["seances","Séances"],["biblio","Bibliothèque"]].forEach(([k,label])=>{
     const b=document.createElement("button"); b.textContent=label; b.setAttribute("aria-pressed",k===actView);
@@ -543,7 +588,7 @@ function renderSetup(){
   const sum=document.createElement("p"); sum.className="sum tab";
   sum.textContent=`${fmt(totalOf(segs))} au total · ${works.length} passages · ${fmt(works.reduce((a,s)=>a+s.dur,0))} d'effort`;
   pv.appendChild(sum);
-  p.blocks.forEach(b=>{
+  resolveProg(p).blocks.forEach(b=>{
     const d=document.createElement("div"); d.className="blk";
     const t=document.createElement("h3"); t.textContent=b.name;
     const sp=document.createElement("span"); const r=b.rounds||1;
@@ -1033,15 +1078,24 @@ function showView(k){
   [...$("cats").children].forEach((b,i)=>b.setAttribute("aria-pressed",["seances","biblio"][i]===k));
   if(k==="biblio") renderLib(); else closeLibDemo();
 }
+const libFilt={type:"",muscle:"",equip:""};
 function libItems(){
-  const map=new Map();
+  const used={}, byName={};
+  Object.entries(EXERCISES||{}).forEach(([id,e])=>{byName[e.name.trim().toLowerCase()]=id});
   allPrograms().forEach(p=>p.blocks.forEach(b=>b.items.forEach(it=>{
-    const key=it.name.trim().toLowerCase();
-    let e=map.get(key); if(!e){e={name:it.name,desc:it.desc||"",reps:it.reps||"",work:it.work,sides:!!it.sides,anim:animFor(it),used:[]};map.set(key,e)}
-    if(!e.desc&&it.desc) e.desc=it.desc;
-    if(!e.used.includes(p.name)) e.used.push(p.name);
+    const id=it.ex||byName[(resolveItem(it).name||"").trim().toLowerCase()]; if(!id) return;
+    (used[id]=used[id]||[]); if(!used[id].includes(p.name)) used[id].push(p.name);
   })));
-  return [...map.values()].sort((a,b)=>a.name.localeCompare(b.name,"fr"));
+  return Object.entries(EXERCISES||{}).map(([id,e])=>({id,...e,used:used[id]||[]})).sort((a,b)=>a.name.localeCompare(b.name,"fr"));
+}
+function equipLabel(list){return list.length?list.join(", "):"aucun"}
+function fillLibFilters(all){
+  [["type","libType","Tous les types",e=>[e.type]],["muscle","libMuscle","Tous les muscles",e=>e.muscles||[]],["equip","libEquip","Tout l'équipement",e=>e.equipment||[]]].forEach(([k,id,all0,get])=>{
+    const sel=$(id), vals=[...new Set(all.flatMap(get))].sort((a,b)=>a.localeCompare(b,"fr"));
+    sel.innerHTML=""; sel.add(new Option(all0,""));
+    vals.forEach(v=>sel.add(new Option(v,v)));
+    sel.value=vals.includes(libFilt[k])?libFilt[k]:""; libFilt[k]=sel.value;
+  });
 }
 const libCv=$("libCv"), libG=libCv.getContext("2d");
 let libKey=null, libT0=0, libRaf=0;
@@ -1067,20 +1121,28 @@ function openLibDemo(li,e){
 }
 function renderLib(){
   closeLibDemo();
+  if(!EXERCISES){$("libCount").textContent="Bibliothèque indisponible : exercises.json n'a pas pu être chargé."; $("libList").innerHTML=""; return}
   const q=$("libSearch").value.trim().toLowerCase(), all=libItems();
-  const items=all.filter(e=>!q||e.name.toLowerCase().includes(q)||e.desc.toLowerCase().includes(q));
+  if(!$("libType").options.length) fillLibFilters(all);
+  const items=all.filter(e=>(!q||e.name.toLowerCase().includes(q)||(e.desc||"").toLowerCase().includes(q)||(e.tags||[]).some(t=>t.toLowerCase().includes(q)))
+    &&(!libFilt.type||e.type===libFilt.type)&&(!libFilt.muscle||(e.muscles||[]).includes(libFilt.muscle))&&(!libFilt.equip||(e.equipment||[]).includes(libFilt.equip)));
   $("libCount").textContent=items.length===all.length?`${all.length} exercices`:`${items.length} sur ${all.length} exercices`;
   const ul=$("libList"); ul.innerHTML="";
   items.forEach(e=>{
-    const li=document.createElement("li"), b=document.createElement("button");
+    const d=e.defaults||{}, li=document.createElement("li"), b=document.createElement("button");
     b.setAttribute("aria-expanded","false");
     const n=document.createElement("b"); n.textContent=e.name;
-    const em=document.createElement("em"); em.className="tab"; em.textContent=`${e.work} s`+(e.sides?" / côté":"");
+    const em=document.createElement("em"); em.className="tab"; em.textContent=e.type;
     b.append(n,em);
+    const meta=document.createElement("p"); meta.className="libmeta";
+    meta.textContent=`${e.muscles.join(", ")} · ${equipLabel(e.equipment)}`;
+    b.appendChild(meta);
     const more=document.createElement("div"); more.className="more";
     if(e.desc){const p=document.createElement("p"); p.textContent=e.desc; more.appendChild(p)}
-    if(e.reps){const p=document.createElement("p"); p.textContent="Répétitions : "+e.reps; more.appendChild(p)}
-    const u=document.createElement("p"); u.className="used"; u.textContent="Dans : "+e.used.join(", "); more.appendChild(u);
+    const dose=[d.sets>1?`${d.sets} × `:"",d.work?`${d.work} s`:"",e.unilateral?" / côté":"",d.reps?` · ${d.reps}`:""].join("");
+    if(dose){const p=document.createElement("p"); p.textContent="Par défaut : "+dose; more.appendChild(p)}
+    if(e.position){const p=document.createElement("p"); p.textContent="Position : "+e.position; more.appendChild(p)}
+    if(e.used.length){const u=document.createElement("p"); u.className="used"; u.textContent="Dans : "+e.used.join(", "); more.appendChild(u)}
     more.hidden=true;
     b.onclick=()=>{
       const was=li.classList.contains("open");
@@ -1090,6 +1152,7 @@ function renderLib(){
     li.append(b,more); ul.appendChild(li);
   });
 }
+[["libType","type"],["libMuscle","muscle"],["libEquip","equip"]].forEach(([id,k])=>{$(id).onchange=()=>{libFilt[k]=$(id).value; renderLib()}});
 $("libSearch").oninput=renderLib;
 
 /* ---------- Commandes ---------- */
@@ -1112,7 +1175,9 @@ document.addEventListener("keydown",e=>{
 });
 $("voiceSel").onchange=()=>{if(profile) setPdata({voice:$("voiceSel").value}); voiceFailed=false; pickVoice();};
 if(HAS_TTS){try{speechSynthesis.addEventListener("voiceschanged",pickVoice)}catch(e){speechSynthesis.onvoiceschanged=pickVoice}}
+$("loadRetry").onclick=async()=>{if(await loadExercises()&&!$("setup").hidden) renderSetup()};
 renderProfiles(); pickVoice(); setTimeout(pickVoice,600);
+loadExercises().then(ok=>{if(ok&&!$("setup").hidden) renderSetup()});
 
 /* ---------- Hors ligne et mises à jour ---------- */
 if("serviceWorker" in navigator){
