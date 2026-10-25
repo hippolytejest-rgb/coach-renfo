@@ -247,7 +247,7 @@ body:has(#run:not([hidden])) .update{display:none} /* jamais par-dessus la séan
     <button class="btn" type="submit">Créer</button>
   </form>
   <p id="pmsg" class="err" role="status"></p>
-  <footer class="foot">Version 1.10.0 · profils enregistrés sur cet appareil</footer>
+  <footer class="foot">Version 1.11.0 · profils enregistrés sur cet appareil</footer>
 </main>
 
 <div class="loaderr" id="loadErr" role="alert" hidden><p id="loadErrMsg"></p><button class="btn" id="loadRetry">Réessayer</button></div>
@@ -389,7 +389,7 @@ body:has(#run:not([hidden])) .update{display:none} /* jamais par-dessus la séan
     </section>
   </div>
   <!-- À mettre à jour à chaque publication : ce pied de page, figure.js?v= plus bas, et VERSION dans sw.js -->
-  <footer class="foot">Version 1.10.0 · publiée le <time datetime="2026-10-25T18:44">25/10/2026 à 18:44</time></footer>
+  <footer class="foot">Version 1.11.0 · publiée le <time datetime="2026-10-25T18:44">25/10/2026 à 18:44</time></footer>
 </main>
 
 <section id="run" class="run" data-phase="prep" hidden>
@@ -439,8 +439,8 @@ body:has(#run:not([hidden])) .update{display:none} /* jamais par-dessus la séan
   <button class="start" id="againBtn" style="max-width:320px">Retour</button>
 </section>
 
-<script src="figure.js?v=1.10.0"></script>
-<script src="generator.js?v=1.10.0"></script>
+<script src="figure.js?v=1.11.0"></script>
+<script src="generator.js?v=1.11.0"></script>
 <script>
 /* ---------- Exercices (exercises.json) ---------- */
 let EXERCISES=null;
@@ -677,7 +677,7 @@ function renderSetup(){
   $("delCustom").hidden=!loadCustom();
   renderDash(); renderEquip();
 }
-$("animList").textContent="Animations disponibles pour \"anim\" (sinon détectée d'après le nom) : "+Object.keys(ANIMS).join(", ")+".";
+$("animList").textContent="Animations disponibles pour \"anim\" (sans elle, pas de démo) : "+Object.keys(ANIMS).join(", ")+".";
 $("saveCustom").onclick=()=>{
   const msg=$("jsonMsg"); let p;
   try{p=JSON.parse($("jsonArea").value)}catch(e){msg.className="err";msg.textContent="JSON invalide : "+e.message;return}
@@ -1150,7 +1150,7 @@ function showView(k){
 const libFilt={type:"",muscle:"",equip:"",impact:"",tag:""};
 /* Listes fermées : les mêmes que dans exercises.json */
 const LIB_MUSCLES=["fessiers","ischio-jambiers","quadriceps","mollets","pied-cheville","hanches","tronc","dos","épaules","bras"];
-const LIB_EQUIP=["aucun","tapis","mur","step","chaise","élastique","kettlebell"];
+const LIB_EQUIP=["aucun","tapis","mur","step","chaise","élastique","kettlebell","balle de massage"];
 const LIB_IMPACT=["aucun","faible","élevé"];
 function libItems(){
   const used={}, byName={};

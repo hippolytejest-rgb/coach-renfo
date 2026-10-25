@@ -105,16 +105,7 @@ const ANIMS={
     {H:[104,120],t:[0,0],na:[30,80],fa:[28,78],nl:leg(133,FY),fl:leg(131,FY)},
     {H:[104,120],t:[0,0],na:[30,80],fa:[28,78],nl:leg(133,FY,{foot:84}),fl:leg(131,FY)}]}
 };
-const ANIM_BY_NAME=[
-  [/marche|jumping/i,"march"],[/cercles? de chevilles/i,"ankleCircles"],[/genou.?mur/i,"kneeWall"],[/cercles? de hanches/i,"hipCircles"],
-  [/fente avant|rotation/i,"lungeRot"],[/chat.?vache/i,"catCow"],[/thoraci/i,"thoracic"],[/balanc/i,"legSwing"],
-  [/isom.*pointe/i,"calfIso"],[/mont.*pointe/i,"calfRaise"],[/pont.*(une|1) jambe/i,"bridgeOne"],[/pont/i,"bridge"],
-  [/abduction/i,"abduction"],[/quilibre|unipodal/i,"balance"],[/planche lat/i,"sidePlank"],[/planche/i,"plank"],
-  [/dead.?bug/i,"deadBug"],[/bird.?dog/i,"birdDog"],[/pompe/i,"pushup"],[/rowing/i,"row"],[/l[ée]vations? lat/i,"lateralRaise"],
-  [/jambes au mur/i,"legsWall"],[/fessier|figure.?4/i,"gluteStretch"],[/step/i,"stepDown"],[/chaise/i,"wallSit"],
-  [/short foot|serviette/i,"shortFoot"],[/fente/i,"lungeBack"]
-];
-function animFor(item){ if(!item) return null; if(item.anim&&ANIMS[item.anim]) return item.anim; const m=ANIM_BY_NAME.find(([re])=>re.test(item.name||"")); return m?m[1]:null; }
+function animFor(item){ return item&&item.anim&&ANIMS[item.anim]?item.anim:null; }
 
 function solveLimb(root,spec,L1,L2){
   if(Array.isArray(spec)){
