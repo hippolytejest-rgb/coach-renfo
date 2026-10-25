@@ -287,6 +287,8 @@ body:has(#run:not([hidden])) .update{display:none} /* jamais par-dessus la séan
         <select id="libType" aria-label="Filtrer par type"></select>
         <select id="libMuscle" aria-label="Filtrer par muscle"></select>
         <select id="libEquip" aria-label="Filtrer par équipement"></select>
+        <select id="libImpact" aria-label="Filtrer par impact"></select>
+        <select id="libTag" aria-label="Filtrer par caractéristique"></select>
       </div>
       <p class="tips" id="libCount"></p>
       <ul class="lib" id="libList"></ul>
@@ -1078,7 +1080,11 @@ function showView(k){
   [...$("cats").children].forEach((b,i)=>b.setAttribute("aria-pressed",["seances","biblio"][i]===k));
   if(k==="biblio") renderLib(); else closeLibDemo();
 }
-const libFilt={type:"",muscle:"",equip:""};
+const libFilt={type:"",muscle:"",equip:"",impact:"",tag:""};
+/* Listes fermées : les mêmes que dans exercises.json */
+const LIB_MUSCLES=["fessiers","ischio-jambiers","quadriceps","mollets","pied-cheville","hanches","tronc","dos","épaules","bras"];
+const LIB_EQUIP=["aucun","tapis","mur","step","chaise","élastique","kettlebell"];
+const LIB_IMPACT=["aucun","faible","élevé"];
 function libItems(){
   const used={}, byName={};
   Object.entries(EXERCISES||{}).forEach(([id,e])=>{byName[e.name.trim().toLowerCase()]=id});
@@ -1089,9 +1095,14 @@ function libItems(){
   return Object.entries(EXERCISES||{}).map(([id,e])=>({id,...e,used:used[id]||[]})).sort((a,b)=>a.name.localeCompare(b.name,"fr"));
 }
 function equipLabel(list){return list.length?list.join(", "):"aucun"}
+const libTags=all=>[...new Set(all.flatMap(e=>e.tags||[]))].sort((a,b)=>a.localeCompare(b,"fr"));
 function fillLibFilters(all){
-  [["type","libType","Tous les types",e=>[e.type]],["muscle","libMuscle","Tous les muscles",e=>e.muscles||[]],["equip","libEquip","Tout l'équipement",e=>e.equipment||[]]].forEach(([k,id,all0,get])=>{
-    const sel=$(id), vals=[...new Set(all.flatMap(get))].sort((a,b)=>a.localeCompare(b,"fr"));
+  [["type","libType","Tous les types",[...new Set(all.map(e=>e.type))].sort((a,b)=>a.localeCompare(b,"fr"))],
+   ["muscle","libMuscle","Tous les muscles",LIB_MUSCLES],
+   ["equip","libEquip","Tout l'équipement",LIB_EQUIP],
+   ["impact","libImpact","Tous les impacts",LIB_IMPACT],
+   ["tag","libTag","Toutes les caractéristiques",libTags(all)]].forEach(([k,id,all0,vals])=>{
+    const sel=$(id);
     sel.innerHTML=""; sel.add(new Option(all0,""));
     vals.forEach(v=>sel.add(new Option(v,v)));
     sel.value=vals.includes(libFilt[k])?libFilt[k]:""; libFilt[k]=sel.value;
@@ -1125,7 +1136,8 @@ function renderLib(){
   const q=$("libSearch").value.trim().toLowerCase(), all=libItems();
   if(!$("libType").options.length) fillLibFilters(all);
   const items=all.filter(e=>(!q||e.name.toLowerCase().includes(q)||(e.desc||"").toLowerCase().includes(q)||(e.tags||[]).some(t=>t.toLowerCase().includes(q)))
-    &&(!libFilt.type||e.type===libFilt.type)&&(!libFilt.muscle||(e.muscles||[]).includes(libFilt.muscle))&&(!libFilt.equip||(e.equipment||[]).includes(libFilt.equip)));
+    &&(!libFilt.type||e.type===libFilt.type)&&(!libFilt.muscle||(e.muscles||[]).includes(libFilt.muscle))&&(!libFilt.equip||(e.equipment||[]).includes(libFilt.equip))
+    &&(!libFilt.impact||e.impact===libFilt.impact)&&(!libFilt.tag||(e.tags||[]).includes(libFilt.tag)));
   $("libCount").textContent=items.length===all.length?`${all.length} exercices`:`${items.length} sur ${all.length} exercices`;
   const ul=$("libList"); ul.innerHTML="";
   items.forEach(e=>{
@@ -1135,7 +1147,7 @@ function renderLib(){
     const em=document.createElement("em"); em.className="tab"; em.textContent=e.type;
     b.append(n,em);
     const meta=document.createElement("p"); meta.className="libmeta";
-    meta.textContent=`${e.muscles.join(", ")} · ${equipLabel(e.equipment)}`;
+    meta.textContent=`${e.muscles.join(", ")} · ${equipLabel(e.equipment)} · impact ${e.impact||"aucun"}`;
     b.appendChild(meta);
     const more=document.createElement("div"); more.className="more";
     if(e.desc){const p=document.createElement("p"); p.textContent=e.desc; more.appendChild(p)}
@@ -1152,7 +1164,7 @@ function renderLib(){
     li.append(b,more); ul.appendChild(li);
   });
 }
-[["libType","type"],["libMuscle","muscle"],["libEquip","equip"]].forEach(([id,k])=>{$(id).onchange=()=>{libFilt[k]=$(id).value; renderLib()}});
+[["libType","type"],["libMuscle","muscle"],["libEquip","equip"],["libImpact","impact"],["libTag","tag"]].forEach(([id,k])=>{$(id).onchange=()=>{libFilt[k]=$(id).value; renderLib()}});
 $("libSearch").oninput=renderLib;
 
 /* ---------- Commandes ---------- */
