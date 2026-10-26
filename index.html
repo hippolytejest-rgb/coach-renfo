@@ -182,9 +182,14 @@ body:has(#run:not([hidden])) .update{display:none} /* jamais par-dessus la séan
 .agrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px}
 .carwrap{position:relative;min-width:0}
 .car{display:flex;flex-direction:column;gap:6px;min-width:0}
-.cartrack{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;overscroll-behavior-x:contain;padding:4px;margin:-4px;scroll-padding-inline:4px}
+.car{--cw:clamp(190px,64vw,260px)}
+.cartrack{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none;overscroll-behavior-x:contain;padding:4px calc(50% - var(--cw)/2);margin:-4px}
 .cartrack::-webkit-scrollbar{display:none}
-.carslide{flex:0 0 80%;max-width:340px;scroll-snap-align:start;display:flex}
+.carslide{flex:0 0 var(--cw);width:var(--cw);scroll-snap-align:center;scroll-snap-stop:always;display:flex}
+.carslide .acard{aspect-ratio:9/16;height:auto;transition:transform .15s}
+.carslide .acard:active{transform:scale(.97)}
+.carslide .apic{flex:0 0 60%;aspect-ratio:auto}
+.carslide .atxt{flex:1 1 auto;min-height:0;padding:12px 14px 14px;gap:4px;overflow-wrap:anywhere}
 .cardots{display:flex;justify-content:center}
 .cardot{width:24px;height:24px;border:0;background:transparent;padding:0;display:flex;align-items:center;justify-content:center}
 .cardot::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--ghost)}
@@ -277,9 +282,6 @@ body:has(#run:not([hidden])) .update{display:none} /* jamais par-dessus la séan
 html{touch-action:manipulation;-webkit-text-size-adjust:100%}
 input,select,textarea{font-size:max(16px,1em)}
 .histtitle{font-size:clamp(2.2rem,8vw,3.2rem);line-height:.95;text-transform:uppercase;font-weight:800;margin:0 0 12px}
-.carslide{flex:0 0 58%;max-width:240px}
-.carslide .acard{aspect-ratio:3/4}
-.carslide .apic{aspect-ratio:auto;flex:1 1 0;min-height:0}
 .agrid{grid-template-columns:minmax(0,1fr)}
 .agrid .apic{aspect-ratio:16/7}
 .prevtoggle{margin-top:14px;width:100%}
@@ -304,7 +306,7 @@ input,select,textarea{font-size:max(16px,1em)}
     <button class="btn" type="submit">Créer</button>
   </form>
   <p id="pmsg" class="err" role="status"></p>
-  <footer class="foot">Version 1.16.0 · profils enregistrés sur cet appareil</footer>
+  <footer class="foot">Version 1.16.1 · profils enregistrés sur cet appareil</footer>
 </main>
 
 <div class="loaderr" id="loadErr" role="alert" hidden><p id="loadErrMsg"></p><button class="btn" id="loadRetry">Réessayer</button></div>
@@ -477,7 +479,7 @@ input,select,textarea{font-size:max(16px,1em)}
     </section>
   </div>
   <!-- À mettre à jour à chaque publication : ce pied de page, figure.js?v= plus bas, et VERSION dans sw.js -->
-  <footer class="foot">Version 1.16.0 · publiée le <time datetime="2026-10-25T21:00">25/10/2026 à 21:00</time></footer>
+  <footer class="foot">Version 1.16.1 · publiée le <time datetime="2026-10-26T09:00">26/10/2026 à 09:00</time></footer>
 </main>
 
 <section id="run" class="run" data-phase="prep" hidden>
@@ -527,8 +529,8 @@ input,select,textarea{font-size:max(16px,1em)}
   <button class="start" id="againBtn" style="max-width:320px">Retour</button>
 </section>
 
-<script src="figure.js?v=1.16.0"></script>
-<script src="generator.js?v=1.16.0"></script>
+<script src="figure.js?v=1.16.1"></script>
+<script src="generator.js?v=1.16.1"></script>
 <script>
 /* ---------- Exercices (exercises.json) ---------- */
 let EXERCISES=null;
@@ -1414,8 +1416,8 @@ function carIndex(){
   const t=$("carTrack"), sl=[...t.children];
   if(!sl.length) return 0;
   if(t.scrollLeft+t.clientWidth>=t.scrollWidth-2) return sl.length-1;
-  const x=t.getBoundingClientRect().left; let best=0, bd=1e9;
-  sl.forEach((c,i)=>{const d=Math.abs(c.getBoundingClientRect().left-x); if(d<bd){bd=d; best=i}});
+  const r=t.getBoundingClientRect(), x=r.left+r.width/2; let best=0, bd=1e9;
+  sl.forEach((c,i)=>{const q=c.getBoundingClientRect(), d=Math.abs(q.left+q.width/2-x); if(d<bd){bd=d; best=i}});
   return best;
 }
 function carTo(i){
