@@ -1,9 +1,9 @@
 /* Générateur de séances : fonctions pures, sans accès à l'interface.
    buildSession({exercices, duree, avecEchauffement, avecRetour}, deps)
-   - exercices : identifiants de exercises.json (jamais retirés de la séance)
+   - exercices : identifiants de la bibliothèque (getLibrary()) (jamais retirés de la séance)
    - duree : minutes visées (±1 min, mesuré avec expand())
    - ordreBlocs (facultatif) : noms de blocs dans l'ordre voulu (« Mobilité », « Échauffement »…) ; les autres blocs suivent.
-   - deps (facultatif) : {expand, bibliotheque} ; par défaut les globales expand() et EXERCISES de la page. */
+   - deps (facultatif) : {expand, bibliotheque} ; par défaut les globales expand() et getLibrary() de la page. */
 
 const GEN = {
   ORDER: ["échauffement", "mobilité", "équilibre", "renfo", "gainage", "étirement", "retour au calme"],
@@ -43,7 +43,7 @@ function genMeasure(parts, p, expand) {
 function buildSession(opts, deps) {
   deps = deps || {};
   const expand_ = deps.expand || (typeof expand !== "undefined" ? expand : null);
-  const lib = deps.bibliotheque || (typeof EXERCISES !== "undefined" ? EXERCISES : null);
+  const lib = deps.bibliotheque || (typeof getLibrary === "function" ? getLibrary() : null);
   if (!expand_ || !lib) throw new Error("buildSession : expand() et la bibliothèque sont nécessaires.");
   const avertissements = [];
   const cible = Math.round((opts.duree || 0) * 60);
@@ -234,7 +234,7 @@ const GEN_ZONE_NOMS = z => (GEN.ZONE_LABELS[z] || z).toLowerCase();
    Une erreur de durée porte aussi maxMin : la durée maximale que la bibliothèque permet. */
 function buildAuto(opts, deps) {
   deps = deps || {};
-  const lib = deps.bibliotheque || (typeof EXERCISES !== "undefined" ? EXERCISES : null);
+  const lib = deps.bibliotheque || (typeof getLibrary === "function" ? getLibrary() : null);
   const zones = (opts.zones || []).filter(z => GEN.ZONES[z]);
   if (!zones.length) return {erreur: "Choisis au moins une zone."};
   const o = {zones, sansImpact: !!opts.sansImpact, materiel: opts.materiel || null, evites: opts.evites || [], graine: opts.graine || 1,
@@ -324,7 +324,7 @@ GEN.SEUIL_AUTOUR = 20; // Quick gym : échauffement et retour au calme courts au
    Même résultat que buildAuto ; une bibliothèque insuffisante donne {erreur, manque: [...]} qui dit ce qui manque. */
 function buildPreset(id, opts, deps) {
   deps = deps || {};
-  const P = GEN.PRESETS[id], lib = deps.bibliotheque || (typeof EXERCISES !== "undefined" ? EXERCISES : null);
+  const P = GEN.PRESETS[id], lib = deps.bibliotheque || (typeof getLibrary === "function" ? getLibrary() : null);
   if (!P) return {erreur: `Préréglage inconnu : « ${id} ».`};
   const zones = P.zones || (opts.zones || []).filter(z => GEN.ZONES[z]);
   if (!zones.length) return {erreur: "Choisis au moins une zone."};

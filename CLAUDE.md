@@ -35,3 +35,7 @@ Utilisée sur Mac (Chrome ou Safari) et iPhone (Safari), écran posé au sol pen
 ## Idées en attente
 - Programmes synchronisés entre Mac et iPhone (fichier JSON dans le dépôt plutôt que localStorage).
 - Hébergement sur GitHub Pages, installable sur l'écran d'accueil, utilisable hors ligne.
+
+## Bibliothèque d'exercices
+- `exercises.json` = seed. La bibliothèque active est `LIB` (clé locale `coach-renfo-lib`, commune à tous les profils), lue via `getLibrary()`.
+- Synchro Gist : fichier `lib.json`, fusion par id (`updatedAt`), suppressions en pierres tombales (`deleted`). Copie de sécurité locale : `coach-renfo-libbackup`.
