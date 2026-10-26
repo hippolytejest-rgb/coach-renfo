@@ -70,6 +70,8 @@ svg.i{width:18px;height:18px;display:block;fill:currentColor}
 .voicebox p.bad{color:var(--danger)}
 .start{margin-top:14px;width:100%;border:0;border-radius:10px;background:var(--work);color:var(--bg);font-family:var(--display);font-weight:800;font-size:1.6rem;letter-spacing:.04em;text-transform:uppercase;padding:11px 16px}
 .tips{margin:10px 0 0;color:var(--muted);font-size:.84rem}
+.tips.empty{margin:0;padding:14px;border:1.5px dashed var(--line);border-radius:10px;text-align:center;font-size:1rem}
+.sessnew{margin-top:12px;min-height:48px;font-size:1.3rem}
 .preview{background:var(--surface);border:1.5px solid var(--line);border-radius:10px;padding:16px 16px 6px;min-width:0}
 .preview h2{font-family:var(--display);font-weight:800;font-size:1.6rem;line-height:1;margin:0 0 4px;text-transform:uppercase}
 .preview .sum{color:var(--muted);margin:0 0 12px;font-size:.9rem}
@@ -79,10 +81,6 @@ svg.i{width:18px;height:18px;display:block;fill:currentColor}
 .blk ol{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
 .blk li{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;padding:3px 0;font-size:.9rem}
 .blk li em{font-style:normal;color:var(--muted);white-space:nowrap}
-details.custom{background:var(--surface);border:1.5px dashed var(--line);border-radius:10px;padding:10px 14px}
-details.custom summary{cursor:pointer;font-weight:700}
-details.custom p{color:var(--muted);font-size:.86rem;margin:10px 0}
-details.custom textarea{width:100%;box-sizing:border-box;min-height:240px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.8rem;background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:10px}
 .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .btn{border:1.5px solid var(--line);background:var(--bg);border-radius:8px;padding:6px 12px;font-weight:700;font-size:.9rem}
 .err{color:var(--danger);font-size:.86rem;margin:0}
@@ -131,7 +129,9 @@ body:has(#run:not([hidden])) .update{display:none} /* jamais par-dessus la séan
 .exform fieldset{border:0;margin:0;padding:0;min-width:0}
 .exform legend{font-size:.86rem;font-weight:700;padding:0;margin-bottom:4px}
 .efchips{display:flex;flex-wrap:wrap;gap:6px}
-.efchips label.chk{font-size:.86rem;padding:4px 10px}
+.efchips label.chk{font-size:.86rem;padding:4px 12px;min-height:44px;box-sizing:border-box;align-items:center;gap:6px;border:1.5px solid var(--line);border-radius:999px}
+.exform input[type=text],.exform input[type=number],.exform select{min-height:44px}
+.exform>label.chk{min-height:44px;align-items:center}
 .efdose{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px}
 .lib .more .row{margin-top:2px}
 .lib .more .delask{display:flex;flex-direction:column;gap:8px;padding:10px;border:1.5px solid var(--danger);border-radius:8px}
@@ -140,7 +140,6 @@ body:has(#run:not([hidden])) .update{display:none} /* jamais par-dessus la séan
 .loaderr p{margin:0;color:#b3261e}
 .libdemo{background:color-mix(in srgb,var(--surface) 70%,var(--bg));border-radius:10px;overflow:hidden;aspect-ratio:240/170;width:100%;max-width:320px}
 .libdemo canvas{width:100%;height:100%;display:block}
-.genbox{background:var(--surface);border:1.5px solid var(--line);border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:12px;min-width:0}
 .genlist{list-style:none;margin:0;padding:0;max-height:340px;overflow-y:auto;border:1px solid var(--line);border-radius:8px;background:var(--bg)}
 .genlist li+li{border-top:1px solid var(--line)}
 .genlist label{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:4px 10px;align-items:center;padding:9px 12px;grid-template-areas:"c n t" ". m m"}
@@ -150,11 +149,8 @@ body:has(#run:not([hidden])) .update{display:none} /* jamais par-dessus la séan
 .genlist small{grid-area:m;color:var(--muted);overflow-wrap:anywhere}
 .genopts{display:flex;gap:8px 18px;flex-wrap:wrap;align-items:center}
 .genopts label{display:flex;gap:8px;align-items:center}
-.genopts input[type=number],.genname{font:inherit;font-size:1rem;background:var(--bg);color:var(--ink);border:1.5px solid var(--line);border-radius:8px;padding:8px 10px;box-sizing:border-box}
+.genopts input[type=number]{font:inherit;font-size:1rem;background:var(--bg);color:var(--ink);border:1.5px solid var(--line);border-radius:8px;padding:8px 10px;box-sizing:border-box}
 .genopts input[type=number]{width:5.5em}
-.genname{flex:1 1 180px;min-width:0}
-.genpane{display:flex;flex-direction:column;gap:12px;min-width:0}
-.genpane[hidden]{display:none}
 .genzones{border:0;margin:0;padding:0;min-width:0}
 .genzones legend{padding:0}
 .gright{display:flex;gap:8px;align-items:center;justify-content:flex-end}
@@ -369,7 +365,7 @@ body:has(#tab-activites:not([hidden]) #viewSeance:not([hidden])) .update{bottom:
     <button class="btn" type="submit">Créer</button>
   </form>
   <p id="pmsg" class="err" role="status"></p>
-  <footer class="foot">Version 1.18.0 · profils enregistrés sur cet appareil</footer>
+  <footer class="foot">Version 1.19.0 · profils enregistrés sur cet appareil</footer>
 </main>
 
 <div class="loaderr" id="loadErr" role="alert" hidden><p id="loadErrMsg"></p><button class="btn" id="loadRetry">Réessayer</button></div>
@@ -424,55 +420,12 @@ body:has(#tab-activites:not([hidden]) #viewSeance:not([hidden])) .update{bottom:
     <section class="panel" aria-labelledby="secMine">
     <h2 class="sechead" id="secMine">Mes séances</h2>
     <div class="panel" id="viewSeances">
-    <div class="row"><button class="btn" id="genOpen" aria-expanded="false" aria-controls="genBox">Créer une séance</button></div>
-    <section class="genbox" id="genBox" aria-label="Créer une séance" hidden>
-      <div class="cats" role="tablist" aria-label="Mode de création"><button role="tab" id="genTabMain" aria-selected="true" aria-pressed="true">À la main</button><button role="tab" id="genTabAuto" aria-selected="false" aria-pressed="false">Automatique</button></div>
-      <div class="genpane" id="genManual">
-        <input class="libsearch" id="genSearch" type="search" placeholder="Rechercher un exercice" autocomplete="off" aria-label="Rechercher un exercice à ajouter">
-        <div class="libfilters" id="genFilters"></div>
-        <p class="tips" id="genCount" style="margin:0"></p>
-        <ul class="genlist" id="genList"></ul>
-      </div>
-      <div class="genpane" id="genAuto" hidden>
-        <fieldset class="genzones"><legend class="eyebrow">Zones à travailler</legend><div class="genopts" id="autoZones"></div></fieldset>
-        <div class="genopts">
-          <label><input type="checkbox" id="autoNoImpact"> Sans impact</label>
-          <label><input type="checkbox" id="autoEquip" checked> Matériel limité à mon profil</label>
-        </div>
-        <p class="tips" id="autoEquipInfo" style="margin:0"></p>
-        <div class="row"><button class="btn" id="autoAnother">Autre proposition</button></div>
-      </div>
-      <div class="genopts">
-        <label>Durée (min) <input type="number" id="genDur" min="5" max="120" step="1" value="20" inputmode="numeric"></label>
-        <label><input type="checkbox" id="genWarm" checked> Échauffement</label>
-        <label><input type="checkbox" id="genCool" checked> Retour au calme</label>
-      </div>
-      <div class="genprev" id="genPrev" aria-live="polite"></div>
-      <div class="row">
-        <input class="genname" id="genName" type="text" placeholder="Nom de la séance" aria-label="Nom de la séance" maxlength="60">
-        <button class="btn" id="genRun" disabled>Lancer</button>
-        <button class="btn" id="genSave" disabled>Enregistrer</button>
-      </div>
-      <p id="genMsg" class="ok" role="status"></p>
-    </section>
     <section aria-labelledby="pick">
       <p class="eyebrow" id="pick">Programme</p>
       <div class="progs" id="progs"></div>
+      <button class="start sessnew" id="sessNew" type="button">Créer une séance</button>
       <p class="tips">Touche une séance pour l'ouvrir, la modifier ou la démarrer. Mac : <b>Espace</b> pause, <b>← →</b> exercice précédent / suivant, <b>Échap</b> arrêter.</p>
     </section>
-  <details class="custom" id="customBox">
-    <summary>Créer ou modifier un programme (JSON)</summary>
-    <p>Le JSON du programme sélectionné est chargé ci-dessous. Modifie-le et enregistre : il apparaît comme programme perso, gardé dans ce navigateur. Par exercice : <code>ex</code> (identifiant de la Bibliothèque, ex. <code>"planche"</code>) puis les valeurs de séance <code>work</code> (s), <code>reps</code>, <code>sets</code>, <code>setRest</code>, <code>rest</code>, qui priment sur les valeurs par défaut de l'exercice. L'ancien format reste accepté : <code>name</code>, <code>desc</code>, <code>sides</code>, <code>anim</code> en ligne. Par bloc : <code>rounds</code>, <code>rest</code>, <code>roundRest</code>, <code>transition</code>.</p>
-    <p id="animList"></p>
-    <label for="jsonArea" class="eyebrow" style="display:block">JSON</label>
-    <textarea id="jsonArea" spellcheck="false"></textarea>
-    <div class="row" style="margin-top:10px">
-      <button class="btn" id="saveCustom">Enregistrer comme programme perso</button>
-      <button class="btn" id="delCustom" hidden>Supprimer le programme perso</button>
-      <p id="jsonMsg" class="err" role="status"></p>
-    </div>
-    <p id="jsonWarn" class="err" role="status"></p>
-  </details>
     </div>
     </section>
     <section class="panel" aria-labelledby="secEx">
@@ -483,8 +436,22 @@ body:has(#tab-activites:not([hidden]) #viewSeance:not([hidden])) .update{bottom:
         <ul id="libNewList" hidden></ul>
         <div class="row"><button class="btn" id="libNewPrev" type="button" aria-expanded="false" aria-controls="libNewList">Aperçu</button><button class="btn" id="libNewAdd" type="button">Ajouter</button></div>
       </div>
-      <form class="exform" id="exForm" hidden novalidate>
-        <h3 id="efTitle"></h3>
+      <div class="row"><button class="btn" id="libAdd" type="button">Ajouter un exercice</button></div>
+      <input class="libsearch" id="libSearch" type="search" placeholder="Rechercher un exercice" autocomplete="off" aria-label="Rechercher un exercice">
+      <div class="libfilters">
+        <select id="libType" aria-label="Filtrer par type"></select>
+        <select id="libMuscle" aria-label="Filtrer par muscle"></select>
+        <select id="libEquip" aria-label="Filtrer par équipement"></select>
+        <select id="libTag" aria-label="Filtrer par caractéristique"></select>
+      </div>
+      <p class="tips" id="libCount"></p>
+      <ul class="lib" id="libList"></ul>
+      <div class="libdemo" id="libDemo" hidden><canvas id="libCv" aria-label="Démonstration animée du mouvement"></canvas></div>
+    </div>
+    </section>
+    </div>
+    <div class="panel sess" id="viewExercice" hidden>
+      <form class="exform" id="exForm" novalidate>
         <label>Nom<input id="efName" type="text" maxlength="80" autocomplete="off"></label>
         <label>Type<select id="efType"></select></label>
         <label>Consigne<textarea id="efDesc" rows="3"></textarea></label>
@@ -503,30 +470,17 @@ body:has(#tab-activites:not([hidden]) #viewSeance:not([hidden])) .update{bottom:
           <label>Repos (s)<input id="efRest" type="number" min="0" inputmode="numeric"></label>
           <label>Répétitions<input id="efReps" type="text" autocomplete="off" placeholder="10 / sens"></label>
         </div>
-        <div class="row"><button class="btn" type="submit">Enregistrer</button><button class="btn" type="button" id="efCancel">Annuler</button></div>
         <p class="err" id="efMsg" role="status"></p>
       </form>
-      <div class="panel" id="libBrowse">
-      <div class="row"><button class="btn" id="libAdd" type="button">Ajouter un exercice</button></div>
-      <input class="libsearch" id="libSearch" type="search" placeholder="Rechercher un exercice" autocomplete="off" aria-label="Rechercher un exercice">
-      <div class="libfilters">
-        <select id="libType" aria-label="Filtrer par type"></select>
-        <select id="libMuscle" aria-label="Filtrer par muscle"></select>
-        <select id="libEquip" aria-label="Filtrer par équipement"></select>
-        <select id="libImpact" aria-label="Filtrer par impact"></select>
-        <select id="libTag" aria-label="Filtrer par caractéristique"></select>
-      </div>
-      <p class="tips" id="libCount"></p>
-      <ul class="lib" id="libList"></ul>
-      </div>
-      <div class="libdemo" id="libDemo" hidden><canvas id="libCv" aria-label="Démonstration animée du mouvement"></canvas></div>
-    </div>
-    </section>
+      <div class="sessbar" id="efBar"><div class="sessbarin">
+        <button class="btn sessbtn" id="efCancel" type="button">Annuler</button>
+        <button class="start sessbtn sessgo" id="efSave" type="submit" form="exForm">Enregistrer</button>
+      </div></div>
     </div>
     <div class="panel sess" id="viewSeance" hidden>
       <header class="sesshead">
         <h1 class="sesstitle" id="sessTitle" tabindex="-1"></h1>
-        <input class="sessname" id="sessName" type="text" maxlength="60" autocomplete="off" aria-label="Nom de la séance" hidden>
+        <input class="sessname" id="sessName" type="text" maxlength="60" autocomplete="off" placeholder="Nom de la séance" aria-label="Nom de la séance" hidden>
         <p class="sesssub tab" id="sessSub"></p>
       </header>
       <p class="err" id="sessWarn" role="status"></p>
@@ -611,7 +565,7 @@ body:has(#tab-activites:not([hidden]) #viewSeance:not([hidden])) .update{bottom:
     </section>
   </div>
   <!-- À mettre à jour à chaque publication : ce pied de page, figure.js?v= plus bas, et VERSION dans sw.js -->
-  <footer class="foot">Version 1.18.0 · publiée le <time datetime="2026-10-26T12:00">26/10/2026 à 12:00</time></footer>
+  <footer class="foot">Version 1.19.0 · publiée le <time datetime="2026-10-26T14:26">26/10/2026 à 14:26</time></footer>
 </main>
 
 <section id="run" class="run" data-phase="prep" hidden>
@@ -661,8 +615,8 @@ body:has(#tab-activites:not([hidden]) #viewSeance:not([hidden])) .update{bottom:
   <button class="start" id="againBtn" style="max-width:320px">Retour</button>
 </section>
 
-<script src="figure.js?v=1.18.0"></script>
-<script src="generator.js?v=1.18.0"></script>
+<script src="figure.js?v=1.19.0"></script>
+<script src="generator.js?v=1.19.0"></script>
 <script>
 /* ---------- Bibliothèque d'exercices ----------
    exercises.json = jeu de départ (SEED). La bibliothèque active est LIB, copiée dans le stockage local au premier lancement
@@ -744,75 +698,6 @@ function resolveItem(it){
 }
 function resolveProg(p){return {...p,blocks:p.blocks.map(b=>({...b,items:b.items.map(resolveItem)}))}}
 
-const PROGRAMS = [
-{
-  id:"mobi-renfo", name:"Mobilité + renfo léger", sub:"Échauffement mobilité, circuit 2 tours, retour au calme",
-  prep:10, switchTime:5,
-  blocks:[
-    {name:"Mobilité", rounds:1, rest:8, transition:20, items:[
-      {ex:"marche-jumping", work:60},
-      {ex:"cercles-chevilles", work:20, reps:"10 / sens"},
-      {ex:"mobilite-cheville-genou-mur", work:30, reps:"10"},
-      {ex:"cercles-hanches", work:30, reps:"10 / sens"},
-      {ex:"fente-avant-rotation", work:30, reps:"6"},
-      {ex:"chat-vache", work:40, reps:"10"},
-      {ex:"ouvertures-thoraciques", work:30, reps:"8"},
-      {ex:"balances-jambe", work:30, reps:"10 + 10"}
-    ]},
-    {name:"Achille", rounds:1, transition:20, items:[
-      {ex:"isometrie-pointes-pieds", work:40, sets:3, setRest:20, reps:"mi-hauteur"}
-    ]},
-    {name:"Circuit", rounds:2, rest:20, roundRest:75, transition:20, items:[
-      {ex:"pont-fessier", work:45, reps:"12 · tenue 2 s"},
-      {ex:"abduction-couchee", work:40, reps:"15"},
-      {ex:"equilibre-unipodal", work:30},
-      {ex:"planche", work:45},
-      {ex:"planche-laterale", work:30},
-      {ex:"dead-bug", work:45, reps:"10"},
-      {ex:"bird-dog", work:40, reps:"8"},
-      {ex:"pompes", work:40, reps:"10–12"},
-      {ex:"rowing-elastique", work:45, reps:"15"},
-      {ex:"elevations-laterales", work:40, reps:"12"}
-    ]},
-    {name:"Retour au calme", rounds:1, rest:8, items:[
-      {ex:"jambes-au-mur", work:60},
-      {ex:"etirement-fessier", work:40}
-    ]}
-  ]
-},
-{
-  id:"entretien", name:"Renfo entretien", sub:"Achille, hanches, quadriceps léger, gainage, pied — 2 tours",
-  prep:10, switchTime:5,
-  blocks:[
-    {name:"Mollet / Achille", rounds:1, transition:20, items:[
-      {ex:"isometrie-pointes-pieds", work:40, sets:3, setRest:20, reps:"mi-hauteur"},
-      {ex:"montees-pointes-lentes", work:50, sets:2, setRest:30, reps:"12 · 3 s / 3 s"}
-    ]},
-    {name:"Circuit", rounds:2, rest:20, roundRest:75, items:[
-      {ex:"pont-fessier-une-jambe", work:40, reps:"10"},
-      {ex:"abduction-couchee", work:40, reps:"15"},
-      {ex:"equilibre-unipodal", work:30},
-      {ex:"step-down-lent", work:45, reps:"8"},
-      {ex:"chaise-mur", work:40},
-      {ex:"planche", work:45},
-      {ex:"planche-laterale", work:30},
-      {ex:"dead-bug", work:45, reps:"10"},
-      {ex:"short-foot", work:40, reps:"10"}
-    ]}
-  ]
-},
-{
-  id:"demo", name:"Démo 1 minute", sub:"Pour tester le son et l'enchaînement",
-  prep:5, switchTime:3,
-  blocks:[
-    {name:"Démo", rounds:2, rest:5, roundRest:8, items:[
-      {ex:"planche", work:10},
-      {ex:"fente-arriere", work:8, reps:"4"}
-    ]}
-  ]
-}
-];
-
 /* ---------- Storage (confort uniquement) ---------- */
 const PROFS_KEY="coach-renfo-profiles", PDATA="coach-renfo-p-", LEGACY_CUSTOM="coach-renfo-custom", LEGACY_VOICE="coach-renfo-voice";
 const mem={}; // repli si localStorage est bloqué
@@ -832,8 +717,6 @@ function setPdata(patch){
   return ok;
 }
 function loadCustom(){return pdata().custom||null}
-function saveCustom(p){return setPdata({custom:p})}
-function clearCustom(){setPdata({custom:undefined})}
 
 /* ---------- Programme → séquence ---------- */
 function expand(p){
@@ -872,65 +755,29 @@ function expand(p){
 const fmt=t=>{t=Math.max(0,Math.round(t));return Math.floor(t/60)+":"+String(t%60).padStart(2,"0")};
 const totalOf=segs=>segs.reduce((a,s)=>a+s.dur,0);
 
-function validate(p){
-  if(!p||typeof p!=="object") return "Le JSON doit être un objet programme.";
-  if(!p.name) return "Il manque le champ \"name\" du programme.";
-  if(!Array.isArray(p.blocks)||!p.blocks.length) return "Il faut au moins un bloc dans \"blocks\".";
-  for(const b of p.blocks){
-    if(!Array.isArray(b.items)||!b.items.length) return `Le bloc "${b.name||"?"}" n'a pas d'exercices dans "items".`;
-    for(const it of b.items){
-      if(it.ex&&getLibrary()&&!getLibrary()[it.ex]&&!LIB.deleted[it.ex]) return `Exercice inconnu : ex:"${it.ex}" n'existe pas dans la bibliothèque.`;
-      if(!it.ex&&!it.name) return `Un exercice du bloc "${b.name||"?"}" n'a pas de "ex" ni de "name".`;
-      const r=resolveItem(it); if(r.missing) continue;
-      if(!(typeof r.work==="number"&&r.work>0)) return `"${r.name}" : "work" doit être une durée en secondes.`;
-      if(r.anim&&!ANIMS[r.anim]) return `"${r.name}" : animation "${r.anim}" inconnue.`;
-    }
-  }
-  return null;
-}
-
 /* ---------- Écran de préparation ---------- */
 const $=id=>document.getElementById(id);
-let selectedId="mobi-renfo";
+let selectedId="";
 let sx=null; // page de séance ouverte : {id, base, editing, name, draft, baseName, baseBlocks}
 function mySessions(){return profile?(pdata().sessions||[]).map(x=>({...x,sub:x.sub||"Ma séance",mine:true})):[]}
-function allPrograms(){const c=loadCustom();return [...(c?[...PROGRAMS.filter(p=>p.id!=="custom"),{...c,id:"custom",sub:c.sub||"Programme perso"}]:PROGRAMS),...mySessions()]}
+function allPrograms(){const c=loadCustom();return [...(c?[{...c,id:"custom",sub:c.sub||"Programme perso"}]:[]),...mySessions()]} // « custom » : ancien programme perso, lu seulement
 let tempProg=null; // séance générée lancée sans être enregistrée
-function getProg(){return selectedId==="gen"&&tempProg||allPrograms().find(p=>p.id===selectedId)||PROGRAMS[0]}
+function getProg(){return selectedId==="gen"&&tempProg||allPrograms().find(p=>p.id===selectedId)||null}
 function renderSetup(){
   if(!getLibrary()){$("loadErr").hidden=false; return}
   const box=$("progs"); box.innerHTML="";
-  let mineShown=false, readyShown=false;
-  const sub=t=>{const h=document.createElement("p"); h.className="eyebrow"; h.style.margin="8px 0 0"; h.textContent=t; box.appendChild(h)};
-  allPrograms().forEach(p=>{
-    if(!p.mine&&!readyShown){readyShown=true; sub("Prêts à l'emploi")}
-    if(p.mine&&!mineShown){mineShown=true; sub("Enregistrées")}
+  const all=allPrograms();
+  if(!all.length){const e=document.createElement("p"); e.className="tips empty"; e.textContent="Aucune séance pour l'instant"; box.appendChild(e)}
+  all.forEach(p=>{
     const b=document.createElement("button"); b.className="prog"; b.setAttribute("aria-pressed",p.id===selectedId);
     b.innerHTML=`<span class="dot"></span><span><b></b><small></small></span><span class="dur tab">${fmt(totalOf(expand(p)))}</span>`;
     b.querySelector("b").textContent=p.name; b.querySelector("small").textContent=p.sub||"";
     b.onclick=()=>{selectedId=p.id;if(profile)setPdata({prog:p.id});renderSetup(); actGo(["biblio","seance",p.id])};
     box.appendChild(b);
   });
-  const p=getProg(), gone=resolveProg(p).blocks.flatMap(b=>b.items).filter(i=>i.missing);
-  const clean=JSON.parse(JSON.stringify(p)); delete clean.id; delete clean.mine; if(clean.sub==="Programme perso"||clean.sub==="Ma séance") delete clean.sub;
-  $("jsonArea").value=JSON.stringify(clean,null,2);
-  $("jsonWarn").textContent=gone.length?`Attention : ${gone.map(i=>`ex:"${i.missingId}"`).join(", ")} ${gone.length>1?"n'existent":"n'existe"} plus dans la bibliothèque (supprimé${gone.length>1?"s":""}) ; ${gone.length>1?"ils seront sautés":"il sera sauté"} au lancement. Retire-${gone.length>1?"les":"le"} ou remplace-${gone.length>1?"les":"le"}.`:"";
-  $("delCustom").hidden=!loadCustom();
   renderDash(); renderEquip();
   if(sx&&!$("viewSeance").hidden) renderSession();
 }
-$("animList").textContent="Animations disponibles pour \"anim\" (sans elle, pas de démo) : "+Object.keys(ANIMS).join(", ")+".";
-$("saveCustom").onclick=()=>{
-  const msg=$("jsonMsg"); let p;
-  try{p=JSON.parse($("jsonArea").value)}catch(e){msg.className="err";msg.textContent="JSON invalide : "+e.message;return}
-  const err=validate(p); if(err){msg.className="err";msg.textContent=err;return}
-  const lost=p.blocks.flatMap(b=>b.items).filter(i=>i.ex&&resolveItem(i).missing).length;
-  if(saveCustom(p)){msg.className=lost?"err":"ok";msg.textContent="Programme perso enregistré et sélectionné."+(lost?` ${lost} exercice${lost>1?"s":""} supprimé${lost>1?"s":""} de la bibliothèque, sauté${lost>1?"s":""} au lancement.`:"");}
-  else{msg.className="err";msg.textContent="Ce navigateur bloque l'enregistrement. Le programme reste utilisable jusqu'au rechargement."; PROGRAMS.push({...p,id:"custom"});}
-  selectedId="custom"; renderSetup();
-};
-$("delCustom").onclick=()=>{clearCustom(); selectedId="mobi-renfo"; $("jsonMsg").textContent=""; renderSetup();};
-
 /* ---------- Son : bips ---------- */
 let actx=null;
 function unlockAudio(){
@@ -1084,7 +931,8 @@ function tick(){
 setInterval(tick,100);
 
 function start(){
-  const p=getProg(), segs0=expand(p);
+  const p=getProg(); if(!p) return;
+  const segs0=expand(p);
   if(!segs0.some(x=>x.type==="work")) return; // rien à lancer (tous les exercices ont été supprimés)
   state.prog=p; state.segs=segs0;
   state.voice=$("optVoice").checked; state.beep=$("optBeep").checked; state.readDesc=$("optDesc").checked;
@@ -1204,9 +1052,9 @@ function openProfile(id){
   profile=profs.list.find(p=>p.id===id); if(!profile) return;
   profs.last=id; saveProfs();
   const d=pdata();
-  selectedId=d.prog||"mobi-renfo";
+  selectedId=d.prog||"";
   const o=d.opts||{}; $("optVoice").checked=o.voice!==false; $("optBeep").checked=o.beep!==false; $("optDesc").checked=o.desc!==false;
-  $("whoName").textContent=profile.name; $("jsonMsg").textContent="";
+  $("whoName").textContent=profile.name;
   $("profiles").hidden=true; $("setup").hidden=false; showTab("dash");
   renderSetup(); pickVoice();
 }
@@ -1441,13 +1289,16 @@ function renderAct(stack,focus){
   const prev=actStack, sec=ACT_SECTIONS.find(x=>x.id===stack[0]);
   const item=sec&&sec.items&&sec.items.find(i=>i[0]===stack[1]);
   const step=item&&["zones","duree","apercu"].includes(stack[2])?stack[2]:null;
-  const sess=sec&&sec.id==="biblio"&&stack[1]==="seance"&&typeof stack[2]==="string"?stack[2]:null;
-  stack=sec?(step?[sec.id,item[0],step]:sess?[sec.id,"seance",sess]:[sec.id]):[]; actStack=stack;
-  const biblio=!!sec&&sec.id==="biblio"&&!sess, list=!!sec&&!!sec.items&&!step;
-  $("actHome").hidden=!!sec; $("actSection").hidden=!list; $("actFlow").hidden=!step; $("viewBiblio").hidden=!biblio; $("viewSeance").hidden=!sess;
+  const bib=!!sec&&sec.id==="biblio", sess=bib&&stack[1]==="seance"&&typeof stack[2]==="string"?stack[2]:null;
+  let exf=bib&&stack[1]==="exercice"&&typeof stack[2]==="string"?stack[2]:null;
+  if(exf&&(!getLibrary()||(exf!=="new"&&!getLibrary()[exf]))){history.replaceState({act:["biblio"]},""); stack=["biblio"]; exf=null}
+  stack=sec?(step?[sec.id,item[0],step]:sess?[sec.id,"seance",sess]:exf?[sec.id,"exercice",exf]:[sec.id]):[]; actStack=stack;
+  const biblio=bib&&!sess&&!exf, list=!!sec&&!!sec.items&&!step, fromEx=biblio&&prev[1]==="exercice";
+  $("actHome").hidden=!!sec; $("actSection").hidden=!list; $("actFlow").hidden=!step; $("viewBiblio").hidden=!biblio; $("viewSeance").hidden=!sess; $("viewExercice").hidden=!exf;
   $("actHead").hidden=!sec;
-  if(sec) $("actTitle").textContent=step?sec.title+" · "+item[1]:sess?"Mes séances":sec.title;
+  if(sec) $("actTitle").textContent=step?sec.title+" · "+item[1]:sess?(sess==="new"?"Nouvelle séance":"Mes séances"):exf?(exf==="new"?"Nouvel exercice":"Modifier l'exercice"):sec.title;
   if(sess) openSession(sess); else sessLeave();
+  if(exf) openExForm(exf==="new"?null:exf); else efLeave();
   if(list){
     const g=$("actSection"); g.innerHTML="";
     sec.items.forEach(([k,title,sub])=>g.appendChild(makeCard({id:sec.id+"-"+k,title,sub,onClick:()=>{
@@ -1458,15 +1309,18 @@ function renderAct(stack,focus){
   if(biblio) renderLib(); else closeLibDemo();
   if(!sec) carSync();
   if(!focus) return;
-  window.scrollTo(0,0);
-  const el=sec?$("actTitle"):document.querySelector(`#carTrack [data-card="${prev[0]}"]`);
+  window.scrollTo(0,fromEx?libScroll:0); // retour de la page exercice : la liste retrouve sa position
+  const el=sec?(sess==="new"?$("sessName"):$("actTitle")):document.querySelector(`#carTrack [data-card="${prev[0]}"]`);
   if(el) el.focus({preventScroll:true});
 }
 $("actBack").onclick=()=>history.back();
 addEventListener("popstate",e=>{
   const s=(e.state&&e.state.act)||[];
-  if(sx&&sx.editing&&!(s[1]==="seance"&&s[2]===sx.id)&&sessDirty()){ // quitter en plein changement : on reste sur la page et on demande
+  if(sx&&sx.editing&&!sx.leaving&&!(s[1]==="seance"&&s[2]===sx.id)&&sessDirty()){ // quitter en plein changement : on reste sur la page et on demande
     history.pushState({act:actStack},""); sessAskDiscard(); return;
+  }
+  if(ef&&!ef.leaving&&!(s[1]==="exercice"&&s[2]===(ef.id||"new"))&&efDirty()){
+    history.pushState({act:actStack},""); efAskDiscard(); return;
   }
   if(s.length&&$("tab-activites").hidden&&!$("setup").hidden) showTab("activites");
   renderAct(s,true);
@@ -1624,7 +1478,7 @@ function buildCarousel(){
   });
   carSync();
 }
-const libFilt={type:"",muscle:"",equip:"",impact:"",tag:""};
+const libFilt={type:"",muscle:"",equip:"",tag:""};
 /* Listes fermées : les mêmes que dans exercises.json */
 const LIB_MUSCLES=["fessiers","ischio-jambiers","quadriceps","mollets","pied-cheville","hanches","tronc","dos","épaules","bras","pectoraux","cou"];
 const LIB_EQUIP=["aucun","tapis","mur","step","chaise","élastique","kettlebell","balle de massage","rouleau de massage"];
@@ -1644,7 +1498,6 @@ function libFilterDefs(all){return [
   ["type","Tous les types",[...new Set(all.map(e=>e.type))].sort((a,b)=>a.localeCompare(b,"fr"))],
   ["muscle","Tous les muscles",LIB_MUSCLES],
   ["equip","Tout l'équipement",LIB_EQUIP],
-  ["impact","Tous les impacts",LIB_IMPACT],
   ["tag","Toutes les caractéristiques",libTags(all)]]}
 function fillFilters(all,filt,selOf){
   libFilterDefs(all).forEach(([k,all0,vals])=>{
@@ -1654,12 +1507,12 @@ function fillFilters(all,filt,selOf){
     sel.value=vals.includes(filt[k])?filt[k]:""; filt[k]=sel.value;
   });
 }
-const LIB_FILTER_IDS={type:"libType",muscle:"libMuscle",equip:"libEquip",impact:"libImpact",tag:"libTag"};
+const LIB_FILTER_IDS={type:"libType",muscle:"libMuscle",equip:"libEquip",tag:"libTag"};
 function fillLibFilters(all){fillFilters(all,libFilt,k=>$(LIB_FILTER_IDS[k]))}
 function libMatch(e,f,q){
   return (!q||e.name.toLowerCase().includes(q)||(e.desc||"").toLowerCase().includes(q)||(e.tags||[]).some(t=>t.toLowerCase().includes(q)))
     &&(!f.type||e.type===f.type)&&(!f.muscle||(e.muscles||[]).includes(f.muscle))&&(!f.equip||(e.equipment||[]).includes(f.equip))
-    &&(!f.impact||e.impact===f.impact)&&(!f.tag||(e.tags||[]).includes(f.tag));
+    &&(!f.tag||(e.tags||[]).includes(f.tag));
 }
 const libCv=$("libCv"), libG=libCv.getContext("2d");
 let libKey=null, libT0=0, libRaf=0;
@@ -1729,14 +1582,13 @@ function confirmClick(btn,steps,fn){ // confirmations successives ; le libellé 
 }
 function exUsers(id){ // séances qui utilisent l'exercice, tous profils de l'appareil confondus
   const out=new Set(), scan=(q,who)=>{if(q&&q.blocks&&q.blocks.some(b=>b.items.some(it=>it.ex===id))) out.add(q.name+(who?` (${who})`:""))};
-  PROGRAMS.forEach(q=>scan(q));
   profs.list.forEach(pr=>{const d=jget(PDATA+pr.id,{}), who=profile&&pr.id===profile.id?"":pr.name; scan(d.custom,who); (d.sessions||[]).forEach(x=>scan(x,who))});
   return [...out];
 }
 function libActions(id,st){
   const box=document.createElement("div"), row=document.createElement("div"); row.className="row"; box.appendChild(row);
   const mk=(t,fn)=>{const b=document.createElement("button"); b.type="button"; b.className="btn"; b.textContent=t; if(fn) b.onclick=ev=>{ev.stopPropagation(); fn()}; row.appendChild(b); return b};
-  mk("Modifier",()=>openExForm(id));
+  mk("Modifier",()=>openExPage(id));
   if(st==="personnalisé"&&SEED[id]) confirmClick(mk("Revenir à l'original"),["Confirmer le retour à l'original"],()=>{resetExercise(id); refreshLibUi()});
   mk("Supprimer",()=>{
     row.hidden=true;
@@ -1761,11 +1613,14 @@ function optsOf(sel,vals,cur,none){
   sel.innerHTML=""; if(none!==undefined) sel.add(new Option(none,""));
   [...new Set(cur&&!vals.includes(cur)?[...vals,cur]:vals)].forEach(v=>sel.add(new Option(v,v))); sel.value=cur||"";
 }
-let efId=null; // exercice édité ; null = nouvel exercice
+let ef=null, libScroll=0; // page exercice ouverte : {id (null = nouveau), snap, ask, leaving}
+const efSnap=()=>JSON.stringify(["efName","efType","efDesc","efPos","efTags","efImpact","efAnim","efWork","efSets","efRest","efReps"].map(k=>$(k).value)
+  .concat(["efMuscles","efEquip","efSports"].map(k=>chipVals($(k))),$("efUni").checked));
+const efDirty=()=>!!ef&&efSnap()!==ef.snap;
+function openExPage(id){libScroll=window.scrollY; closeLibDemo(); actGo(["biblio","exercice",id||"new"])}
 function openExForm(id){
-  closeLibDemo(); efId=id;
+  if(ef&&ef.id===id) return; // la page est déjà ouverte : on garde la saisie
   const e=id?getLibrary()[id]:{}, d=e.defaults||{};
-  $("efTitle").textContent=id?"Modifier l'exercice":"Nouvel exercice";
   $("efName").value=e.name||""; $("efDesc").value=e.desc||"";
   optsOf($("efType"),[...new Set([...GEN.ORDER,...Object.values(getLibrary()).map(x=>x.type)])],e.type||"renfo");
   chipSet($("efMuscles"),LIB_MUSCLES,e.muscles||[]); chipSet($("efEquip"),LIB_EQUIP,e.equipment||[]); chipSet($("efSports"),LIB_SPORTS,e.sports||[]);
@@ -1773,32 +1628,41 @@ function openExForm(id){
   optsOf($("efImpact"),LIB_IMPACT,e.impact||"aucun");
   optsOf($("efAnim"),Object.keys(ANIMS),e.anim||"","Aucune (d'après le nom)");
   $("efWork").value=d.work||40; $("efSets").value=d.sets||1; $("efRest").value=d.rest==null?"":d.rest; $("efReps").value=d.reps||"";
-  $("efMsg").textContent="";
-  $("exForm").hidden=false; $("libBrowse").hidden=true; $("libNew").hidden=true;
-  $("exForm").scrollIntoView({block:"start"}); $("efName").focus({preventScroll:true});
+  $("efMsg").textContent=""; $("efCancel").textContent="Annuler";
+  ef={id,snap:efSnap()}; $("efName").focus({preventScroll:true});
 }
-function closeExForm(){$("exForm").hidden=true; $("libBrowse").hidden=false; renderLibBanner()}
+function efLeave(){if(ef){clearTimeout(ef.askT); ef=null}}
+function efAskDiscard(){
+  const c=$("efCancel"); ef.ask=true; c.textContent="Abandonner les modifications ?";
+  $("efMsg").textContent="Modifications non enregistrées. Touche encore « Abandonner les modifications ? » pour les perdre.";
+  c.focus({preventScroll:true}); clearTimeout(ef.askT);
+  ef.askT=setTimeout(()=>{if(ef&&ef.ask){ef.ask=false; c.textContent="Annuler"; $("efMsg").textContent=""}},5000);
+}
 function slugOf(name){
   const base=name.normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,"")||"exercice";
   let id=base, n=2; while(libTaken(id)) id=base+"-"+n++; return id;
 }
-$("libAdd").onclick=()=>openExForm(null);
-$("efCancel").onclick=closeExForm;
+$("libAdd").onclick=()=>openExPage(null);
+$("efCancel").onclick=()=>{
+  if(!ef) return;
+  if(efDirty()&&!ef.ask){efAskDiscard(); return}
+  ef.leaving=true; history.back();
+};
 $("exForm").onsubmit=ev=>{
   ev.preventDefault();
   const name=$("efName").value.trim(), work=parseInt($("efWork").value,10), sets=parseInt($("efSets").value,10)||1,
     rest=$("efRest").value===""?null:Math.max(0,parseInt($("efRest").value,10)||0), muscles=chipVals($("efMuscles")), equip=chipVals($("efEquip")), sports=chipVals($("efSports"));
   const err=!name?"Le nom est obligatoire.":!(work>0)?"La durée de travail doit être positive (en secondes).":!muscles.length?"Choisis au moins un muscle.":"";
   if(err){$("efMsg").textContent=err; return}
-  const old=efId?getLibrary()[efId]:null, tags=$("efTags").value.split(",").map(x=>x.trim()).filter(Boolean);
+  const old=ef.id?getLibrary()[ef.id]:null, tags=$("efTags").value.split(",").map(x=>x.trim()).filter(Boolean);
   const e={name,desc:$("efDesc").value.trim(),type:$("efType").value,muscles,equipment:equip.length?equip:["aucun"],position:$("efPos").value.trim()||"debout",
     unilateral:$("efUni").checked,tags,sports:sports.length?sports:["général"],impact:$("efImpact").value||"aucun",anim:$("efAnim").value||null,
     defaults:{work,reps:$("efReps").value.trim()||null,sets:Math.max(1,sets),rest},source:old?old.source:"Ajouté à la main"};
-  if(!old||canon(e)!==canon(stripStamp(old))) putExercise(efId||slugOf(name),e);
-  closeExForm(); refreshLibUi(); renderSetup();
+  if(!old||canon(e)!==canon(stripStamp(old))) putExercise(ef.id||slugOf(name),e);
+  ef.snap=efSnap(); ef.leaving=true; refreshLibUi(); renderSetup(); history.back();
 };
 function renderLibBanner(){
-  const ids=LIB&&$("exForm").hidden?newSeedIds():[], box=$("libNew"); box.hidden=!ids.length;
+  const ids=LIB?newSeedIds():[], box=$("libNew"); box.hidden=!ids.length;
   if(!ids.length) return;
   $("libNewTxt").textContent=ids.length===1?"1 nouvel exercice disponible":`${ids.length} nouveaux exercices disponibles`;
   const ul=$("libNewList"); ul.innerHTML="";
@@ -1808,12 +1672,9 @@ $("libNewPrev").onclick=()=>{const u=$("libNewList"); u.hidden=!u.hidden; $("lib
 $("libNewAdd").onclick=()=>{addSeedNew(); refreshLibUi()};
 function refreshLibUi(){ // après toute modification de la bibliothèque (édition, import, synchro, chargement)
   if(!LIB) return;
-  $("libType").innerHTML=""; $("genFilters").innerHTML="";
-  [...genSel].forEach(id=>{if(!LIB.exercises[id]) genSel.delete(id)});
-  if(autoOver&&autoOver.some(id=>!LIB.exercises[id])) autoOver=null;
+  $("libType").innerHTML="";
   renderLibBanner(); renderLibOpts();
-  if(!$("viewBiblio").hidden&&$("exForm").hidden) renderLib();
-  if(!$("genBox").hidden) setGenMode(genMode);
+  if(!$("viewBiblio").hidden) renderLib();
   if(sx&&!$("viewSeance").hidden) renderSession();
 }
 /* Options : export, import, restauration, copie de sécurité */
@@ -1855,39 +1716,10 @@ confirmClick($("libRestore"),["Les modifications et ajouts seront perdus : confi
   backupLib("avant la restauration d'origine"); replaceLib(SEED); refreshLibUi(); renderSetup();
   libOptMsg("Bibliothèque d'origine restaurée. Une copie de sécurité de la précédente est conservée.");
 });
-[["libType","type"],["libMuscle","muscle"],["libEquip","equip"],["libImpact","impact"],["libTag","tag"]].forEach(([id,k])=>{$(id).onchange=()=>{libFilt[k]=$(id).value; renderLib()}});
+[["libType","type"],["libMuscle","muscle"],["libEquip","equip"],["libTag","tag"]].forEach(([id,k])=>{$(id).onchange=()=>{libFilt[k]=$(id).value; renderLib()}});
 $("libSearch").oninput=renderLib;
 
-/* ---------- Créer une séance (À la main) ---------- */
-const genFilt={type:"",muscle:"",equip:"",impact:"",tag:""}, genSel=new Set();
-let genCur=null;
-const FILTER_LABELS={type:"type",muscle:"muscle",equip:"équipement",impact:"impact",tag:"caractéristique"};
-function genDurMin(){const v=parseInt($("genDur").value,10); return v>0?Math.min(v,240):0}
-function renderGenList(){
-  const all=libItems().sort((a,b)=>genRank(a.type)-genRank(b.type)); // ordre de la séance, puis alphabétique
-  const bar=$("genFilters");
-  if(!bar.children.length){
-    Object.keys(genFilt).forEach(k=>{
-      const sel=document.createElement("select"); sel.dataset.k=k; sel.setAttribute("aria-label","Filtrer par "+FILTER_LABELS[k]);
-      sel.onchange=()=>{genFilt[k]=sel.value; renderGenList()}; bar.appendChild(sel);
-    });
-    fillFilters(all,genFilt,k=>bar.querySelector(`[data-k="${k}"]`));
-  }
-  const q=$("genSearch").value.trim().toLowerCase(), items=all.filter(e=>libMatch(e,genFilt,q));
-  $("genCount").textContent=`${genSel.size} sélectionné${genSel.size>1?"s":""} · ${items.length} affiché${items.length>1?"s":""} sur ${all.length}`;
-  const ul=$("genList"); ul.innerHTML="";
-  items.forEach(e=>{
-    const li=document.createElement("li"), lab=document.createElement("label"), cb=document.createElement("input");
-    cb.type="checkbox"; cb.checked=genSel.has(e.id);
-    cb.onchange=()=>{cb.checked?genSel.add(e.id):genSel.delete(e.id); renderGenPreview(); $("genCount").textContent=$("genCount").textContent.replace(/^\d+ sélectionnés?/,`${genSel.size} sélectionné${genSel.size>1?"s":""}`)};
-    const n=document.createElement("b"); n.textContent=e.name;
-    const t=document.createElement("em"); t.textContent=e.type;
-    const m=document.createElement("small"); m.textContent=`${e.muscles.join(", ")} · ${equipLabel(e.equipment)} · impact ${e.impact||"aucun"}`;
-    lab.append(cb,n,t,m); li.appendChild(lab); ul.appendChild(li);
-  });
-}
-/* Mode automatique : état local (zones, graine, liste éventuellement modifiée par « Remplacer ») */
-let genMode="main", autoZones=new Set(["corps-entier"]), autoSeed=1+Math.floor(Math.random()*1e6), autoOver=null;
+const FILTER_LABELS={type:"type",muscle:"muscle",equip:"équipement",tag:"caractéristique"};
 function recentIds(k=2){ // exercices des k dernières séances (champ x, ou retrouvés par le nom pour l'ancien historique)
   const h=[...((profile&&pdata().hist)||[])].sort((a,b)=>b.d-a.d).slice(0,k), ids=new Set();
   h.forEach(x=>{
@@ -1895,25 +1727,6 @@ function recentIds(k=2){ // exercices des k dernières séances (champ x, ou ret
     list.forEach(i=>ids.add(i));
   });
   return [...ids];
-}
-function autoMateriel(){return $("autoEquip").checked&&profile?equipData().have.map(x=>x.toLowerCase()):null}
-function genCompute(){
-  const dur=genDurMin(); if(!dur) return {msg:"Indique une durée en minutes."};
-  const c={duree:dur,avecEchauffement:$("genWarm").checked,avecRetour:$("genCool").checked};
-  if(genMode==="main"){
-    if(!genSel.size) return {msg:"Coche des exercices pour voir l'aperçu."};
-    return {r:buildSession({...c,exercices:[...genSel]})};
-  }
-  if(!autoZones.size) return {msg:"Choisis au moins une zone."};
-  if(autoOver) return {r:{...buildSession({...c,exercices:autoOver,ordreLibre:true}),exercices:autoOver}};
-  const r=buildAuto({...c,zones:[...autoZones],sansImpact:$("autoNoImpact").checked,materiel:autoMateriel(),evites:recentIds(2),graine:autoSeed});
-  return r.erreur?{err:r.erreur}:{r};
-}
-function replaceAuto(id){
-  const ids=[...genCur.exercices];
-  const cand=genEquivalents(getLibrary(),id,{materiel:autoMateriel(),sansImpact:$("autoNoImpact").checked,courants:ids,evites:recentIds(2),graine:1+Math.floor(Math.random()*1e6)});
-  if(!cand.length){renderGenPreview(true); const m=$("genMsg"); m.className="err"; m.textContent="Aucun exercice équivalent disponible avec ces contraintes."; return}
-  ids[ids.indexOf(id)]=cand[0]; autoOver=ids; renderGenPreview();
 }
 /* Corps de l'aperçu d'une séance générée (résumé, avertissements, blocs). o : {vise (min), onViser(min), onReplace(id) | null} */
 function renderPreviewBody(pv,r,o){
@@ -1950,63 +1763,6 @@ function renderPreviewBody(pv,r,o){
     d.appendChild(ol); pv.appendChild(d);
   });
 }
-function renderGenPreview(keep){
-  const pv=$("genPrev"); pv.innerHTML=""; if(keep!==true) $("genMsg").textContent="";
-  genCur=null; $("genRun").disabled=$("genSave").disabled=true;
-  const {r,msg,err}=genCompute();
-  if(msg||err){pv.className="genprev"+(err?"":" tips"); const p=document.createElement("p"); p.className=err?"err":""; p.style.margin="0 0 8px"; p.textContent=msg||err; pv.appendChild(p); return}
-  pv.className="genprev"; genCur=r;
-  renderPreviewBody(pv,r,{vise:genDurMin(),onReplace:genMode==="auto"?replaceAuto:null,
-    onViser:m=>{$("genDur").value=m; autoOver=null; renderGenPreview()}});
-  $("genRun").disabled=$("genSave").disabled=!r.programme;
-  if(!$("genName").value.trim()||$("genName").dataset.auto==="1"){$("genName").value=r.programme.name; $("genName").dataset.auto="1"}
-}
-function setGenMode(m){
-  genMode=m;
-  $("genManual").hidden=m!=="main"; $("genAuto").hidden=m!=="auto";
-  [["genTabMain","main"],["genTabAuto","auto"]].forEach(([id,k])=>{$(id).setAttribute("aria-selected",String(k===m)); $(id).setAttribute("aria-pressed",String(k===m))});
-  if(!getLibrary()) return;
-  if(m==="main") renderGenList(); else renderGenAuto();
-  renderGenPreview();
-}
-function renderGenAuto(){
-  const box=$("autoZones");
-  if(!box.children.length){
-    Object.keys(GEN.ZONE_LABELS).forEach(k=>{
-      const l=document.createElement("label"), c=document.createElement("input"); c.type="checkbox"; c.checked=autoZones.has(k);
-      c.onchange=()=>{c.checked?autoZones.add(k):autoZones.delete(k); autoOver=null; renderGenPreview()};
-      l.append(c,document.createTextNode(" "+GEN.ZONE_LABELS[k])); box.appendChild(l);
-    });
-  }
-  const have=profile?equipData().have:[];
-  $("autoEquipInfo").textContent="Toujours disponible : tapis, mur, chaise, step. Coché dans le profil : "+(have.length?have.join(", "):"rien d'autre")+".";
-}
-$("genName").oninput=()=>{$("genName").dataset.auto="0"};
-$("genOpen").onclick=()=>{
-  const box=$("genBox"); box.hidden=!box.hidden; $("genOpen").setAttribute("aria-expanded",String(!box.hidden));
-  if(!box.hidden) setGenMode(genMode);
-};
-$("genTabMain").onclick=()=>setGenMode("main");
-$("genTabAuto").onclick=()=>setGenMode("auto");
-["autoNoImpact","autoEquip"].forEach(id=>$(id).addEventListener("change",()=>{autoOver=null; renderGenPreview()}));
-$("autoAnother").onclick=()=>{autoSeed=1+Math.floor(Math.random()*1e6); autoOver=null; renderGenPreview()};
-$("genSearch").oninput=renderGenList;
-["genDur","genWarm","genCool"].forEach(id=>$(id).addEventListener("input",()=>{autoOver=null; renderGenPreview()}));
-$("genRun").onclick=()=>{
-  if(!genCur||!genCur.programme||!getLibrary()) return;
-  const prev=selectedId; tempProg={...genCur.programme,name:$("genName").value.trim()||genCur.programme.name,id:"gen"};
-  selectedId="gen"; start(); selectedId=prev;
-};
-$("genSave").onclick=()=>{
-  if(!genCur||!genCur.programme||!profile) return;
-  const prog={...genCur.programme,name:$("genName").value.trim()||genCur.programme.name,id:"s"+Date.now().toString(36)};
-  const ok=setPdata({sessions:[...(pdata().sessions||[]),prog]});
-  selectedId=prog.id; if(ok) setPdata({prog:prog.id});
-  renderSetup();
-  const m=$("genMsg"); m.className=ok?"ok":"err";
-  m.textContent=ok?"Séance enregistrée dans « Mes séances ».":"Ce navigateur bloque l'enregistrement : la séance reste dans cette page uniquement.";
-};
-
 /* ---------- Page d'une séance (Bibliothèque › Mes séances) ----------
    Affichage : aperçu ordonné des exercices. Édition : travail sur une copie (sx.draft), écrite dans sessions seulement à « Enregistrer ».
    Chaque item garde son format d'origine (ex:"id" ou ancien format en ligne) ; seuls les items ajoutés prennent la forme {ex:"id"}. */
@@ -2020,6 +1776,12 @@ function sessProg(){ // programme montré : la copie en cours d'édition, sinon 
 function sessDirty(){return !!sx&&sx.editing&&(sx.name.trim()!==sx.baseName||canon(sx.draft.blocks)!==canon(sx.baseBlocks))}
 function openSession(id){
   if(sx&&sx.id===id){renderSession(); return}
+  if(id==="new"){ // séance vide en mode édition ; rien n'est écrit avant « Enregistrer »
+    if(!profile||!getLibrary()){history.replaceState({act:["biblio"]},""); renderAct(["biblio"]); return}
+    sx={id,isNew:true,mine:true,base:{prep:10,switchTime:5},editing:true,name:"",draft:{blocks:[]},baseName:"",baseBlocks:[],grab:null};
+    $("sessName").value=""; renderSession(); $("sessName").focus({preventScroll:true});
+    return;
+  }
   const p=allPrograms().find(q=>q.id===id);
   if(!p){history.replaceState({act:["biblio"]},""); renderAct(["biblio"]); return}
   const raw=sessRaw(id);
@@ -2111,6 +1873,7 @@ function renderSession(){
   });
   if(!p.blocks.length){const e=document.createElement("li"); e.className="sbempty"; e.textContent="Aucun exercice."; ul.appendChild(e)}
   box.appendChild(ul);
+  if(ed&&!sessFlat(p.blocks).length){const t=document.createElement("p"); t.className="tips"; t.textContent="Aucun exercice pour l'instant : touche « + Ajouter des exercices » ci-dessous."; box.appendChild(t)}
   if(ed) sessEmpties();
   if(gone&&!ed){const w=document.createElement("p"); w.className="err"; w.textContent=`${gone} exercice${gone>1?"s":""} supprimé${gone>1?"s":""} de la bibliothèque : sauté${gone>1?"s":""} au lancement. Modifie la séance pour ${gone>1?"les remplacer":"le remplacer"}.`; box.appendChild(w)}
   $("sessAddRow").hidden=!ed; $("sessDelRow").hidden=ed||!sx.mine;
@@ -2135,10 +1898,12 @@ function sessAskDiscard(){
   sx.askT=setTimeout(()=>{if(sx&&sx.askCancel){sx.askCancel=false; c.textContent="Annuler"; $("sessWarn").textContent=""}},5000);
 }
 $("sessEdit").onclick=sessEnterEdit;
+$("sessNew").onclick=()=>actGo(["biblio","seance","new"]);
 $("sessName").oninput=()=>{if(sx&&sx.editing) sx.name=$("sessName").value};
 $("sessCancel").onclick=()=>{
   if(!sx||!sx.editing) return;
   if(sessDirty()&&!sx.askCancel){sessAskDiscard(); return}
+  if(sx.isNew){sx.leaving=true; history.back(); return}
   sessExitEdit();
 };
 $("sessSave").onclick=()=>{
@@ -2147,6 +1912,12 @@ $("sessSave").onclick=()=>{
   if(!name){w.textContent="Donne un nom à la séance."; $("sessName").focus(); return}
   if(!blocks.length){w.textContent="Ajoute au moins un exercice."; $("sessAdd").focus(); return}
   const list=pdata().sessions||[];
+  if(sx.isNew){
+    const prog={...sx.base,id:"s"+Date.now().toString(36),name,blocks:clone(blocks)};
+    if(!setPdata({sessions:[...list,prog],prog:prog.id})){w.textContent="Ce navigateur bloque l'enregistrement."; return}
+    selectedId=prog.id; sx.name=name; sx.baseName=name; sx.baseBlocks=clone(sx.draft.blocks); sx.leaving=true; // plus de modification en attente
+    renderSetup(); history.back(); return;
+  }
   if(!list.some(x=>x.id===sx.id)){w.textContent="Cette séance n'existe plus sur ce profil."; return}
   if(!setPdata({sessions:list.map(x=>x.id===sx.id?{...x,name,blocks:clone(blocks)}:x)})){w.textContent="Ce navigateur bloque l'enregistrement."; return}
   sx.base=sessRaw(sx.id); sx.name=name;
@@ -2158,7 +1929,7 @@ $("sessStart").onclick=()=>{
 };
 confirmClick($("sessDel"),["Confirmer la suppression"],()=>{
   if(!sx||!sx.mine) return;
-  const id=sx.id; setPdata({sessions:(pdata().sessions||[]).filter(x=>x.id!==id)}); selectedId="mobi-renfo";
+  const id=sx.id; setPdata({sessions:(pdata().sessions||[]).filter(x=>x.id!==id)}); selectedId="";
   sx=null; renderSetup(); history.back();
 });
 addEventListener("beforeunload",e=>{if(sessDirty()){e.preventDefault(); e.returnValue=""}});
@@ -2168,7 +1939,7 @@ try{matchMedia("(prefers-color-scheme: dark)").addEventListener("change",()=>{if
 let pk=null; // {mode, item, opener, sel:Set, filt}
 function openPicker(mode,item,opener){
   if(!sx||!sx.editing||!getLibrary()) return;
-  pk={mode,item,opener,sel:new Set(),filt:{type:"",muscle:"",equip:"",impact:"",tag:""}};
+  pk={mode,item,opener,sel:new Set(),filt:{type:"",muscle:"",equip:"",tag:""}};
   $("pickTitle").textContent=mode==="replace"?"Remplacer l'exercice":"Ajouter des exercices";
   $("pickOk").textContent=mode==="replace"?"Remplacer":"Ajouter";
   $("pickSearch").value=""; $("pickFilters").innerHTML="";

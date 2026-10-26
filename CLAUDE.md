@@ -15,7 +15,7 @@ Utilisée sur Mac (Chrome ou Safari) et iPhone (Safari), écran posé au sol pen
 
 ## Structure
 - `index.html`
-  - `PROGRAMS` : les programmes (blocs → exercices). Champs exercice : `name`, `work` (s), `desc`, `reps`,
+  - Programmes = séances de l'utilisateur (`sessions` du profil) ; aucun programme livré dans le code. Format (blocs → exercices). Champs exercice : `name`, `work` (s), `desc`, `reps`,
     `sides`, `sets`, `setRest`, `rest`, `anim`. Champs bloc : `rounds`, `rest`, `roundRest`, `transition`.
   - `expand()` transforme un programme en séquence de segments (prep, work, rest, switch).
   - Moteur : `tick()` toutes les 100 ms, `enter()`, `advance()`, annonces vocales dans `announce()`.
@@ -28,7 +28,7 @@ Utilisée sur Mac (Chrome ou Safari) et iPhone (Safari), écran posé au sol pen
 
 ## Vérifier un changement
 - Lancer `python3 -m http.server 8000` et ouvrir la page dans le navigateur.
-- Tester le programme « Démo 1 minute » : voix, bips, enchaînement, animations.
+- Créer une séance courte (2 exercices de 10 s) dans Activités › Bibliothèque, puis la lancer : voix, bips, enchaînement, animations (profil jetable).
 - Après une modification de `figure.js`, vérifier chaque animation touchée sur un cycle complet :
   aucune erreur console, mains et pieds en appui qui restent au sol.
 
@@ -41,8 +41,12 @@ Utilisée sur Mac (Chrome ou Safari) et iPhone (Safari), écran posé au sol pen
 - Synchro Gist : fichier `lib.json`, fusion par id (`updatedAt`), suppressions en pierres tombales (`deleted`). Copie de sécurité locale : `coach-renfo-libbackup`.
 
 ## Page de séance (Activités › Bibliothèque › Mes séances)
-- Un clic sur une séance de la liste ouvre sa page (pile `["biblio","seance",id]`, `history.pushState`). État : `sx`. Rendu : `renderSession()`.
+- Un clic sur une séance de la liste ouvre sa page (pile `["biblio","seance",id]`, `history.pushState`). « Créer une séance » (bouton sous la liste ; état vide « Aucune séance pour l'instant ») ouvre `["biblio","seance","new"]` : même page en édition, séance vide, écrite dans `sessions` à « Enregistrer » puis `history.back()`. État : `sx`. Rendu : `renderSession()`.
 - Mode édition sur une copie (`sx.draft`), écrite dans `sessions` seulement à « Enregistrer ». Le format d'origine de chaque item (`ex:"id"` ou en ligne) est conservé ; seuls les ajouts prennent la forme `{ex:"id"}`.
 - Sélecteur d'exercices (`openPicker`) : ajout multiple ou remplacement d'un exercice supprimé.
 - Glisser-déposer aux Pointer Events sur la poignée (`touch-action:none` sur la poignée seule) ; clavier : espace, flèches, espace.
 - Piège de test : le profil actif de localhost peut être le vrai profil avec synchro Gist active. Ne jamais écrire `sessions` dans un vrai profil : utiliser un profil jetable.
+
+## Page exercice (Bibliothèque)
+- « Ajouter un exercice » et « Modifier » ouvrent une page dédiée (pile `["biblio","exercice","new"|id]`, `openExPage`, `openExForm`, état `ef`) avec barre Annuler / Enregistrer fixe en bas. Retour à la liste avec filtres, recherche et défilement (`libScroll`) conservés. Quitter avec des changements (Annuler ou Retour) demande confirmation, comme la page de séance.
+- Plus de modale de formulaire, de section JSON, de filtre impact dans la Bibliothèque ni de panneau genBox (créateur À la main / Auto) : la génération passe par les cartes de rubriques. Le champ `impact` des exercices et l'option « Sans impact » du parcours restent.
