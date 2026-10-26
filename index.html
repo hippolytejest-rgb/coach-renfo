@@ -191,18 +191,24 @@ body:has(#run:not([hidden])) .update{display:none} /* jamais par-dessus la séan
 .agrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px}
 .carwrap{position:relative;min-width:0}
 .car{display:flex;flex-direction:column;gap:6px;min-width:0}
-.car{--cw:clamp(190px,64vw,260px)}
+.car{--ch:min(62dvh,580px,120vw,510px);--cw:calc(var(--ch)*2/3)}
 .cartrack{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none;overscroll-behavior-x:contain;padding:4px calc(50% - var(--cw)/2);margin:-4px}
 .cartrack::-webkit-scrollbar{display:none}
 .carslide{flex:0 0 var(--cw);width:var(--cw);scroll-snap-align:center;scroll-snap-stop:always;display:flex}
-.carslide .acard{aspect-ratio:9/16;height:auto;transition:transform .15s}
+.carslide .acard{position:relative;display:block;height:var(--ch);aspect-ratio:2/3;border:0;border-radius:18px;background:linear-gradient(135deg,var(--work),var(--switch));color:#fff;transform:scale(.92);filter:brightness(.7);transition:transform .25s,filter .25s}
+.carslide.on .acard{transform:none;filter:none}
 .carslide .acard:active{transform:scale(.97)}
-.carslide .apic{flex:0 0 60%;aspect-ratio:auto}
-.carslide .atxt{flex:1 1 auto;min-height:0;padding:12px 14px 14px;gap:4px;overflow-wrap:anywhere}
+.carslide .apic{position:absolute;inset:0;aspect-ratio:auto;background:none;overflow:hidden;border-radius:inherit}
+.carslide .apic img{position:absolute;left:0;top:-20%;height:120%;width:100%}
+.carslide .apic.fb svg{position:absolute;left:30%;top:5%;width:40%;height:40%}
+.carslide .atxt{position:absolute;left:0;right:0;bottom:0;padding:64px 14px 18px;gap:2px;align-items:center;text-align:center;background:linear-gradient(transparent,rgba(0,0,0,.65));overflow-wrap:anywhere}
+.carslide .atxt b{font-size:1.45rem;font-weight:600;line-height:1.15}
+.carslide .atxt small{color:#fff;opacity:.75;font-size:12px}
+@media (prefers-reduced-motion:reduce){.carslide .acard,.cardot::before{transition:none}}
 .cardots{display:flex;justify-content:center}
-.cardot{width:24px;height:24px;border:0;background:transparent;padding:0;display:flex;align-items:center;justify-content:center}
-.cardot::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--ghost)}
-.cardot[aria-current="true"]::before{background:var(--work);width:10px;height:10px}
+.cardot{width:24px;height:24px;border:0;background:transparent;padding:0;display:flex;align-items:center;justify-content:center;width:auto;min-width:18px;padding:0 6px}
+.cardot::before{content:"";width:6px;height:6px;border-radius:3px;background:var(--ghost);transition:width .2s}
+.cardot[aria-current="true"]::before{background:var(--work);width:22px}
 .carbtn{display:none;position:absolute;top:calc(50% - 30px);width:40px;height:40px;border-radius:50%;border:1.5px solid var(--line);background:var(--surface);color:var(--ink);align-items:center;justify-content:center;padding:0}
 .carbtn svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .carbtn.prev{left:-8px}.carbtn.next{right:-8px}
@@ -367,7 +373,7 @@ body:has(#tab-activites:not([hidden]) :is(#viewSeance,#viewPicker):not([hidden])
     <button class="btn" type="submit">Créer</button>
   </form>
   <p id="pmsg" class="err" role="status"></p>
-  <footer class="foot">Version 1.20.0 · profils enregistrés sur cet appareil</footer>
+  <footer class="foot">Version 1.20.1 · profils enregistrés sur cet appareil</footer>
 </main>
 
 <div class="loaderr" id="loadErr" role="alert" hidden><p id="loadErrMsg"></p><button class="btn" id="loadRetry">Réessayer</button></div>
@@ -566,7 +572,7 @@ body:has(#tab-activites:not([hidden]) :is(#viewSeance,#viewPicker):not([hidden])
     </section>
   </div>
   <!-- À mettre à jour à chaque publication : ce pied de page, figure.js?v= plus bas, et VERSION dans sw.js -->
-  <footer class="foot">Version 1.20.0 · publiée le <time datetime="2026-10-26T15:06">26/10/2026 à 15:06</time></footer>
+  <footer class="foot">Version 1.20.1 · publiée le <time datetime="2026-10-26T15:09">26/10/2026 à 15:09</time></footer>
 </main>
 
 <section id="run" class="run" data-phase="prep" hidden>
@@ -616,8 +622,8 @@ body:has(#tab-activites:not([hidden]) :is(#viewSeance,#viewPicker):not([hidden])
   <button class="start" id="againBtn" style="max-width:320px">Retour</button>
 </section>
 
-<script src="figure.js?v=1.20.0"></script>
-<script src="generator.js?v=1.20.0"></script>
+<script src="figure.js?v=1.20.1"></script>
+<script src="generator.js?v=1.20.1"></script>
 <script>
 /* ---------- Bibliothèque d'exercices ----------
    exercises.json = jeu de départ (SEED). La bibliothèque active est LIB, copiée dans le stockage local au premier lancement
@@ -1460,6 +1466,8 @@ function carTo(i){
 function carSync(){
   const i=carIndex(), n=$("carTrack").children.length;
   [...$("carDots").children].forEach((d,k)=>{if(k===i) d.setAttribute("aria-current","true"); else d.removeAttribute("aria-current")});
+  const bs=$("carTrack").querySelector('[data-card="biblio"] small'), lib=getLibrary();
+  if(bs&&lib){const c=Object.keys(lib).length; bs.textContent=c+(c>1?" exercices":" exercice")}
   $("carPrev").disabled=i<=0; $("carNext").disabled=i>=n-1;
 }
 function buildCarousel(){
@@ -1473,6 +1481,8 @@ function buildCarousel(){
     dot.setAttribute("aria-label",`${s.title}, ${i+1} sur ${n}`); dot.onclick=()=>carTo(i);
     d.appendChild(dot);
   });
+  const io=new IntersectionObserver(es=>es.forEach(e=>e.target.classList.toggle("on",e.isIntersecting)),{root:t,threshold:.6});
+  [...t.children].forEach(c=>io.observe(c));
   let raf=0; t.addEventListener("scroll",()=>{cancelAnimationFrame(raf); raf=requestAnimationFrame(carSync)},{passive:true});
   addEventListener("resize",carSync);
   $("carPrev").onclick=()=>carTo(carIndex()-1); $("carNext").onclick=()=>carTo(carIndex()+1);
