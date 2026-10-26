@@ -56,9 +56,7 @@ svg.i{width:18px;height:18px;display:block;fill:currentColor}
 .eyebrow{font-size:.74rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:700;margin:0 0 8px}
 .progs{display:flex;flex-direction:column;gap:8px}
 .prog{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:12px;align-items:center;background:var(--surface);border:1.5px solid var(--line);border-radius:10px;padding:11px 14px;text-align:left}
-.prog[aria-pressed="true"]{border-color:var(--work);box-shadow:inset 4px 0 0 var(--work)}
 .prog .dot{width:12px;height:12px;border-radius:50%;border:2px solid var(--muted)}
-.prog[aria-pressed="true"] .dot{border-color:var(--work);background:var(--work)}
 .prog b{display:block;font-size:1rem}
 .prog small{color:var(--muted)}
 .prog .dur{font-family:var(--display);font-weight:800;font-size:1.4rem}
@@ -365,7 +363,7 @@ body:has(#tab-activites:not([hidden]) #viewSeance:not([hidden])) .update{bottom:
     <button class="btn" type="submit">Créer</button>
   </form>
   <p id="pmsg" class="err" role="status"></p>
-  <footer class="foot">Version 1.19.1 · profils enregistrés sur cet appareil</footer>
+  <footer class="foot">Version 1.19.2 · profils enregistrés sur cet appareil</footer>
 </main>
 
 <div class="loaderr" id="loadErr" role="alert" hidden><p id="loadErrMsg"></p><button class="btn" id="loadRetry">Réessayer</button></div>
@@ -420,11 +418,9 @@ body:has(#tab-activites:not([hidden]) #viewSeance:not([hidden])) .update{bottom:
     <section class="panel" aria-labelledby="secMine">
     <h2 class="sechead" id="secMine">Mes séances</h2>
     <div class="panel" id="viewSeances">
-    <section aria-labelledby="pick">
-      <p class="eyebrow" id="pick">Programme</p>
+    <section aria-labelledby="secMine">
       <div class="progs" id="progs"></div>
       <button class="start sessnew" id="sessNew" type="button">Créer une séance</button>
-      <p class="tips">Touche une séance pour l'ouvrir, la modifier ou la démarrer. Mac : <b>Espace</b> pause, <b>← →</b> exercice précédent / suivant, <b>Échap</b> arrêter.</p>
     </section>
     </div>
     </section>
@@ -565,7 +561,7 @@ body:has(#tab-activites:not([hidden]) #viewSeance:not([hidden])) .update{bottom:
     </section>
   </div>
   <!-- À mettre à jour à chaque publication : ce pied de page, figure.js?v= plus bas, et VERSION dans sw.js -->
-  <footer class="foot">Version 1.19.1 · publiée le <time datetime="2026-10-26T15:00">26/10/2026 à 15:00</time></footer>
+  <footer class="foot">Version 1.19.2 · publiée le <time datetime="2026-10-26T15:00">26/10/2026 à 15:00</time></footer>
 </main>
 
 <section id="run" class="run" data-phase="prep" hidden>
@@ -615,8 +611,8 @@ body:has(#tab-activites:not([hidden]) #viewSeance:not([hidden])) .update{bottom:
   <button class="start" id="againBtn" style="max-width:320px">Retour</button>
 </section>
 
-<script src="figure.js?v=1.19.1"></script>
-<script src="generator.js?v=1.19.1"></script>
+<script src="figure.js?v=1.19.2"></script>
+<script src="generator.js?v=1.19.2"></script>
 <script>
 /* ---------- Bibliothèque d'exercices ----------
    exercises.json = jeu de départ (SEED). La bibliothèque active est LIB, copiée dans le stockage local au premier lancement
@@ -769,7 +765,7 @@ function renderSetup(){
   const all=allPrograms();
   if(!all.length){const e=document.createElement("p"); e.className="tips empty"; e.textContent="Aucune séance pour l'instant"; box.appendChild(e)}
   all.forEach(p=>{
-    const b=document.createElement("button"); b.className="prog"; b.setAttribute("aria-pressed",p.id===selectedId);
+    const b=document.createElement("button"); b.className="prog";
     b.innerHTML=`<span class="dot"></span><span><b></b><small></small></span><span class="dur tab">${fmt(totalOf(expand(p)))}</span>`;
     b.querySelector("b").textContent=p.name; b.querySelector("small").textContent=p.sub||"";
     b.onclick=()=>{selectedId=p.id;if(profile)setPdata({prog:p.id});renderSetup(); actGo(["biblio","seance",p.id])};
