@@ -365,7 +365,7 @@ body:has(#tab-activites:not([hidden]) #viewSeance:not([hidden])) .update{bottom:
     <button class="btn" type="submit">Créer</button>
   </form>
   <p id="pmsg" class="err" role="status"></p>
-  <footer class="foot">Version 1.19.0 · profils enregistrés sur cet appareil</footer>
+  <footer class="foot">Version 1.19.1 · profils enregistrés sur cet appareil</footer>
 </main>
 
 <div class="loaderr" id="loadErr" role="alert" hidden><p id="loadErrMsg"></p><button class="btn" id="loadRetry">Réessayer</button></div>
@@ -565,7 +565,7 @@ body:has(#tab-activites:not([hidden]) #viewSeance:not([hidden])) .update{bottom:
     </section>
   </div>
   <!-- À mettre à jour à chaque publication : ce pied de page, figure.js?v= plus bas, et VERSION dans sw.js -->
-  <footer class="foot">Version 1.19.0 · publiée le <time datetime="2026-10-26T14:26">26/10/2026 à 14:26</time></footer>
+  <footer class="foot">Version 1.19.1 · publiée le <time datetime="2026-10-26T15:00">26/10/2026 à 15:00</time></footer>
 </main>
 
 <section id="run" class="run" data-phase="prep" hidden>
@@ -615,8 +615,8 @@ body:has(#tab-activites:not([hidden]) #viewSeance:not([hidden])) .update{bottom:
   <button class="start" id="againBtn" style="max-width:320px">Retour</button>
 </section>
 
-<script src="figure.js?v=1.19.0"></script>
-<script src="generator.js?v=1.19.0"></script>
+<script src="figure.js?v=1.19.1"></script>
+<script src="generator.js?v=1.19.1"></script>
 <script>
 /* ---------- Bibliothèque d'exercices ----------
    exercises.json = jeu de départ (SEED). La bibliothèque active est LIB, copiée dans le stockage local au premier lancement
@@ -1876,7 +1876,7 @@ function renderSession(){
   if(ed&&!sessFlat(p.blocks).length){const t=document.createElement("p"); t.className="tips"; t.textContent="Aucun exercice pour l'instant : touche « + Ajouter des exercices » ci-dessous."; box.appendChild(t)}
   if(ed) sessEmpties();
   if(gone&&!ed){const w=document.createElement("p"); w.className="err"; w.textContent=`${gone} exercice${gone>1?"s":""} supprimé${gone>1?"s":""} de la bibliothèque : sauté${gone>1?"s":""} au lancement. Modifie la séance pour ${gone>1?"les remplacer":"le remplacer"}.`; box.appendChild(w)}
-  $("sessAddRow").hidden=!ed; $("sessDelRow").hidden=ed||!sx.mine;
+  $("sessAddRow").hidden=!ed; $("sessDelRow").hidden=!ed||sx.isNew;
   $("sessEdit").hidden=ed||!sx.mine; $("sessStart").hidden=ed; $("sessCancel").hidden=!ed; $("sessSave").hidden=!ed;
   $("sessStart").disabled=!expand(p).some(x=>x.type==="work");
   if(!ed){const c=$("sessCancel"); c.textContent="Annuler"}
@@ -1928,8 +1928,9 @@ $("sessStart").onclick=()=>{
   selectedId=sx.id; if(profile) setPdata({prog:sx.id}); start();
 };
 confirmClick($("sessDel"),["Confirmer la suppression"],()=>{
-  if(!sx||!sx.mine) return;
-  const id=sx.id; setPdata({sessions:(pdata().sessions||[]).filter(x=>x.id!==id)}); selectedId="";
+  if(!sx||!sx.mine||!sx.editing||sx.isNew) return;
+  const id=sx.id; sx.leaving=true; // la copie en cours est abandonnée avec la séance
+  setPdata({sessions:(pdata().sessions||[]).filter(x=>x.id!==id)}); selectedId="";
   sx=null; renderSetup(); history.back();
 });
 addEventListener("beforeunload",e=>{if(sessDirty()){e.preventDefault(); e.returnValue=""}});
