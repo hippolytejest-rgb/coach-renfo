@@ -39,3 +39,10 @@ Utilisée sur Mac (Chrome ou Safari) et iPhone (Safari), écran posé au sol pen
 ## Bibliothèque d'exercices
 - `exercises.json` = seed. La bibliothèque active est `LIB` (clé locale `coach-renfo-lib`, commune à tous les profils), lue via `getLibrary()`.
 - Synchro Gist : fichier `lib.json`, fusion par id (`updatedAt`), suppressions en pierres tombales (`deleted`). Copie de sécurité locale : `coach-renfo-libbackup`.
+
+## Page de séance (Activités › Bibliothèque › Mes séances)
+- Un clic sur une séance de la liste ouvre sa page (pile `["biblio","seance",id]`, `history.pushState`). État : `sx`. Rendu : `renderSession()`.
+- Mode édition sur une copie (`sx.draft`), écrite dans `sessions` seulement à « Enregistrer ». Le format d'origine de chaque item (`ex:"id"` ou en ligne) est conservé ; seuls les ajouts prennent la forme `{ex:"id"}`.
+- Sélecteur d'exercices (`openPicker`) : ajout multiple ou remplacement d'un exercice supprimé.
+- Glisser-déposer aux Pointer Events sur la poignée (`touch-action:none` sur la poignée seule) ; clavier : espace, flèches, espace.
+- Piège de test : le profil actif de localhost peut être le vrai profil avec synchro Gist active. Ne jamais écrire `sessions` dans un vrai profil : utiliser un profil jetable.
