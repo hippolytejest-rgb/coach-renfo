@@ -676,10 +676,10 @@ body:has(#tab-activites:not([hidden]) :is(#viewSeance,#viewPicker):not([hidden])
 </section>
 
 <!-- À mettre à jour à chaque publication : ce bandeau, figure.js?v= et generator.js?v= plus bas, et VERSION dans sw.js -->
-<footer class="ver" id="ver">Version 1.21.0 · publiée le <time datetime="2026-10-28T17:38">28/10/2026 à 17:38</time></footer>
+<footer class="ver" id="ver">Version 1.21.1 · publiée le <time datetime="2026-10-28T17:56">28/10/2026 à 17:56</time></footer>
 
-<script src="figure.js?v=1.21.0"></script>
-<script src="generator.js?v=1.21.0"></script>
+<script src="figure.js?v=1.21.1"></script>
+<script src="generator.js?v=1.21.1"></script>
 <script>
 /* ---------- Bibliothèque d'exercices ----------
    exercises.json = jeu de départ (SEED). La bibliothèque active est LIB, copiée dans le stockage local au premier lancement
@@ -1322,25 +1322,34 @@ function setSyncMsg(t,bad){const m=$("syncMsg"); m.textContent=t; m.className="t
 function showSyncUi(){const on=!!(syncCfg()&&syncCfg().gist); $("syncOff").hidden=on; $("syncOn").hidden=!on}
 let syncing=false, again=false, syncTimer=null;
 function scheduleSync(){if(syncCfg()){clearTimeout(syncTimer); syncTimer=setTimeout(sync,1500)}}
+// Lit un fichier du Gist : null s'il est absent (premier usage) ; lève une erreur s'il existe mais est tronqué ou illisible,
+// pour ne jamais écraser des données distantes qu'on n'a pas pu lire.
+function remoteJson(g,name){
+  const f=g.files&&g.files[name]; if(!f) return null;
+  let r; try{if(!f.truncated) r=JSON.parse(f.content)}catch(e){}
+  if(!r||typeof r!=="object"||Array.isArray(r)){const e=new Error(name); e.unreadable=true; throw e}
+  return r;
+}
 async function sync(){
   const c=syncCfg(); if(!c||!c.gist) return;
   if(syncing){again=true;return}
   syncing=true; setSyncMsg("Synchronisation…");
   try{
-    const g=await gh("/gists/"+c.gist), f=g.files&&g.files[GIST_FILE];
-    let r=null; try{r=f?JSON.parse(f.content):null}catch(e){}
+    const g=await gh("/gists/"+c.gist);
+    const r=remoteJson(g,GIST_FILE), rl=LIB?remoteJson(g,LIB_FILE):null; // les deux lus avant toute fusion
     const {out,changed}=mergeSync(r), txt=JSON.stringify(out), files={};
     if(!r||JSON.stringify(r)!==txt) files[GIST_FILE]={content:txt};
     let libChanged=false;
     if(LIB){ // la bibliothèque (lib.json) se synchronise à part ; ignorée tant qu'elle n'est pas chargée
-      const fl=g.files&&g.files[LIB_FILE]; let rl=null; try{rl=fl?JSON.parse(fl.content):null}catch(e){}
       const m=mergeLib(rl); libChanged=m.changed;
       if(!rl||canon(rl)!==canon(m.out)) files[LIB_FILE]={content:JSON.stringify(m.out)};
     }
     if(Object.keys(files).length) await gh("/gists/"+c.gist,{method:"PATCH",body:JSON.stringify({files})});
     if(changed||libChanged) refreshAfterSync();
     setSyncMsg("Synchronisé à "+new Date().toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"})+".");
-  }catch(e){setSyncMsg("Synchronisation impossible ("+(e.message||"réseau")+"). Réessaie plus tard.",true)}
+  }catch(e){
+    if(e.unreadable){setSyncMsg("Synchro suspendue : fichier distant illisible ("+e.message+"). Rien n'a été envoyé sur GitHub.",true); return}
+    setSyncMsg("Synchronisation impossible ("+(e.message||"réseau")+"). Réessaie plus tard.",true)}
   finally{syncing=false; if(again){again=false; sync()}}
 }
 function refreshAfterSync(){
