@@ -12,7 +12,7 @@
 <style>
 /* Base (remplace le gabarit de l'artifact) */
 [hidden]{display:none!important}
-:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);box-sizing:border-box}
+:root{padding-top:env(safe-area-inset-top,0px);box-sizing:border-box;--foot:calc(22px + env(safe-area-inset-bottom,0px))} /* --foot = hauteur du bandeau de version, fixe en bas de tous les écrans */
 body{margin:0}
 /* Layout: écran de coach — rangée média (anneau de temps + silhouette animée), carte exercice, commandes en bas */
 :root{
@@ -47,7 +47,7 @@ button:focus-visible,textarea:focus-visible,label:focus-within{outline:3px solid
 svg.i{width:18px;height:18px;display:block;fill:currentColor}
 
 /* ---------- Setup ---------- */
-.setup{max-width:1000px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:22px 40px;display:flex;flex-direction:column;gap:22px}
+.setup{max-width:1000px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:22px calc(40px + var(--foot));display:flex;flex-direction:column;gap:22px}
 .brand{display:flex;align-items:baseline;justify-content:space-between;gap:10px;flex-wrap:wrap}
 .brand h1{font-family:var(--display);font-weight:800;font-size:clamp(2.2rem,6vw,3.4rem);line-height:.9;margin:0;letter-spacing:.01em;text-transform:uppercase}
 .brand p{margin:0;color:var(--muted);max-width:44ch;font-size:.95rem}
@@ -82,10 +82,26 @@ svg.i{width:18px;height:18px;display:block;fill:currentColor}
 .btn{border:1.5px solid var(--line);background:var(--bg);border-radius:8px;padding:6px 12px;font-weight:700;font-size:.9rem}
 .err{color:var(--danger);font-size:.86rem;margin:0}
 .ok{color:var(--work);font-size:.86rem;margin:0}
-.foot{margin:0;padding-top:14px;border-top:1px solid var(--line);color:var(--muted);font-size:.8rem;text-align:center}
+.ver{position:fixed;left:0;right:0;bottom:0;z-index:20;box-sizing:border-box;height:var(--foot);padding:0 max(16px,env(safe-area-inset-right,0px)) env(safe-area-inset-bottom,0px) max(16px,env(safe-area-inset-left,0px));display:flex;align-items:center;justify-content:center;background:var(--bg);color:var(--muted);font-size:.72rem;line-height:1;white-space:nowrap;overflow:hidden;pointer-events:none}
+body:has(#run:not([hidden])) .ver,body:has(#done:not([hidden])) .ver{background:transparent}
+
+/* ---------- Écran de chargement ---------- */
+.splash{position:fixed;inset:0;z-index:100;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;transition:opacity .28s ease}
+.splash.out{opacity:0;pointer-events:none}
+.splash h1{font-family:var(--display);font-weight:800;font-size:clamp(2.2rem,9vw,3.2rem);line-height:.9;margin:0;letter-spacing:.01em;text-transform:uppercase}
+.splash svg{width:96px;height:96px;overflow:visible;fill:none;stroke:var(--work);stroke-width:4;stroke-linecap:round}
+.splash svg circle{fill:var(--work);stroke:none}
+.splash .sf{animation:spHop .8s ease-in-out infinite}
+.splash .sa,.splash .sl{transform-box:view-box;animation:spJack .8s ease-in-out infinite alternate}
+.splash .sa{transform-origin:40px 28px}.splash .sl{transform-origin:40px 48px}
+.splash .r{--a:-20deg;--b:-155deg}.splash .l{--a:20deg;--b:155deg}
+.splash .sl.r{--a:-7deg;--b:-26deg}.splash .sl.l{--a:7deg;--b:26deg}
+@keyframes spJack{from{transform:rotate(var(--a))}to{transform:rotate(var(--b))}}
+@keyframes spHop{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
+@media (prefers-reduced-motion:reduce){.splash .sf,.splash .sa,.splash .sl{animation:none}.splash .sa,.splash .sl{transform:rotate(var(--a))}.splash{transition:none}}
 
 /* ---------- Bandeau de mise à jour ---------- */
-.update{position:fixed;left:0;right:0;bottom:0;z-index:10;display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap;background:var(--ink);color:var(--bg);padding:10px max(16px,env(safe-area-inset-right,0px)) max(10px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));font-weight:700}
+.update{position:fixed;left:0;right:0;bottom:var(--foot);z-index:10;display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap;background:var(--ink);color:var(--bg);padding:10px max(16px,env(safe-area-inset-right,0px)) 10px max(16px,env(safe-area-inset-left,0px));font-weight:700}
 body:has(#run:not([hidden])) .update{display:none} /* jamais par-dessus la séance */
 .update .btn{background:var(--bg);color:var(--ink);border-color:var(--bg)}
 
@@ -95,11 +111,11 @@ body:has(#run:not([hidden])) .update{display:none} /* jamais par-dessus la séan
 .tabs button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--work)}
 .tabs svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 @media (max-width:820px){
-  .tabs{position:fixed;left:0;right:0;bottom:0;z-index:9;gap:0;background:var(--bg);border-top:1.5px solid var(--line);border-bottom:0;padding-bottom:env(safe-area-inset-bottom,0px)}
+  .tabs{position:fixed;left:0;right:0;bottom:var(--foot);z-index:9;gap:0;background:var(--bg);border-top:1.5px solid var(--line);border-bottom:0}
   .tabs button{margin:0;border-bottom:0;border-top:3px solid transparent;padding:7px 4px 5px;font-size:.72rem}
   .tabs button[aria-selected="true"]{border-top-color:var(--work)}
-  .setup{padding-block-end:calc(86px + env(safe-area-inset-bottom,0px))}
-  body:has(#setup:not([hidden])) .update{bottom:calc(62px + env(safe-area-inset-bottom,0px))}
+  .setup{padding-block-end:calc(86px + var(--foot))}
+  body:has(#setup:not([hidden])) .update{bottom:calc(62px + var(--foot))}
 }
 .libsearch{font:inherit;font-size:1rem;background:var(--surface);color:var(--ink);border:1.5px solid var(--line);border-radius:10px;padding:10px 12px;min-width:0;width:100%;box-sizing:border-box}
 .lib{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
@@ -223,7 +239,7 @@ body:has(#run:not([hidden])) .update{display:none} /* jamais par-dessus la séan
 .eqnew input{flex:1;min-width:0;font:inherit;background:var(--surface);color:var(--ink);border:1.5px solid var(--line);border-radius:10px;padding:8px 12px}
 
 /* ---------- Profils ---------- */
-.profiles{max-width:520px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:22px 40px;display:flex;flex-direction:column;gap:18px}
+.profiles{max-width:520px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:22px calc(40px + var(--foot));display:flex;flex-direction:column;gap:18px}
 .plist{display:flex;flex-direction:column;gap:8px}
 .prow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:stretch}
 .pbtn{display:flex;align-items:center;gap:12px;background:var(--surface);border:1.5px solid var(--line);border-radius:10px;padding:12px 14px;text-align:left;min-width:0}
@@ -246,7 +262,7 @@ body:has(#run:not([hidden])) .update{display:none} /* jamais par-dessus la séan
 .calgrid .day.today{outline:2px solid var(--ink);outline-offset:-2px}
 
 /* ---------- Run ---------- */
-.run{--c:var(--prep);--cbg:var(--prep-bg);min-height:100%;box-sizing:border-box;display:flex;flex-direction:column;gap:10px;background:var(--cbg);padding-left:max(14px,env(safe-area-inset-left,0px));padding-right:max(14px,env(safe-area-inset-right,0px));padding-block:10px 12px;transition:background-color .35s}
+.run{--c:var(--prep);--cbg:var(--prep-bg);min-height:100%;box-sizing:border-box;display:flex;flex-direction:column;gap:10px;background:var(--cbg);padding-left:max(14px,env(safe-area-inset-left,0px));padding-right:max(14px,env(safe-area-inset-right,0px));padding-block:10px calc(12px + var(--foot));transition:background-color .35s}
 .run[data-phase="work"]{--c:var(--work);--cbg:var(--work-bg)}
 .run[data-phase="rest"]{--c:var(--rest);--cbg:var(--rest-bg)}
 .run[data-phase="switch"]{--c:var(--switch);--cbg:var(--switch-bg)}
@@ -289,7 +305,7 @@ body:has(#run:not([hidden])) .update{display:none} /* jamais par-dessus la séan
 .ctl.warn{border-color:var(--danger);color:var(--danger)}
 
 /* ---------- Done ---------- */
-.done{height:100%;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;text-align:center;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:24px}
+.done{height:100%;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;text-align:center;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:24px calc(24px + var(--foot))}
 .done h2{font-family:var(--display);font-weight:800;text-transform:uppercase;font-size:clamp(2.6rem,9vw,4.6rem);line-height:.9;margin:0;color:var(--work)}
 .done p{margin:0;color:var(--muted)}
 @media (prefers-reduced-motion:reduce){.run,.ringwrap .bar{transition:none}}
@@ -339,7 +355,7 @@ input,select,textarea{font-size:max(16px,1em)}
 .dragactive,.dragactive *{user-select:none;-webkit-user-select:none;cursor:grabbing!important}
 .sessplus{width:100%;font-size:1.1rem;border-style:dashed;border-color:var(--work);color:var(--work)}
 .sessplus span{font-size:1.5rem;line-height:1;margin-right:6px}
-.sessbar{position:fixed;left:0;right:0;bottom:0;z-index:12;background:var(--bg);border-top:1.5px solid var(--line);padding:10px max(16px,env(safe-area-inset-right,0px)) calc(10px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+.sessbar{position:fixed;left:0;right:0;bottom:var(--foot);z-index:12;background:var(--bg);border-top:1.5px solid var(--line);padding:10px max(16px,env(safe-area-inset-right,0px)) 10px max(16px,env(safe-area-inset-left,0px))}
 .sessbarin{max-width:1000px;margin:0 auto;display:flex;gap:10px}
 .sessbtn{flex:1 1 0;min-height:48px;margin:0;font-size:1.1rem}
 .sessbtn.start{font-size:1.4rem;padding:6px 16px}
@@ -348,14 +364,39 @@ input,select,textarea{font-size:max(16px,1em)}
 .pickl{max-height:none;overflow:visible}
 .pickl label{min-height:44px}
 .pickl input{width:24px;height:24px}
-body:has(#tab-activites:not([hidden]) :is(#viewSeance,#viewPicker):not([hidden])) .update{bottom:calc(var(--sbarh,76px) + env(safe-area-inset-bottom,0px))}
+body:has(#tab-activites:not([hidden]) :is(#viewSeance,#viewPicker):not([hidden])) .update{bottom:calc(var(--sbarh,76px) + var(--foot))}
 @media (max-width:820px){
   body:has(#tab-activites:not([hidden]) :is(#viewSeance,#viewPicker):not([hidden])) .tabs{display:none}
-  body:has(#tab-activites:not([hidden]) :is(#viewSeance,#viewPicker):not([hidden])) .setup{padding-block-end:24px}
+  body:has(#tab-activites:not([hidden]) :is(#viewSeance,#viewPicker):not([hidden])) .setup{padding-block-end:calc(24px + var(--foot))}
 }
 </style>
 </head>
 <body>
+
+<div class="splash" id="splash" role="status" aria-label="Chargement">
+  <svg viewBox="0 0 80 80" aria-hidden="true"><g class="sf">
+    <circle cx="40" cy="15" r="7"/>
+    <path d="M40 23V48"/>
+    <path class="sa l" d="M40 28V48"/><path class="sa r" d="M40 28V48"/>
+    <path class="sl l" d="M40 48V70"/><path class="sl r" d="M40 48V70"/>
+  </g></svg>
+  <h1>Renfo Batai</h1>
+</div>
+<script>
+/* Sortie du splash : au moins 300 ms d'affichage (pas de flash), fondu, puis retiré. Filet de sécurité à 8 s si le script principal échoue. */
+(function(){
+  var t0=Date.now(), done=false;
+  window.hideSplash=function(){
+    if(done) return; done=true;
+    setTimeout(function(){
+      var el=document.getElementById("splash"); if(!el) return;
+      el.classList.add("out");
+      setTimeout(function(){el.hidden=true},320);
+    },Math.max(0,300-(Date.now()-t0)));
+  };
+  setTimeout(window.hideSplash,8000);
+})();
+</script>
 
 <div class="update" id="update" role="status" hidden>
   <span>Nouvelle version disponible.</span>
@@ -373,7 +414,7 @@ body:has(#tab-activites:not([hidden]) :is(#viewSeance,#viewPicker):not([hidden])
     <button class="btn" type="submit">Créer</button>
   </form>
   <p id="pmsg" class="err" role="status"></p>
-  <footer class="foot">Version 1.20.1 · profils enregistrés sur cet appareil</footer>
+  <p class="tips" style="margin:0;text-align:center">Profils enregistrés sur cet appareil.</p>
 </main>
 
 <div class="loaderr" id="loadErr" role="alert" hidden><p id="loadErrMsg"></p><button class="btn" id="loadRetry">Réessayer</button></div>
@@ -571,8 +612,6 @@ body:has(#tab-activites:not([hidden]) :is(#viewSeance,#viewPicker):not([hidden])
       <p class="tips" id="syncMsg" role="status"></p>
     </section>
   </div>
-  <!-- À mettre à jour à chaque publication : ce pied de page, figure.js?v= plus bas, et VERSION dans sw.js -->
-  <footer class="foot">Version 1.20.1 · publiée le <time datetime="2026-10-26T15:09">26/10/2026 à 15:09</time></footer>
 </main>
 
 <section id="run" class="run" data-phase="prep" hidden>
@@ -622,8 +661,11 @@ body:has(#tab-activites:not([hidden]) :is(#viewSeance,#viewPicker):not([hidden])
   <button class="start" id="againBtn" style="max-width:320px">Retour</button>
 </section>
 
-<script src="figure.js?v=1.20.1"></script>
-<script src="generator.js?v=1.20.1"></script>
+<!-- À mettre à jour à chaque publication : ce bandeau, figure.js?v= et generator.js?v= plus bas, et VERSION dans sw.js -->
+<footer class="ver" id="ver">Version 1.20.2 · publiée le <time datetime="2026-10-28T17:31">28/10/2026 à 17:31</time></footer>
+
+<script src="figure.js?v=1.20.2"></script>
+<script src="generator.js?v=1.20.2"></script>
 <script>
 /* ---------- Bibliothèque d'exercices ----------
    exercises.json = jeu de départ (SEED). La bibliothèque active est LIB, copiée dans le stockage local au premier lancement
@@ -1262,7 +1304,7 @@ $("syncNow").onclick=sync;
 $("syncOffBtn").onclick=()=>{lsDel(SYNC_KEY); showSyncUi(); setSyncMsg("Synchronisation désactivée sur cet appareil. Les données restent sur GitHub.")};
 document.addEventListener("visibilitychange",()=>{if(!document.hidden) sync()});
 addEventListener("online",sync);
-showSyncUi(); sync();
+showSyncUi(); const bootSync=sync();
 
 /* ---------- Activités : rubriques et pile d'écrans ---------- */
 /* Niveau 1 : carrousel de rubriques. Niveau 2 : page de la rubrique. Niveau 3 : parcours d'un préréglage (zones → durée → aperçu).
@@ -2146,7 +2188,9 @@ renderProfiles(); pickVoice(); setTimeout(pickVoice,600);
 buildCarousel();
 history.replaceState({act:[]},"");
 renderAct([]);
-loadLibrary().then(ok=>{if(ok){scheduleSync(); refreshLibUi(); if(!$("setup").hidden){renderSetup(); renderAct(actStack)}}});
+const bootLib=loadLibrary().then(ok=>{if(ok){scheduleSync(); refreshLibUi(); if(!$("setup").hidden){renderSetup(); renderAct(actStack)}}});
+// Splash : prêt = bibliothèque chargée + première synchro tentée ; plafonné à 4 s pour ne jamais bloquer l'app (réseau/Gist lent).
+Promise.race([Promise.allSettled([bootLib,bootSync]),new Promise(r=>setTimeout(r,4000))]).then(()=>hideSplash());
 
 /* ---------- Hors ligne et mises à jour ---------- */
 if("serviceWorker" in navigator){
