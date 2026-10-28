@@ -278,7 +278,7 @@ body:has(#run:not([hidden])) .update{display:none} /* jamais par-dessus la séan
 .iconbtn{display:inline-flex;align-items:center;justify-content:center;min-width:44px;min-height:44px;box-sizing:border-box;border:1.5px solid color-mix(in srgb,var(--cbg) 45%,transparent);background:transparent;color:inherit;border-radius:9px;padding:0}
 .iconbtn svg.i{width:22px;height:22px}
 /* Trois zones à hauteur fixe (média, titre + paramètres, description) : rien ne bouge d'un exercice à l'autre */
-.stage{--m:min(36vw,24vh,300px);--cardh:clamp(140px,28vh,280px);flex:1 1 auto;min-height:0;display:grid;grid-template-rows:var(--m) var(--cardh) minmax(0,1fr);gap:12px;text-align:center}
+.stage{--m:min(36vw,24vh,300px);--cardh:clamp(110px,25vh,260px);flex:1 1 auto;min-height:0;display:grid;grid-template-rows:var(--m) var(--cardh) minmax(0,1fr);gap:12px;text-align:center}
 .media{display:flex;gap:12px;align-items:center;justify-content:center;max-width:100%;min-width:0}
 .ringwrap{position:relative;width:var(--m);height:var(--m);flex:none}
 .ringwrap svg{width:100%;height:100%;transform:rotate(-90deg);display:block}
@@ -291,12 +291,10 @@ body:has(#run:not([hidden])) .update{display:none} /* jamais par-dessus la séan
 .demo canvas{width:100%;height:100%;display:block}
 .demo span{position:absolute;left:8px;top:6px;font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;font-weight:700;color:var(--muted)}
 .demo.off{visibility:hidden} /* place gardée même sans animation */
-.card{display:grid;grid-template-rows:auto minmax(0,1fr) auto auto auto;gap:6px;width:100%;max-width:42rem;min-width:0;min-height:0;justify-self:center;overflow:hidden}
+.card{display:grid;grid-template-rows:auto minmax(0,1fr) auto auto;gap:6px;width:100%;max-width:42rem;min-width:0;min-height:0;justify-self:center;overflow:hidden}
 .kicker{margin:0;font-size:.8rem;letter-spacing:.14em;text-transform:uppercase;font-weight:700;color:var(--c)}
 /* Taille ajustée par fitText() pour tenir dans la zone */
 .name{margin:0;min-height:0;overflow:hidden;display:flex;align-items:center;justify-content:center;font-family:var(--display);font-weight:800;text-transform:uppercase;line-height:.95;font-size:clamp(2rem,9vw,4rem);text-wrap:balance;overflow-wrap:anywhere}
-/* Côté : bandeau pleine largeur sous le titre ; masqué (ligne repliée) sans côté */
-.side{margin:0;background:var(--c);color:var(--cbg);border-radius:10px;padding:3px 10px;font-family:var(--display);font-weight:800;text-transform:uppercase;letter-spacing:.06em;font-size:clamp(1.7rem,7vw,2.6rem);line-height:1.05;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .chips{display:flex;flex-wrap:nowrap;gap:6px;justify-content:center;overflow:hidden;min-height:1.6em}
 .chip{flex:none}
 .chip{border:1.5px solid var(--c);color:var(--c);border-radius:999px;padding:1px 10px;font-weight:700;font-size:.82rem}
@@ -308,7 +306,7 @@ body:has(#run:not([hidden])) .update{display:none} /* jamais par-dessus la séan
 @media (min-width:900px){ .stage{--m:min(24vw,40vh,360px)} .media{gap:20px} }
 @media (max-height:500px){ .stage{--cardh:28vh;gap:8px} }
 /* Écran très bas (iPhone SE avec barres Safari, paysage) : le titre garde de la place, sans « Maintenant » ni « Ensuite » */
-@media (max-height:520px){ .stage{--m:min(36vw,18vh)} .kicker,.upnext{display:none} .card{grid-template-rows:minmax(0,1fr) auto auto} }
+@media (max-height:520px){ .stage{--m:min(36vw,18vh)} .kicker,.upnext{display:none} .card{grid-template-rows:minmax(0,1fr) auto} }
 .bottom{display:flex;flex-direction:column;gap:8px;flex:none}
 .pbar{height:5px;border-radius:3px;background:color-mix(in srgb,var(--ink) 12%,transparent);overflow:hidden}
 .pbar i{display:block;height:100%;background:var(--c);width:0}
@@ -656,7 +654,6 @@ body:has(#tab-activites:not([hidden]) :is(#viewSeance,#viewPicker):not([hidden])
     <div class="card">
       <p class="kicker" id="kicker">À suivre</p>
       <h2 class="name" id="exNameBox"><span id="exName">—</span></h2>
-      <p class="side" id="sideBar" hidden></p>
       <div class="chips" id="chips"></div>
       <p class="upnext" id="upnext"></p>
     </div>
@@ -688,10 +685,10 @@ body:has(#tab-activites:not([hidden]) :is(#viewSeance,#viewPicker):not([hidden])
 </section>
 
 <!-- À mettre à jour à chaque publication : ce bandeau, figure.js?v= et generator.js?v= plus bas, et VERSION dans sw.js -->
-<footer class="ver" id="ver">Version 1.22.1 · publiée le <time datetime="2026-10-28T18:07">28/10/2026 à 18:07</time></footer>
+<footer class="ver" id="ver">Version 1.22.2 · publiée le <time datetime="2026-10-28T18:20">28/10/2026 à 18:20</time></footer>
 
-<script src="figure.js?v=1.22.1"></script>
-<script src="generator.js?v=1.22.1"></script>
+<script src="figure.js?v=1.22.2"></script>
+<script src="generator.js?v=1.22.2"></script>
 <script>
 /* ---------- Bibliothèque d'exercices ----------
    exercises.json = jeu de départ (SEED). La bibliothèque active est LIB, copiée dans le stockage local au premier lancement
@@ -1104,12 +1101,9 @@ function render(){
   if(nk!==animKey){animKey=nk; animT0=performance.now();}
   $("demoBox").classList.toggle("off",!animKey);
   $("demoTag").textContent=s.type==="work"?"Démo":"Aperçu";
-  // Côté en grand sous le titre (affiché seulement, jamais annoncé)
-  const side=show&&show.side;
-  $("sideBar").hidden=!side;
-  $("sideBar").textContent=side?(side==="gauche"?"◀ Côté gauche":`Côté ${side} ▶`):"";
   const chips=$("chips"); chips.innerHTML="";
   if(show){
+    if(show.side) addChip(`Côté ${show.side}`,true);
     if(show.reps) addChip(show.reps);
     if(show.sets>1) addChip(`Série ${show.set}/${show.sets}`);
     addChip(`${show.dur} s`);
