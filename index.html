@@ -268,7 +268,7 @@ body:has(#run:not([hidden])) .update{display:none} /* jamais par-dessus la séan
 
 /* ---------- Run : 1 état = 1 couleur plein écran ---------- */
 .run,.done{--ink-r:#101214;--paper:#F3F2EE;--rdisp:"Barlow Condensed",system-ui,sans-serif;--rbody:"Inter",system-ui,sans-serif}
-.run{--c:#E8E6E1;height:100%;box-sizing:border-box;overflow:hidden;display:flex;flex-direction:column;gap:14px;background:var(--c);color:var(--ink-r);font-family:var(--rbody);padding:24px max(20px,env(safe-area-inset-right,0px)) calc(20px + var(--foot)) max(20px,env(safe-area-inset-left,0px));transition:background-color .35s}
+.run{--c:#E8E6E1;height:100%;box-sizing:border-box;overflow:hidden;display:flex;flex-direction:column;gap:12px;background:var(--c);color:var(--ink-r);font-family:var(--rbody);padding:12px max(20px,env(safe-area-inset-right,0px)) calc(20px + var(--foot)) max(20px,env(safe-area-inset-left,0px));transition:background-color .35s}
 .run[data-phase="work"]{--c:#FF7A30}
 .run[data-phase="rest"]{--c:#7CC0EC}
 .run[data-phase="switch"]{--c:#F2B63D}
@@ -279,9 +279,12 @@ body:has(#run[data-phase="work"]:not([hidden])){background:#FF7A30}
 body:has(#run[data-phase="rest"]:not([hidden])){background:#7CC0EC}
 body:has(#run[data-phase="switch"]:not([hidden])){background:#F2B63D}
 body:has(#done:not([hidden])){background:#101214}
-.rlabel{flex:none;margin-block:0;font-family:var(--rdisp);font-weight:700;font-size:18px;line-height:1;letter-spacing:4px;text-transform:uppercase}
-/* Taille ajustée par fitTitle() : 2 lignes au plus */
-.rtitle{flex:none;margin-block:0;font-family:var(--rdisp);font-weight:700;font-size:52px;line-height:1;text-transform:uppercase;overflow-wrap:anywhere;text-wrap:balance}
+.rtop{flex:none;display:flex;align-items:baseline;gap:12px}
+.rlabel{margin-block:0;font-family:var(--rdisp);font-weight:700;font-size:18px;line-height:1;letter-spacing:4px;text-transform:uppercase}
+.rcount{font-family:var(--rdisp);font-weight:700;font-size:22px;line-height:1;font-variant-numeric:tabular-nums}
+/* Zone fixe de 2 lignes, texte calé en bas : le chrono ne bouge pas. Police du span réduite par fitTitle() au-delà de 2 lignes */
+.rtitle{flex:none;height:2em;margin-block:0;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end;font-family:var(--rdisp);font-weight:700;font-size:46px;line-height:1;text-transform:uppercase;overflow-wrap:anywhere;text-wrap:balance}
+.rtitle span{display:block}
 .rchips{flex:none;display:flex;flex-wrap:wrap;gap:8px}
 .rchip{flex:none;display:inline-flex;align-items:center;height:36px;padding:0 14px;border-radius:999px;background:rgba(16,18,20,.14);font-weight:600;font-size:16px;line-height:1;white-space:nowrap}
 .rchip.side{background:var(--ink-r);color:var(--c)}
@@ -666,8 +669,8 @@ body:has(#tab-activites:not([hidden]) :is(#viewSeance,#viewPicker):not([hidden])
 </main>
 
 <section id="run" class="run" data-phase="prep" hidden>
-  <p class="rlabel" id="phase">Prépare-toi</p>
-  <h2 class="rtitle" id="exName">—</h2>
+  <div class="rtop"><p class="rlabel" id="phase">Prépare-toi</p><span class="rcount" id="exCount"></span></div>
+  <h2 class="rtitle"><span id="exName">—</span></h2>
   <div class="rchips" id="chips"></div>
   <div class="rclock">
     <div class="rring">
@@ -713,8 +716,8 @@ body:has(#tab-activites:not([hidden]) :is(#viewSeance,#viewPicker):not([hidden])
 </section>
 
 <!-- À mettre à jour à chaque publication : figure.js?v= et generator.js?v= (source du numéro affiché dans Options), et VERSION dans sw.js -->
-<script src="figure.js?v=1.26.0"></script>
-<script src="generator.js?v=1.26.0"></script>
+<script src="figure.js?v=1.26.1"></script>
+<script src="generator.js?v=1.26.1"></script>
 <script>
 /* ---------- Bibliothèque d'exercices ----------
    exercises.json = jeu de départ (SEED). La bibliothèque active est LIB, copiée dans le stockage local au premier lancement
@@ -835,16 +838,16 @@ function loadCustom(){return pdata().custom||null}
 /* ---------- Programme → séquence ---------- */
 const PREP_SECS=30; // pré-lancement avant le premier exercice, pour toutes les séances
 function expand(p){
-  const segs=[]; const blocks=resolveProg(p).blocks.map(b=>({...b,items:b.items.filter(i=>!i.missing)})).filter(b=>b.items.length); // exercices supprimés sautés
+  const segs=[]; let xn=0; const blocks=resolveProg(p).blocks.map(b=>({...b,items:b.items.filter(i=>!i.missing)})).filter(b=>b.items.length); // exercices supprimés sautés
   blocks.forEach((b,bi)=>{
     const rounds=b.rounds||1;
     for(let r=1;r<=rounds;r++){
       b.items.forEach((it,ii)=>{
-        const sets=it.sets||1;
+        const sets=it.sets||1, xi=++xn; // n° d'exo (séries et côtés compris) pour le compteur n/total
         for(let s=1;s<=sets;s++){
           const sides=it.sides?["gauche","droit"]:[null];
           sides.forEach((side,si)=>{
-            segs.push({type:"work",dur:it.work,name:it.name,desc:it.desc||"",reps:it.reps||"",anim:animFor(it),side,set:s,sets,block:b.name,round:r,rounds});
+            segs.push({type:"work",dur:it.work,name:it.name,desc:it.desc||"",reps:it.reps||"",anim:animFor(it),side,set:s,sets,block:b.name,round:r,rounds,xi});
             if(side && si===0) segs.push({type:"switch",dur:p.switchTime??5});
           });
           const lastSet=s===sets,lastItem=ii===b.items.length-1,lastRound=r===rounds,lastBlock=bi===blocks.length-1;
@@ -862,9 +865,7 @@ function expand(p){
   let nxt=null;
   for(let k=segs.length-1;k>=0;k--){segs[k].next=nxt; if(segs[k].type==="work") nxt=segs[k];}
   segs.unshift({type:"prep",dur:PREP_SECS,next:nxt});
-  let wi=0; const totalWork=segs.filter(s=>s.type==="work").length;
-  segs.forEach(s=>{ if(s.type==="work"){wi++; s.wi=wi;} });
-  segs.forEach(s=>{ s.totalWork=totalWork; if(s.type!=="work"&&s.next){s.block=s.next.block;s.round=s.next.round;s.rounds=s.next.rounds;s.wi=s.next.wi;} });
+  segs.forEach(s=>{ s.xn=xn; if(s.type!=="work"&&s.next){s.block=s.next.block;s.round=s.next.round;s.rounds=s.next.rounds;s.xi=s.next.xi;} });
   return segs;
 }
 const fmt=t=>{t=Math.max(0,Math.round(t));return Math.floor(t/60)+":"+String(t%60).padStart(2,"0")};
@@ -1117,16 +1118,12 @@ function goPrev(){
 /* ---------- Affichage ---------- */
 const CIRC=867.08; // 2π × 138
 const PHASE_LABEL={prep:"Prépare-toi",work:"Travail",rest:"Repos",switch:"Change de côté"};
-// Étape de travail suivant w, avec la récup qui la précède s'il y en a une
-function upAfter(w){
-  const after=w.next; if(!after) return "";
-  const restSeg=state.segs[state.segs.indexOf(w)+1];
-  return label(after)+(after.side?` · côté ${after.side}`:"")+(restSeg&&restSeg.type==="rest"?` (après ${restSeg.dur} s de récup)`:"");
-}
+const upLabel=w=>w?label(w)+(w.side?` · côté ${w.side}`:""):"";
 function render(){
   const s=cur(); const run=$("run");
   run.dataset.phase=s.type;
   $("phase").textContent=PHASE_LABEL[s.type];
+  $("exCount").textContent=s.xi?`${s.xi}/${s.xn}`:"";
   $("playIco").setAttribute("d",state.running?"M6 5h4v14H6zm8 0h4v14h-4z":"M7 4v16l13-8z");
   $("playTxt").textContent=state.running?"Pause":"Reprendre";
   $("prevBtn").disabled=state.i===0;
@@ -1136,24 +1133,25 @@ function render(){
   $("exDesc").textContent=show?show.desc:"";
   $("exDesc").hidden=!$("exDesc").textContent.trim(); $("exDesc").scrollTop=0;
   const chips=$("chips"); chips.innerHTML="";
-  if(show){
+  if(show&&s.type!=="rest"){
     if(show.sets>1) addChip(`Série ${show.set}/${show.sets}`);
     addChip(show.reps||`${show.dur} s`);
     if(show.side) addChip(`Côté ${show.side}`,true);
   }
   chips.hidden=!chips.children.length;
-  const up=s.type==="work"?upAfter(s):s.type==="switch"?(s.next?upAfter(s.next):""):s.type==="rest"&&s.next?label(s.next)+(s.next.side?` · côté ${s.next.side}`:""):"";
+  // « Ensuite » : repos = exo qui suit ; changement de côté = exo après l'autre côté ; ni lancement ni travail
+  const up=s.type==="rest"?upLabel(s.next):s.type==="switch"&&s.next?upLabel(s.next.next):"";
   $("upnextTxt").textContent=up; $("upnext").hidden=!up;
   fitTitle();
   renderTime();
 }
-// Titre sur 2 lignes au plus : réduit la police jusqu'à ce qu'il tienne
+// Titre sur 2 lignes au plus : réduit la police du span jusqu'à ce qu'il tienne (jamais au-dessus de 46px)
 let fitKey="";
 function fitTitle(){
   const el=$("exName"), key=el.textContent+"|"+el.clientWidth+"|"+innerHeight;
   if(key===fitKey) return; fitKey=key;
   el.style.fontSize=""; let px=parseFloat(getComputedStyle(el).fontSize);
-  while(px>22&&(el.scrollHeight>px*2.1||el.scrollWidth>el.clientWidth)){px-=2; el.style.fontSize=px+"px"}
+  while(px>22&&(el.offsetHeight>px*2.1||el.scrollWidth>el.clientWidth)){px-=2; el.style.fontSize=px+"px"}
 }
 function fitDesc(){const d=$("exDesc"); d.classList.toggle("cut",d.clientHeight<24)}
 try{new ResizeObserver(()=>{if(state.active){fitTitle(); fitDesc()}}).observe($("run")); new ResizeObserver(fitDesc).observe($("exDesc"))}catch(e){addEventListener("resize",()=>{if(state.active){fitTitle(); fitDesc()}})}
