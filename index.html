@@ -676,10 +676,10 @@ body:has(#tab-activites:not([hidden]) :is(#viewSeance,#viewPicker):not([hidden])
 </section>
 
 <!-- À mettre à jour à chaque publication : ce bandeau, figure.js?v= et generator.js?v= plus bas, et VERSION dans sw.js -->
-<footer class="ver" id="ver">Version 1.21.1 · publiée le <time datetime="2026-10-28T17:56">28/10/2026 à 17:56</time></footer>
+<footer class="ver" id="ver">Version 1.21.2 · publiée le <time datetime="2026-10-28T17:58">28/10/2026 à 17:58</time></footer>
 
-<script src="figure.js?v=1.21.1"></script>
-<script src="generator.js?v=1.21.1"></script>
+<script src="figure.js?v=1.21.2"></script>
+<script src="generator.js?v=1.21.2"></script>
 <script>
 /* ---------- Bibliothèque d'exercices ----------
    exercises.json = jeu de départ (SEED). La bibliothèque active est LIB, copiée dans le stockage local au premier lancement
@@ -852,6 +852,7 @@ function beep(freq=660,len=.2,vol=.9,force=false){
   if((!state.beep&&!force)||!actx) return;
   try{
     if(actx.state!=="running") actx.resume();
+    vol*=.6; // deux oscillateurs additionnés dans le même gain : marge contre la saturation
     const t=actx.currentTime+.01, g=actx.createGain();
     g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(vol,t+.008); g.gain.setValueAtTime(vol,t+len*.7); g.gain.linearRampToValueAtTime(0,t+len);
     g.connect(actx.destination);
@@ -995,6 +996,11 @@ function enter(k,doAnnounce=true){
 function advance(){ if(state.i+1>=state.segs.length){finish();return} enter(state.i+1); }
 function tick(){
   const now=performance.now();
+  // JS suspendu (écran verrouillé, appel, onglet gelé) : pause sans consommer l'écart. Un onglet masqué de Chrome tique toutes les ~1 s, sous le seuil
+  if(state.active&&state.running&&now-state.last>1500){
+    state.running=false; state.last=now; try{speechSynthesis.cancel()}catch(e){}
+    render(); return;
+  }
   if(state.active&&state.running){
     state.remaining-=now-state.last;
     const sec=Math.ceil(state.remaining/1000), s=cur();
@@ -1041,6 +1047,7 @@ function askStop(){
 function cancelStop(){
   if(!state.stopAsk) return;
   const was=state.stopAsk.wasRunning; state.stopAsk=null;
+  unlockAudio(); // geste : réveille l'AudioContext « interrupted » (iOS après un appel)
   if(was){state.running=true; state.last=performance.now(); lockScreen()}
   render(); $("stopBtn").focus();
 }
@@ -1052,7 +1059,7 @@ function stop(){
 function togglePlay(){
   if(!state.active||state.stopAsk) return;
   state.running=!state.running; state.last=performance.now();
-  if(state.running){lockScreen(); say("Reprise",true)} else {try{speechSynthesis.cancel()}catch(e){}}
+  if(state.running){unlockAudio(); lockScreen(); say("Reprise",true)} else {try{speechSynthesis.cancel()}catch(e){}}
   render();
 }
 function goNext(){if(state.active&&!state.stopAsk) advance()}
@@ -2252,7 +2259,7 @@ document.addEventListener("keydown",e=>{
   if(e.code==="Space"){e.preventDefault();togglePlay()}
   else if(e.key==="ArrowRight"){goNext()}
   else if(e.key==="ArrowLeft"){goPrev()}
-  else if(e.key==="Escape"){stop()}
+  else if(e.key==="Escape"){askStop()}
 });
 $("voiceSel").onchange=()=>{wantVoice=$("voiceSel").value; if(profile) setPdata({voice:wantVoice});};
 if(HAS_TTS){try{speechSynthesis.addEventListener("voiceschanged",pickVoice)}catch(e){speechSynthesis.onvoiceschanged=pickVoice}}
