@@ -685,10 +685,10 @@ body:has(#tab-activites:not([hidden]) :is(#viewSeance,#viewPicker):not([hidden])
 </section>
 
 <!-- À mettre à jour à chaque publication : ce bandeau, figure.js?v= et generator.js?v= plus bas, et VERSION dans sw.js -->
-<footer class="ver" id="ver">Version 1.22.2 · publiée le <time datetime="2026-10-28T18:20">28/10/2026 à 18:20</time></footer>
+<footer class="ver" id="ver">Version 1.22.3 · publiée le <time datetime="2026-10-28T18:12">28/10/2026 à 18:12</time></footer>
 
-<script src="figure.js?v=1.22.2"></script>
-<script src="generator.js?v=1.22.2"></script>
+<script src="figure.js?v=1.22.3"></script>
+<script src="generator.js?v=1.22.3"></script>
 <script>
 /* ---------- Bibliothèque d'exercices ----------
    exercises.json = jeu de départ (SEED). La bibliothèque active est LIB, copiée dans le stockage local au premier lancement
@@ -1039,7 +1039,7 @@ function start(){
   updateMute(); lockScreen(); sizeCanvas(); enter(0); requestAnimationFrame(loop);
 }
 function finish(){
-  state.active=false; state.running=false; unlockScreen();
+  state.active=false; state.running=false; unlockScreen(); syncDeferred();
   const segs=state.segs, work=segs.filter(s=>s.type==="work");
   if(profile) setPdata({hist:[...(pdata().hist||[]),{d:Date.now(),p:state.prog.name,s:Math.round(totalOf(segs)),x:[...new Set(state.prog.blocks.flatMap(b=>b.items.map(i=>i.ex).filter(Boolean)))]}]});
   say("Séance terminée. Bien joué, mon grand.",true);
@@ -1061,7 +1061,7 @@ function cancelStop(){
   render(); $("stopBtn").focus();
 }
 function stop(){
-  state.active=false; state.running=false; state.stopAsk=null; unlockScreen();
+  state.active=false; state.running=false; state.stopAsk=null; unlockScreen(); syncDeferred();
   try{speechSynthesis.cancel()}catch(e){}
   $("run").hidden=true; $("done").hidden=true; $("setup").hidden=false; renderSetup();
 }
@@ -1217,6 +1217,10 @@ $("switchProf").onclick=closeProfile;
 /* ---------- Onglets, tableau de bord, équipement ---------- */
 $("histMore").onclick=()=>{histAll=!histAll; renderDash()};
 function showTab(k){
+  if(k!=="activites"){ // quitter les Activités en pleine édition : on reste et on demande, comme pour Retour
+    if(sessDirty()){if(!sx.askCancel) sessAskDiscard(); return}
+    if(efDirty()){if(!ef.ask) efAskDiscard(); return}
+  }
   document.querySelectorAll(".tabs button").forEach(b=>b.setAttribute("aria-selected",b.dataset.tab===k));
   document.querySelectorAll(".tabs ~ .panel").forEach(p=>p.hidden=p.id!=="tab-"+k);
   if(k!=="activites"){closeLibDemo(); actReset()}
@@ -1299,7 +1303,8 @@ const SYNC_KEY="coach-renfo-sync", GIST_FILE="coach-renfo.json", LIB_FILE="lib.j
 function syncCfg(){return jget(SYNC_KEY,null)}
 async function gh(path,opt={}){
   const c=syncCfg();
-  const r=await fetch("https://api.github.com"+path,{...opt,headers:{Authorization:"Bearer "+c.token,Accept:"application/vnd.github+json","Content-Type":"application/json"}});
+  const r=await fetch("https://api.github.com"+path,{...opt,signal:AbortSignal.timeout?AbortSignal.timeout(8000):undefined,headers:{Authorization:"Bearer "+c.token,Accept:"application/vnd.github+json","Content-Type":"application/json"}})
+    .catch(e=>{throw e.name==="TimeoutError"?new Error("délai dépassé"):e});
   if(!r.ok) throw new Error(r.status===401?"jeton refusé":"GitHub "+r.status);
   return r.json();
 }
@@ -1340,7 +1345,8 @@ function mergeSync(r){
 }
 function setSyncMsg(t,bad){const m=$("syncMsg"); m.textContent=t; m.className="tips"+(bad?" err":""); if(typeof renderDashSync==="function") renderDashSync()}
 function showSyncUi(){const on=!!(syncCfg()&&syncCfg().gist); $("syncOff").hidden=on; $("syncOn").hidden=!on}
-let syncing=false, again=false, syncTimer=null;
+let syncing=false, again=false, syncTimer=null, syncLater=false; // syncLater : retour de visibilité pendant une séance, synchro faite à finish()/stop()
+function syncDeferred(){if(syncLater){syncLater=false; sync()}}
 function scheduleSync(){if(syncCfg()){clearTimeout(syncTimer); syncTimer=setTimeout(sync,1500)}}
 // Lit un fichier du Gist : null s'il est absent (premier usage) ; lève une erreur s'il existe mais est tronqué ou illisible,
 // pour ne jamais écraser des données distantes qu'on n'a pas pu lire.
@@ -1392,9 +1398,9 @@ $("syncForm").onsubmit=async e=>{
 };
 $("syncNow").onclick=sync;
 $("syncOffBtn").onclick=()=>{lsDel(SYNC_KEY); showSyncUi(); setSyncMsg("Synchronisation désactivée sur cet appareil. Les données restent sur GitHub.")};
-document.addEventListener("visibilitychange",()=>{if(!document.hidden) sync()});
+document.addEventListener("visibilitychange",()=>{if(document.hidden) return; if(state.active) syncLater=true; else sync()});
 addEventListener("online",sync);
-showSyncUi(); const bootSync=sync();
+showSyncUi(); // première synchro lancée après loadLibrary() (fin du script), pour lire lib.json au même passage
 
 /* ---------- Activités : rubriques et pile d'écrans ---------- */
 /* Niveau 1 : carrousel de rubriques. Niveau 2 : page de la rubrique. Niveau 3 : parcours d'un préréglage (zones → durée → aperçu).
@@ -2112,7 +2118,7 @@ confirmClick($("sessDel"),["Confirmer la suppression"],()=>{
   setPdata({sessions:(pdata().sessions||[]).filter(x=>x.id!==id)}); selectedId="";
   sx=null; renderSetup(); history.back();
 });
-addEventListener("beforeunload",e=>{if(sessDirty()){e.preventDefault(); e.returnValue=""}});
+addEventListener("beforeunload",e=>{if(sessDirty()||efDirty()){e.preventDefault(); e.returnValue=""}});
 try{matchMedia("(prefers-color-scheme: dark)").addEventListener("change",()=>{if(sx&&!$("viewSeance").hidden) renderSession()})}catch(e){}
 
 /* Sélecteur d'exercices : page plein écran de la pile (["biblio","seance",id,"ajout"|"remplacer"]).
@@ -2281,9 +2287,9 @@ renderProfiles(); pickVoice(); setTimeout(pickVoice,600);
 buildCarousel();
 history.replaceState({act:[]},"");
 renderAct([]);
-const bootLib=loadLibrary().then(ok=>{if(ok){scheduleSync(); refreshLibUi(); if(!$("setup").hidden){renderSetup(); renderAct(actStack)}}});
-// Splash : prêt = bibliothèque chargée + première synchro tentée ; plafonné à 4 s pour ne jamais bloquer l'app (réseau/Gist lent).
-Promise.race([Promise.allSettled([bootLib,bootSync]),new Promise(r=>setTimeout(r,4000))]).then(()=>hideSplash());
+const bootLib=loadLibrary().then(ok=>{if(ok){refreshLibUi(); if(!$("setup").hidden){renderSetup(); renderAct(actStack)}}}).finally(()=>{sync()}); // sans attendre la synchro
+// Splash : prêt = bibliothèque chargée (locale ou en cache SW), sans attendre GitHub : refreshAfterSync() redessine à l'arrivée de la synchro. Plafonné à 4 s.
+Promise.race([bootLib.catch(()=>{}),new Promise(r=>setTimeout(r,4000))]).then(()=>hideSplash());
 
 /* ---------- Hors ligne et mises à jour ---------- */
 if("serviceWorker" in navigator){
