@@ -662,10 +662,10 @@ body:has(#tab-activites:not([hidden]) :is(#viewSeance,#viewPicker):not([hidden])
 </section>
 
 <!-- À mettre à jour à chaque publication : ce bandeau, figure.js?v= et generator.js?v= plus bas, et VERSION dans sw.js -->
-<footer class="ver" id="ver">Version 1.20.2 · publiée le <time datetime="2026-10-28T17:31">28/10/2026 à 17:31</time></footer>
+<footer class="ver" id="ver">Version 1.20.3 · publiée le <time datetime="2026-10-28T18:00">28/10/2026 à 18:00</time></footer>
 
-<script src="figure.js?v=1.20.2"></script>
-<script src="generator.js?v=1.20.2"></script>
+<script src="figure.js?v=1.20.3"></script>
+<script src="generator.js?v=1.20.3"></script>
 <script>
 /* ---------- Bibliothèque d'exercices ----------
    exercises.json = jeu de départ (SEED). La bibliothèque active est LIB, copiée dans le stockage local au premier lancement
@@ -830,36 +830,53 @@ function renderSetup(){
 /* ---------- Son : bips ---------- */
 let actx=null;
 function unlockAudio(){
+  try{ if(navigator.audioSession) navigator.audioSession.type="playback"; }catch(e){} // iOS : bips audibles même avec l'interrupteur silencieux
   try{actx=actx||new (window.AudioContext||window.webkitAudioContext)(); if(actx.state!=="running") actx.resume()}catch(e){actx=null}
 }
-function beep(freq=660,len=.12,vol=.35,force=false){
+function beep(freq=660,len=.2,vol=.9,force=false){
   if((!state.beep&&!force)||!actx) return;
-  try{const o=actx.createOscillator(),g=actx.createGain();o.type="sine";o.frequency.value=freq;
-    const t=actx.currentTime;g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(vol,t+.01);g.gain.exponentialRampToValueAtTime(.0001,t+len);
-    o.connect(g).connect(actx.destination);o.start(t);o.stop(t+len+.02);}catch(e){}
+  try{
+    if(actx.state!=="running") actx.resume();
+    const t=actx.currentTime+.01, g=actx.createGain();
+    g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(vol,t+.008); g.gain.setValueAtTime(vol,t+len*.7); g.gain.linearRampToValueAtTime(0,t+len);
+    g.connect(actx.destination);
+    [["triangle",freq],["sine",freq*2]].forEach(([type,f])=>{const o=actx.createOscillator();o.type=type;o.frequency.value=f;o.connect(g);o.start(t);o.stop(t+len+.02)});
+  }catch(e){}
 }
 
 /* ---------- Son : voix ---------- */
 const HAS_TTS="speechSynthesis" in window && "SpeechSynthesisUtterance" in window;
-let frVoice=null, nVoices=0, nFr=0, voiceFailed=false;
+let nVoices=0, nFr=0, wantVoice=""; // wantVoice = voiceURI choisie (mémoire, indépendante du profil et de la liste)
 function savedVoice(){return profile&&pdata().voice||""}
+/* Voix à utiliser, résolue à chaque appel : voiceURI choisie, sinon fr-FR locale, sinon n'importe quelle voix fr */
+function resolveVoice(){
+  if(!HAS_TTS) return null;
+  try{
+    const fr=speechSynthesis.getVoices().filter(x=>/^fr/i.test(x.lang));
+    const want=wantVoice||$("voiceSel").value||savedVoice();
+    return (want&&fr.find(x=>x.voiceURI===want))
+      ||fr.find(x=>x.localService&&/fr.?FR/i.test(x.lang))||fr.find(x=>x.localService)||fr[0]||null;
+  }catch(e){return null}
+}
+/* Remplit la liste ; une liste vide (voix pas encore chargées) ne doit jamais effacer le choix */
 function pickVoice(){
   if(!HAS_TTS) return;
   try{
     const v=speechSynthesis.getVoices(); nVoices=v.length; const fr=v.filter(x=>/^fr/i.test(x.lang)); nFr=fr.length;
-    const want=$("voiceSel").value||savedVoice();
-    const sel=$("voiceSel"); const keep=want;
+    if(!wantVoice) wantVoice=$("voiceSel").value||savedVoice();
+    if(!fr.length) return;
+    const sel=$("voiceSel");
     sel.innerHTML='<option value="">Par défaut</option>'+fr.map(x=>`<option value="${esc(x.voiceURI)}">${esc(x.name)}${x.localService?"":" (en ligne)"}</option>`).join("");
-    sel.value=fr.some(x=>x.voiceURI===keep)?keep:"";
-    frVoice=fr.find(x=>x.voiceURI===sel.value)
-      ||fr.find(x=>x.localService&&/fr.?FR/i.test(x.lang))||fr.find(x=>x.localService)||null;
+    sel.value=fr.some(x=>x.voiceURI===wantVoice)?wantVoice:"";
   }catch(e){}
 }
-let sayQueue=[], flushTimer=null; const keepAlive=[]; let lastVoiceOk=false;
-function speakNow(text,onstart,retry){
-  const u=new SpeechSynthesisUtterance(text); u.lang="fr-FR"; if(frVoice&&!voiceFailed) u.voice=frVoice; u.rate=1.02;
-  let ok=false; const guard=setTimeout(()=>{ if(!ok&&!retry&&frVoice&&!voiceFailed){ voiceFailed=true; try{speechSynthesis.cancel()}catch(e){} speakNow(text,onstart,true);} },1800);
-  u.onstart=()=>{ok=true; clearTimeout(guard); lastVoiceOk=true; onstart&&onstart()};
+let sayQueue=[], flushTimer=null; const keepAlive=[];
+/* Seul endroit qui crée une SpeechSynthesisUtterance */
+function speak(text,onstart,silent){
+  const u=new SpeechSynthesisUtterance(text); u.lang="fr-FR"; u.rate=1.02;
+  const v=resolveVoice(); if(v){u.voice=v; u.lang=v.lang}
+  if(silent) u.volume=0;
+  u.onstart=()=>{onstart&&onstart()};
   u.onerror=e=>{ if(e.error&&!/interrupted|canceled/.test(e.error)) setVoiceStatus(`La voix a échoué (${e.error}).`,true); };
   keepAlive.push(u); if(keepAlive.length>30) keepAlive.shift();
   try{speechSynthesis.resume()}catch(e){}
@@ -872,17 +889,17 @@ function say(text,flush=false,onstart){
       sayQueue=[[text,onstart]];
       if(speechSynthesis.speaking||speechSynthesis.pending) speechSynthesis.cancel();
       clearTimeout(flushTimer);
-      flushTimer=setTimeout(()=>{flushTimer=null; const q=sayQueue; sayQueue=[]; q.forEach(([t,f])=>speakNow(t,f))},90);
+      flushTimer=setTimeout(()=>{flushTimer=null; const q=sayQueue; sayQueue=[]; q.forEach(([t,f])=>speak(t,f))},90);
     } else if(flushTimer) sayQueue.push([text,onstart]);
-    else speakNow(text,onstart);
+    else speak(text,onstart);
   }catch(e){}
 }
 function setVoiceStatus(t,bad){const el=$("voiceStatus"); el.textContent=t; el.classList.toggle("bad",!!bad)}
 $("testVoice").onclick=()=>{
-  unlockAudio(); beep(660,.15,.35,true); setTimeout(()=>beep(990,.3,.35,true),250);
+  unlockAudio(); beep(660,.22,.9,true); setTimeout(()=>beep(1175,.5,.9,true),300);
   if(!HAS_TTS){setVoiceStatus("Ce navigateur n'a pas de synthèse vocale. Ouvre la page dans Safari ou Chrome.",true);return}
-  pickVoice(); voiceFailed=false; const prev=state.voice; state.voice=true; let started=false;
-  say("Test de la voix. Un, deux, trois, c'est parti.",true,()=>{started=true; setVoiceStatus(`Voix OK${frVoice&&!voiceFailed?` (${frVoice.name})`:" (voix par défaut)"}. Bips joués juste avant.`)});
+  pickVoice(); const prev=state.voice; state.voice=true; let started=false;
+  say("Test de la voix. Un, deux, trois, c'est parti.",true,()=>{started=true; setVoiceStatus(`Voix OK${resolveVoice()?` (${resolveVoice().name})`:" (voix par défaut)"}. Bips joués juste avant.`)});
   state.voice=prev;
   setTimeout(()=>{ if(!started){
     const info=`[${navigator.userAgent.match(/(Electron|Edg|Chrome|Firefox|Safari)\/[\d.]+/g)?.join(" ")||"?"} · ${nVoices} voix · ${nFr} FR · ${speechSynthesis.speaking?"parle":"muet"}]`;
@@ -939,7 +956,7 @@ function loop(now){
 /* ---------- Moteur ---------- */
 const state={active:false,running:false,segs:[],i:0,remaining:0,last:0,lastSec:null,voice:true,beep:true,readDesc:true,prog:null,stopArmed:false};
 const cur=()=>state.segs[state.i];
-function label(w){if(!w)return"";let s=w.name;if(w.side)s+=`, côté ${w.side}`;if(w.sets>1)s+=`, série ${w.set} sur ${w.sets}`;return s}
+function label(w){if(!w)return"";return w.reps?`${w.name}, ${w.reps}`:w.name}
 function announce(s,prev){
   const n=s.next;
   if(s.type==="prep"){say(`${state.prog.name}. Premier exercice : ${label(n)}.`,true); if(state.readDesc&&n) say(n.desc); return}
@@ -949,9 +966,9 @@ function announce(s,prev){
     if(state.readDesc&&n&&s.kind!=="set"&&s.dur>=12) say(n.desc);
     return;
   }
-  if(s.type==="switch"){say("Changez de côté.",true);return}
+  if(s.type==="switch") return; // rien à annoncer (jamais le côté)
   if(s.type==="work"){
-    if(prev&&prev.type!=="work") say(s.side==="droit"&&prev.type==="switch"?"Côté droit, c'est parti.":"C'est parti !",true);
+    if(prev&&prev.type!=="work") say("C'est parti !",true);
     else{say(`${label(s)}.`,true); if(state.readDesc) say(s.desc)}
   }
 }
@@ -968,11 +985,11 @@ function tick(){
     const sec=Math.ceil(state.remaining/1000), s=cur();
     if(sec!==state.lastSec){
       state.lastSec=sec;
-      if(sec>=1&&sec<=3&&s.dur>=5) beep(660,.13);
+      if(sec>=1&&sec<=3&&s.dur>=5) beep(sec===3?660:sec===2?784:880,.22);
       if(s.type==="work"&&sec===10&&s.dur>=25) say("Dix secondes");
       if(s.type==="rest"&&sec===5&&s.dur>=15) say("Prépare-toi");
     }
-    if(state.remaining<=0){beep(s.type==="work"?520:990,.4,.4); advance();}
+    if(state.remaining<=0){beep(s.type==="work"?1175:990,.5); advance();}
     else renderTime();
   }
   state.last=now;
@@ -986,7 +1003,7 @@ function start(){
   state.prog=p; state.segs=segs0;
   state.voice=$("optVoice").checked; state.beep=$("optBeep").checked; state.readDesc=$("optDesc").checked;
   unlockAudio(); pickVoice();
-  if(HAS_TTS){try{const u=new SpeechSynthesisUtterance(" ");u.volume=0;keepAlive.push(u);speechSynthesis.speak(u)}catch(e){}}
+  if(HAS_TTS){try{speak(" ",null,true)}catch(e){}}
   $("setup").hidden=true; $("done").hidden=true; $("run").hidden=false;
   state.active=true; state.running=true; state.last=performance.now();
   updateMute(); lockScreen(); sizeCanvas(); enter(0); requestAnimationFrame(loop);
@@ -2181,7 +2198,7 @@ document.addEventListener("keydown",e=>{
   else if(e.key==="ArrowLeft"){goPrev()}
   else if(e.key==="Escape"){stop()}
 });
-$("voiceSel").onchange=()=>{if(profile) setPdata({voice:$("voiceSel").value}); voiceFailed=false; pickVoice();};
+$("voiceSel").onchange=()=>{wantVoice=$("voiceSel").value; if(profile) setPdata({voice:wantVoice});};
 if(HAS_TTS){try{speechSynthesis.addEventListener("voiceschanged",pickVoice)}catch(e){speechSynthesis.onvoiceschanged=pickVoice}}
 $("loadRetry").onclick=async()=>{if(await loadLibrary()){scheduleSync(); refreshLibUi(); if(!$("setup").hidden){renderSetup(); renderAct(actStack)}}};
 renderProfiles(); pickVoice(); setTimeout(pickVoice,600);
