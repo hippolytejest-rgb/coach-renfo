@@ -623,9 +623,11 @@ body:has(#tab-activites:not([hidden]) :is(#viewSeance,#viewPicker):not([hidden])
         <label class="chk" for="voiceSel" style="padding:4px 10px">Voix
           <select id="voiceSel" style="font:inherit;border:0;background:transparent;color:inherit;max-width:180px"><option value="">Par défaut</option></select></label>
         <button class="btn" id="testVoice">Tester le son</button>
+        <button class="btn" id="testTts">Voix de secours</button>
         <p id="voiceStatus" role="status">Teste avant de lancer la séance.</p>
       </div>
-      <p class="tips">iPhone : coupe le mode silencieux et monte le volume.</p>
+      <p class="tips" id="audioDiag" aria-live="polite"></p>
+      <p class="tips">Annonces en clips enregistrés ; la voix choisie ici sert de secours (séances et exercices personnels). iPhone : monte le volume.</p>
     </section>
     <section>
       <p class="eyebrow">Équipement disponible</p>
@@ -716,8 +718,8 @@ body:has(#tab-activites:not([hidden]) :is(#viewSeance,#viewPicker):not([hidden])
 </section>
 
 <!-- À mettre à jour à chaque publication : figure.js?v= et generator.js?v= (source du numéro affiché dans Options), et VERSION dans sw.js -->
-<script src="figure.js?v=1.26.1"></script>
-<script src="generator.js?v=1.26.1"></script>
+<script src="figure.js?v=1.27.0"></script>
+<script src="generator.js?v=1.27.0"></script>
 <script>
 /* ---------- Bibliothèque d'exercices ----------
    exercises.json = jeu de départ (SEED). La bibliothèque active est LIB, copiée dans le stockage local au premier lancement
@@ -897,12 +899,17 @@ function renderSetup(){
   renderDash(); renderEquip();
   if(sx&&!$("viewSeance").hidden) renderSession();
 }
-/* ---------- Son : bips ---------- */
+/* ---------- Son : un seul AudioContext pour les bips et les clips ---------- */
 let actx=null;
 function unlockAudio(){
-  try{ if(navigator.audioSession) navigator.audioSession.type="playback"; }catch(e){} // iOS : bips audibles même avec l'interrupteur silencieux
-  try{actx=actx||new (window.AudioContext||window.webkitAudioContext)(); if(actx.state!=="running") actx.resume()}catch(e){actx=null}
+  try{ if(navigator.audioSession) navigator.audioSession.type="playback"; }catch(e){} // iOS : son audible même avec l'interrupteur silencieux
+  try{
+    if(!actx){actx=new (window.AudioContext||window.webkitAudioContext)(); actx.onstatechange=renderAudioDiag}
+    if(actx.state!=="running"){const r=actx.resume(); r&&r.catch&&r.catch(()=>{})}
+  }catch(e){actx=null}
 }
+// Tout toucher réveille un contexte suspendu ou « interrupted » (iOS après un appel, une alarme)
+["touchend","click"].forEach(ev=>document.addEventListener(ev,()=>{if(actx&&actx.state!=="running"&&actx.state!=="closed") unlockAudio()},true));
 /* Bip unique : sinus 880 Hz, 120 ms, attaque 5 ms puis décroissance rapide (pas de clic), crête 0,5 (pas de saturation) */
 function beep(force=false){
   if((!state.beep&&!force)||!actx) return;
@@ -915,7 +922,27 @@ function beep(force=false){
   }catch(e){}
 }
 
-/* ---------- Son : voix ---------- */
+/* ---------- Son : clips pré-générés (audio/, tools/gen-audio.py) ---------- */
+// Clé du manifeste : même règle que norm() dans tools/gen-audio.py
+const normTxt=t=>String(t).normalize("NFC").toLowerCase().replace(/’/g,"'").replace(/[^\p{L}\p{N}']+/gu," ").trim();
+let CLIP_MAP=null; const clipBufs=new Map(); // fichier → Promise<AudioBuffer|null>, décodé une fois
+fetch("audio/manifest.json").then(r=>r.ok?r.json():null).then(m=>{CLIP_MAP=m; renderAudioDiag()}).catch(()=>{});
+const clipFile=t=>CLIP_MAP&&CLIP_MAP[normTxt(t)]||null;
+function loadClip(f){
+  if(!actx) return Promise.resolve(null);
+  if(!clipBufs.has(f)) clipBufs.set(f,fetch("audio/"+f).then(r=>{if(!r.ok) throw new Error(r.status); return r.arrayBuffer()})
+    .then(ab=>new Promise((ok,ko)=>actx.decodeAudioData(ab,ok,ko)))
+    .catch(()=>{clipBufs.delete(f); return null}));
+  return clipBufs.get(f);
+}
+function preloadClips(texts){texts.forEach(t=>{const f=clipFile(t); if(f) loadClip(f)})}
+function renderAudioDiag(){
+  const el=$("audioDiag"); if(!el) return;
+  const ses=navigator.audioSession;
+  el.textContent=`AudioContext : ${actx?actx.state:"pas encore créé"} · session audio : ${ses?ses.type:"non gérée (coupe le mode silencieux)"} · clips : ${CLIP_MAP?Object.keys(CLIP_MAP).length:"manifeste introuvable"}, ${clipBufs.size} en mémoire`;
+}
+
+/* ---------- Son : voix de secours (Web Speech) ---------- */
 const HAS_TTS="speechSynthesis" in window && "SpeechSynthesisUtterance" in window;
 let nVoices=0, nFr=0, wantVoice=""; // wantVoice = voiceURI choisie (mémoire, indépendante du profil et de la liste)
 function savedVoice(){return profile&&pdata().voice||""}
@@ -941,37 +968,81 @@ function pickVoice(){
     sel.value=fr.some(x=>x.voiceURI===wantVoice)?wantVoice:"";
   }catch(e){}
 }
-let sayQueue=[], flushTimer=null; const keepAlive=[];
+const keepAlive=[];
 /* Seul endroit qui crée une SpeechSynthesisUtterance */
-function speak(text,onstart,silent){
+function utter(text){
   const u=new SpeechSynthesisUtterance(text); u.lang="fr-FR"; u.rate=1.02;
   const v=resolveVoice(); if(v){u.voice=v; u.lang=v.lang}
-  if(silent) u.volume=0;
-  u.onstart=()=>{onstart&&onstart()};
-  u.onerror=e=>{ if(e.error&&!/interrupted|canceled/.test(e.error)) setVoiceStatus(`La voix a échoué (${e.error}).`,true); };
   keepAlive.push(u); if(keepAlive.length>30) keepAlive.shift();
-  try{speechSynthesis.resume()}catch(e){}
-  speechSynthesis.speak(u);
+  return u;
 }
-function say(text,flush=false,onstart){
-  if(!state.voice||!HAS_TTS||!text) return;
-  try{
-    if(flush){
-      sayQueue=[[text,onstart]];
-      if(speechSynthesis.speaking||speechSynthesis.pending) speechSynthesis.cancel();
-      clearTimeout(flushTimer);
-      flushTimer=setTimeout(()=>{flushTimer=null; const q=sayQueue; sayQueue=[]; q.forEach(([t,f])=>speak(t,f))},90);
-    } else if(flushTimer) sayQueue.push([text,onstart]);
-    else speak(text,onstart);
-  }catch(e){}
+// Énoncé muet lancé au tap sur Démarrer : débloque la synthèse sur iOS
+function ttsWarm(){if(HAS_TTS){try{const u=utter(" "); u.volume=0; speechSynthesis.speak(u)}catch(e){}}}
+
+/* ---------- Son : annonces ----------
+   Une annonce = liste de morceaux joués dans l'ordre : clip si le manifeste le connaît, sinon Web Speech.
+   Jamais deux annonces superposées : une nouvelle annonce coupe celle en cours. */
+let talkId=0, talkSrc=null;
+const wait=ms=>new Promise(r=>setTimeout(r,ms));
+function hush(){
+  talkId++;
+  if(talkSrc){try{talkSrc.stop()}catch(e){} talkSrc=null}
+  try{if(HAS_TTS&&(speechSynthesis.speaking||speechSynthesis.pending)){speechSynthesis.cancel(); return true}}catch(e){}
+  return false;
 }
+function playClip(buf,id,onstart){
+  return new Promise(done=>{
+    if(id!==talkId) return done();
+    const src=actx.createBufferSource(); src.buffer=buf; src.connect(actx.destination);
+    const end=()=>{clearTimeout(guard); if(talkSrc===src) talkSrc=null; done()};
+    const guard=setTimeout(end,buf.duration*1000+800); // onended perdu (contexte suspendu en cours de lecture)
+    src.onended=end; talkSrc=src; src.start(); onstart&&onstart("clip");
+  });
+}
+function sayTts(text,id,onstart){
+  return new Promise(done=>{
+    if(!HAS_TTS||id!==talkId) return done();
+    let guard=null; const end=()=>{clearTimeout(guard); done()};
+    const u=utter(text);
+    u.onstart=()=>{onstart&&onstart("tts")};
+    u.onend=end;
+    u.onerror=e=>{ if(e.error&&!/interrupted|canceled/.test(e.error)) setVoiceStatus(`La voix a échoué (${e.error}).`,true); end(); };
+    guard=setTimeout(end,3000+text.length*120); // Safari oublie parfois onend
+    try{speechSynthesis.resume(); speechSynthesis.speak(u)}catch(e){end()}
+  });
+}
+async function speak(parts,onstart){
+  const cut=hush(), id=talkId;
+  const list=[].concat(parts).filter(x=>x!=null&&x!=="").map(String);
+  if(cut) await wait(90); // Safari perd un speak() lancé juste après cancel()
+  for(const t of list){
+    if(id!==talkId) return;
+    const f=clipFile(t);
+    if(f&&actx&&actx.state==="suspended") await Promise.race([Promise.resolve(actx.resume()).catch(()=>{}),wait(300)]);
+    const buf=f&&actx&&actx.state==="running"?await loadClip(f):null;
+    if(id!==talkId) return;
+    const cb=onstart; onstart=null;
+    await (buf?playClip(buf,id,cb):sayTts(t,id,cb));
+  }
+}
+function say(parts,onstart){ if(state.voice&&parts) speak(parts,onstart); }
 function setVoiceStatus(t,bad){const el=$("voiceStatus"); el.textContent=t; el.classList.toggle("bad",!!bad)}
+// Test iPhone : un bip puis un clip, et l'état du contexte audio pour diagnostiquer (interrupteur silencieux, contexte suspendu)
 $("testVoice").onclick=()=>{
-  unlockAudio(); beep(true); setTimeout(()=>beep(true),300);
+  unlockAudio(); beep(true); renderAudioDiag(); setVoiceStatus("Test en cours…");
+  let started=false;
+  setTimeout(()=>speak("Test de la voix. Un, deux, trois, c'est parti.",how=>{
+    started=true; renderAudioDiag();
+    if(how==="clip") setVoiceStatus("Bip puis clip joués. Rien entendu : monte le volume, et vérifie la session audio ci-dessous si l'interrupteur silencieux est activé.");
+    else setVoiceStatus(`Pas de clip (${!CLIP_MAP?"manifeste introuvable":!actx||actx.state!=="running"?"AudioContext "+(actx?actx.state:"absent"):"clip illisible"}) : voix de secours du navigateur.`,true);
+  }),250);
+  setTimeout(()=>{ if(!started){renderAudioDiag(); setVoiceStatus(`Aucun son n'a démarré (AudioContext ${actx?actx.state:"absent"}). Touche à nouveau Tester le son.`,true)} },4000);
+};
+$("testTts").onclick=()=>{
+  unlockAudio();
   if(!HAS_TTS){setVoiceStatus("Ce navigateur n'a pas de synthèse vocale. Ouvre la page dans Safari ou Chrome.",true);return}
-  pickVoice(); const prev=state.voice; state.voice=true; let started=false;
-  say("Test de la voix. Un, deux, trois, c'est parti.",true,()=>{started=true; setVoiceStatus(`Voix OK${resolveVoice()?` (${resolveVoice().name})`:" (voix par défaut)"}. Bips joués juste avant.`)});
-  state.voice=prev;
+  pickVoice(); const cut=hush(), id=talkId; let started=false;
+  setTimeout(()=>sayTts("Test de la voix de secours.",id,()=>{started=true; setVoiceStatus(`Voix de secours OK${resolveVoice()?` (${resolveVoice().name})`:" (voix par défaut)"}.`)}),cut?90:0);
   setTimeout(()=>{ if(!started){
     const info=`[${navigator.userAgent.match(/(Electron|Edg|Chrome|Firefox|Safari)\/[\d.]+/g)?.join(" ")||"?"} · ${nVoices} voix · ${nFr} FR · ${speechSynthesis.speaking?"parle":"muet"}]`;
     if(nVoices===0) setVoiceStatus("Aucune voix de synthèse disponible dans cette fenêtre. Ouvre le lien de la page dans Safari ou Chrome.",true);
@@ -1018,21 +1089,20 @@ function drawFigure(key,ms,cnv,ctx){
 const state={active:false,running:false,segs:[],i:0,remaining:0,last:0,lastSec:null,voice:true,beep:true,readDesc:true,prog:null,stopAsk:null}; // stopAsk : {wasRunning} pendant la confirmation d'arrêt
 const cur=()=>state.segs[state.i];
 function label(w){if(!w)return"";return w.reps?`${w.name}, ${w.reps}`:w.name}
-function announce(s,prev){
-  const n=s.next;
-  if(s.type==="prep"){say(`${state.prog.name}. Premier exercice : ${label(n)}.`,true); if(state.readDesc&&n) say(n.desc); return}
+const labelParts=w=>!w?[]:w.reps?[w.name,w.reps]:[w.name]; // nom et répétitions en clips séparés
+/* Morceaux de l'annonce d'un segment (phrases fixes : voir phrases.json), null si rien à dire */
+function announceParts(s,prev){
+  const n=s.next, desc=d=>state.readDesc&&d?[d]:[];
+  const then=n?["Ensuite :",...labelParts(n)]:[];
+  if(s.type==="prep") return [state.prog.name,...(n?["Premier exercice :",...labelParts(n),...desc(n.desc)]:[])];
   if(s.type==="rest"){
-    const head=s.kind==="round"?`Fin du tour. Récupération ${s.dur} secondes.`:s.kind==="block"?`Bloc terminé. ${s.dur} secondes.`:`Repos.`;
-    say(`${head} Ensuite : ${label(n)}.`,true);
-    if(state.readDesc&&n&&s.kind!=="set"&&s.dur>=12) say(n.desc);
-    return;
+    const head=s.kind==="round"?["Fin du tour.","Récupération",s.dur,"secondes."]:s.kind==="block"?["Bloc terminé.",s.dur,"secondes."]:["Repos."];
+    return [...head,...then,...(n&&s.kind!=="set"&&s.dur>=12?desc(n.desc):[])];
   }
-  if(s.type==="switch") return; // rien à annoncer (jamais le côté)
-  if(s.type==="work"){
-    if(prev&&prev.type!=="work") say("C'est parti !",true);
-    else{say(`${label(s)}.`,true); if(state.readDesc) say(s.desc)}
-  }
+  if(s.type==="work") return prev&&prev.type!=="work"?["C'est parti !"]:[...labelParts(s),...desc(s.desc)];
+  return null; // switch : rien à annoncer (jamais le côté)
 }
+function announce(s,prev){say(announceParts(s,prev))}
 function enter(k,doAnnounce=true){
   state.i=k; const s=cur(); state.remaining=s.dur*1000; state.lastSec=Math.ceil(state.remaining/1000);
   if(doAnnounce) announce(s,state.segs[k-1]);
@@ -1043,7 +1113,7 @@ function tick(){
   const now=performance.now();
   // JS suspendu (écran verrouillé, appel, onglet gelé) : pause sans consommer l'écart. Un onglet masqué de Chrome tique toutes les ~1 s, sous le seuil
   if(state.active&&state.running&&now-state.last>1500){
-    state.running=false; state.last=now; try{speechSynthesis.cancel()}catch(e){}
+    state.running=false; state.last=now; hush();
     render(); return;
   }
   if(state.active&&state.running){
@@ -1068,8 +1138,8 @@ function start(){
   if(!segs0.some(x=>x.type==="work")) return; // rien à lancer (tous les exercices ont été supprimés)
   state.prog=p; state.segs=segs0;
   state.voice=$("optVoice").checked; state.beep=$("optBeep").checked; state.readDesc=$("optDesc").checked;
-  unlockAudio(); pickVoice();
-  if(HAS_TTS){try{speak(" ",null,true)}catch(e){}}
+  unlockAudio(); pickVoice(); ttsWarm();
+  preloadClips([...segs0.flatMap((x,k)=>announceParts(x,segs0[k-1])||[]),"Dix secondes","Prépare-toi","Reprise","Séance terminée. Bien joué, mon grand."]);
   $("setup").hidden=true; $("done").hidden=true; $("run").hidden=false;
   state.active=true; state.running=true; state.last=performance.now(); state.stopAsk=null;
   lockScreen(); enter(0);
@@ -1078,7 +1148,7 @@ function finish(){
   state.active=false; state.running=false; unlockScreen(); syncDeferred();
   const segs=state.segs;
   if(profile) setPdata({hist:[...(pdata().hist||[]),{d:Date.now(),p:state.prog.name,s:Math.round(totalOf(segs)),x:[...new Set(state.prog.blocks.flatMap(b=>b.items.map(i=>i.ex).filter(Boolean)))]}]});
-  say("Séance terminée. Bien joué, mon grand.",true);
+  say("Séance terminée. Bien joué, mon grand.");
   $("doneSum").textContent=state.prog.name;
   $("run").hidden=true; $("done").hidden=false;
 }
@@ -1086,7 +1156,7 @@ function finish(){
 function askStop(){
   if(!state.active||state.stopAsk) return;
   state.stopAsk={wasRunning:state.running};
-  if(state.running){state.running=false; try{speechSynthesis.cancel()}catch(e){}}
+  if(state.running){state.running=false; hush()}
   render(); $("stopNo").focus();
 }
 function cancelStop(){
@@ -1098,13 +1168,13 @@ function cancelStop(){
 }
 function stop(){
   state.active=false; state.running=false; state.stopAsk=null; unlockScreen(); syncDeferred();
-  try{speechSynthesis.cancel()}catch(e){}
+  hush();
   $("run").hidden=true; $("done").hidden=true; $("setup").hidden=false; renderSetup();
 }
 function togglePlay(){
   if(!state.active||state.stopAsk) return;
   state.running=!state.running; state.last=performance.now();
-  if(state.running){unlockAudio(); lockScreen(); say("Reprise",true)} else {try{speechSynthesis.cancel()}catch(e){}}
+  if(state.running){unlockAudio(); lockScreen(); say("Reprise")} else hush();
   render();
 }
 function goNext(){if(state.active&&!state.stopAsk) advance()}

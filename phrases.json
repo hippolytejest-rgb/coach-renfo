@@ -1,0 +1,18 @@
+{
+  "_note": "Phrases fixes dites par l'app (index.html : announceParts, tick, togglePlay, finish, test du son). Chaque phrase devient un clip audio via tools/gen-audio.py. Le texte doit rester identique à celui du code (casse, accents ; la ponctuation est ignorée).",
+  "phrases": [
+    "Premier exercice :",
+    "Ensuite :",
+    "Fin du tour.",
+    "Récupération",
+    "secondes.",
+    "Bloc terminé.",
+    "Repos.",
+    "C'est parti !",
+    "Dix secondes",
+    "Prépare-toi",
+    "Reprise",
+    "Séance terminée. Bien joué, mon grand.",
+    "Test de la voix. Un, deux, trois, c'est parti."
+  ]
+}

@@ -8,7 +8,8 @@ Utilisée sur Mac (Chrome ou Safari) et iPhone (Safari), écran posé au sol pen
 ## Contraintes techniques
 - Pas d'étape de build : HTML, CSS et JavaScript vanilla, ouverts tels quels dans le navigateur.
 - Interface et voix en français.
-- Voix : `speechSynthesis`. Elle ne marche pas dans la vue intégrée de l'app Claude sur Mac : tester dans Chrome ou Safari.
+- Voix : clips MP3 pré-générés (`audio/`, voix edge-tts fr-FR-DeniseNeural), `speechSynthesis` en secours pour tout texte sans clip (noms de séance, consignes, exercices personnels). La synthèse ne marche pas dans la vue intégrée de l'app Claude sur Mac : tester dans Chrome ou Safari.
+- Après ajout/renommage d'exo (ou d'une phrase fixe), relancer `python3 tools/gen-audio.py` (`pip install edge-tts`) : il ne génère que les clips manquants et réécrit `audio/manifest.json`. Puis bump de version (le service worker précache les clips listés dans le manifeste).
 - Audio et voix démarrent uniquement après un clic (règle iOS) : le bouton Démarrer débloque les deux.
 - Écran maintenu allumé avec la Wake Lock API.
 - Mise en page pensée d'abord pour l'iPhone en portrait : rien ne doit se superposer.
@@ -35,6 +36,12 @@ Utilisée sur Mac (Chrome ou Safari) et iPhone (Safari), écran posé au sol pen
 ## Idées en attente
 - Programmes synchronisés entre Mac et iPhone (fichier JSON dans le dépôt plutôt que localStorage).
 - Hébergement sur GitHub Pages, installable sur l'écran d'accueil, utilisable hors ligne.
+
+## Son (index.html, sections « Son »)
+- Un seul `AudioContext` (`actx`), créé et repris par `unlockAudio()` au tap (Démarrer, Reprise, tout toucher si suspendu). Bips en oscillateur, clips décodés en `AudioBuffer` (cache `clipBufs`, préchargés au démarrage d'une séance). Pas de `new Audio()`.
+- `speak(parts)` : une annonce = liste de morceaux (nom, répétitions, nombres et phrases fixes séparés) ; chaque morceau joue son clip si `audio/manifest.json` connaît `normTxt(texte)`, sinon Web Speech. Une nouvelle annonce coupe la précédente (`hush()`). `say()` = `speak()` si la voix est activée.
+- Phrases fixes : `phrases.json` (le script signale une phrase absente de `index.html`). `normTxt()` et `norm()` de `tools/gen-audio.py` doivent rester identiques.
+- Options › Son : « Tester le son » (bip + clip + état de l'AudioContext et de la session audio iOS), « Voix de secours » (Web Speech seul).
 
 ## Bibliothèque d'exercices
 - `exercises.json` = seed. La bibliothèque active est `LIB` (clé locale `coach-renfo-lib`, commune à tous les profils), lue via `getLibrary()`.
