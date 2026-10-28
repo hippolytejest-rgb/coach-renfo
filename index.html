@@ -18,7 +18,7 @@ body{margin:0}
 :root{
   --bg:#F2F3EF; --surface:#FFFFFF; --ink:#15171C; --muted:#5D636E; --line:#D9DCD4; --ghost:#A9AEB8;
   --work:#2343D6; --work-bg:#E5EAFF;
-  --rest:#B86E0C; --rest-bg:#FAEED8;
+  --rest:#8F5200; --rest-bg:#FAEED8;
   --switch:#6E45C2; --switch-bg:#EEE6FB;
   --prep:#3D4452; --prep-bg:#E6E8E3;
   --danger:#B3261E;
@@ -266,30 +266,37 @@ body:has(#run:not([hidden])) .update{display:none} /* jamais par-dessus la séan
 .run[data-phase="work"]{--c:var(--work);--cbg:var(--work-bg)}
 .run[data-phase="rest"]{--c:var(--rest);--cbg:var(--rest-bg)}
 .run[data-phase="switch"]{--c:var(--switch);--cbg:var(--switch-bg)}
-.top{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;font-size:.85rem}
-.top .meta{color:var(--muted);font-weight:700;letter-spacing:.03em;min-width:0}
-.top .meta b{color:var(--ink)}
-.iconbtn{border:1.5px solid color-mix(in srgb,var(--ink) 18%,transparent);background:transparent;border-radius:7px;padding:4px 10px;font-weight:700;font-size:.8rem}
+/* Bandeau plein de la couleur de phase, collé en haut : libellé de phase, pause, repère bloc/exo, boutons */
+.top{display:flex;justify-content:space-between;align-items:center;gap:8px;flex:none;margin:-10px calc(-1 * max(14px,env(safe-area-inset-right,0px))) 0 calc(-1 * max(14px,env(safe-area-inset-left,0px)));padding:4px max(14px,env(safe-area-inset-right,0px)) 4px max(14px,env(safe-area-inset-left,0px));background:var(--c);color:var(--cbg);transition:background-color .35s}
+.phasebox{min-width:0;display:flex;flex-direction:column;gap:1px}
+.phaseline{display:flex;align-items:center;gap:8px;min-width:0;height:28px} /* hauteur fixe : la pause ne décale rien */
+.phase{font-family:var(--display);font-weight:800;text-transform:uppercase;letter-spacing:.08em;font-size:1.5rem;line-height:1;white-space:nowrap}
+.pausetag{font-family:var(--display);font-weight:800;text-transform:uppercase;letter-spacing:.04em;font-size:1.4rem;line-height:1;white-space:nowrap;background:var(--cbg);color:var(--c);border-radius:6px;padding:2px 7px}
+.top .meta{font-size:.8rem;font-weight:700;letter-spacing:.03em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;opacity:.85}
+.top .meta b{color:inherit}
+.topbtns{display:flex;gap:6px;flex:none}
+.iconbtn{display:inline-flex;align-items:center;justify-content:center;min-width:44px;min-height:44px;box-sizing:border-box;border:1.5px solid color-mix(in srgb,var(--cbg) 45%,transparent);background:transparent;color:inherit;border-radius:9px;padding:0}
+.iconbtn svg.i{width:22px;height:22px}
 /* Trois zones à hauteur fixe (média, titre + paramètres, description) : rien ne bouge d'un exercice à l'autre */
-.stage{--m:min(36vw,24vh,300px);--cardh:clamp(110px,25vh,260px);flex:1 1 auto;min-height:0;display:grid;grid-template-rows:var(--m) var(--cardh) minmax(0,1fr);gap:12px;text-align:center}
+.stage{--m:min(36vw,24vh,300px);--cardh:clamp(140px,28vh,280px);flex:1 1 auto;min-height:0;display:grid;grid-template-rows:var(--m) var(--cardh) minmax(0,1fr);gap:12px;text-align:center}
 .media{display:flex;gap:12px;align-items:center;justify-content:center;max-width:100%;min-width:0}
 .ringwrap{position:relative;width:var(--m);height:var(--m);flex:none}
 .ringwrap svg{width:100%;height:100%;transform:rotate(-90deg);display:block}
 .ringwrap .trk{fill:none;stroke:color-mix(in srgb,var(--c) 18%,transparent);stroke-width:10}
 .ringwrap .bar{fill:none;stroke:var(--c);stroke-width:10;stroke-linecap:round;transition:stroke-dashoffset .12s linear}
 .ringc{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
-.phase{font-family:var(--display);font-weight:800;text-transform:uppercase;letter-spacing:.12em;color:var(--c);font-size:calc(var(--m)*.09)}
-.secs{font-family:var(--display);font-weight:800;line-height:.85;font-size:calc(var(--m)*.42);font-variant-numeric:tabular-nums;color:var(--ink)}
+.secs{font-family:var(--display);font-weight:800;line-height:.85;font-size:calc(var(--m)*.48);font-variant-numeric:tabular-nums;color:var(--ink)}
 .paused .secs{opacity:.35}
-.pausetag{font-weight:700;color:var(--muted);font-size:calc(var(--m)*.07);min-height:1.3em}
 .demo{position:relative;width:calc(var(--m)*1.41);height:var(--m);max-width:56vw;flex:none;background:color-mix(in srgb,var(--surface) 70%,transparent);border-radius:12px;overflow:hidden}
 .demo canvas{width:100%;height:100%;display:block}
 .demo span{position:absolute;left:8px;top:6px;font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;font-weight:700;color:var(--muted)}
 .demo.off{visibility:hidden} /* place gardée même sans animation */
-.card{display:grid;grid-template-rows:auto minmax(0,1fr) auto auto;gap:6px;width:100%;max-width:42rem;min-width:0;min-height:0;justify-self:center;overflow:hidden}
+.card{display:grid;grid-template-rows:auto minmax(0,1fr) auto auto auto;gap:6px;width:100%;max-width:42rem;min-width:0;min-height:0;justify-self:center;overflow:hidden}
 .kicker{margin:0;font-size:.8rem;letter-spacing:.14em;text-transform:uppercase;font-weight:700;color:var(--c)}
 /* Taille ajustée par fitText() pour tenir dans la zone */
 .name{margin:0;min-height:0;overflow:hidden;display:flex;align-items:center;justify-content:center;font-family:var(--display);font-weight:800;text-transform:uppercase;line-height:.95;font-size:clamp(2rem,9vw,4rem);text-wrap:balance;overflow-wrap:anywhere}
+/* Côté : bandeau pleine largeur sous le titre ; masqué (ligne repliée) sans côté */
+.side{margin:0;background:var(--c);color:var(--cbg);border-radius:10px;padding:3px 10px;font-family:var(--display);font-weight:800;text-transform:uppercase;letter-spacing:.06em;font-size:clamp(1.7rem,7vw,2.6rem);line-height:1.05;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .chips{display:flex;flex-wrap:nowrap;gap:6px;justify-content:center;overflow:hidden;min-height:1.6em}
 .chip{flex:none}
 .chip{border:1.5px solid var(--c);color:var(--c);border-radius:999px;padding:1px 10px;font-weight:700;font-size:.82rem}
@@ -300,15 +307,18 @@ body:has(#run:not([hidden])) .update{display:none} /* jamais par-dessus la séan
 .upnext b{color:var(--ink)}
 @media (min-width:900px){ .stage{--m:min(24vw,40vh,360px)} .media{gap:20px} }
 @media (max-height:500px){ .stage{--cardh:28vh;gap:8px} }
+/* Écran très bas (iPhone SE avec barres Safari, paysage) : le titre garde de la place, sans « Maintenant » ni « Ensuite » */
+@media (max-height:520px){ .stage{--m:min(36vw,18vh)} .kicker,.upnext{display:none} .card{grid-template-rows:minmax(0,1fr) auto auto} }
 .bottom{display:flex;flex-direction:column;gap:8px;flex:none}
 .pbar{height:5px;border-radius:3px;background:color-mix(in srgb,var(--ink) 12%,transparent);overflow:hidden}
 .pbar i{display:block;height:100%;background:var(--c);width:0}
 .times{display:flex;justify-content:space-between;color:var(--muted);font-size:.8rem;font-weight:700}
 .controls{height:48px;display:flex;justify-content:center;align-items:center}
-.controls>div{display:flex;gap:8px;justify-content:center;align-items:center;flex-wrap:nowrap}
+.controls>div{display:flex;gap:6px;justify-content:center;align-items:center;flex-wrap:nowrap}
 #stopAsk .ctl{min-width:130px;min-height:44px;font-size:1rem}
-.ctl{display:inline-flex;align-items:center;justify-content:center;gap:4px;border:1.5px solid color-mix(in srgb,var(--ink) 20%,transparent);background:var(--surface);border-radius:9px;padding:8px 12px;font-weight:700;font-size:.85rem;min-width:44px;min-height:40px;box-sizing:border-box}
-.ctl.main{background:var(--c);border-color:var(--c);color:var(--cbg);font-family:var(--display);font-size:1.2rem;letter-spacing:.06em;text-transform:uppercase;padding:6px 18px;min-width:116px}
+.ctl{display:inline-flex;align-items:center;justify-content:center;gap:4px;border:1.5px solid color-mix(in srgb,var(--ink) 20%,transparent);background:var(--surface);border-radius:9px;padding:8px 12px;font-weight:700;font-size:.85rem;min-width:44px;min-height:44px;box-sizing:border-box;white-space:nowrap;flex:none}
+.ctl.main{background:var(--c);border-color:var(--c);color:var(--cbg);font-family:var(--display);font-size:1.2rem;letter-spacing:.06em;text-transform:uppercase;padding:6px 14px;min-width:108px}
+@media (max-width:360px){ .controls>div{gap:4px} .ctl{padding:8px 6px} .ctl.main{min-width:0;padding:6px 8px;font-size:1rem;letter-spacing:.03em} }
 .ctl[disabled]{opacity:.35;cursor:default}
 .ctl.warn{border-color:var(--danger);color:var(--danger)}
 
@@ -316,7 +326,7 @@ body:has(#run:not([hidden])) .update{display:none} /* jamais par-dessus la séan
 .done{height:100%;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;text-align:center;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:24px calc(24px + var(--foot))}
 .done h2{font-family:var(--display);font-weight:800;text-transform:uppercase;font-size:clamp(2.6rem,9vw,4.6rem);line-height:.9;margin:0;color:var(--work)}
 .done p{margin:0;color:var(--muted)}
-@media (prefers-reduced-motion:reduce){.run,.ringwrap .bar{transition:none}}
+@media (prefers-reduced-motion:reduce){.run,.top,.ringwrap .bar{transition:none}}
 /* Affichage mobile : pas de zoom, champs >= 16px, cartes portrait */
 html{touch-action:manipulation;-webkit-text-size-adjust:100%}
 input,select,textarea{font-size:max(16px,1em)}
@@ -624,10 +634,13 @@ body:has(#tab-activites:not([hidden]) :is(#viewSeance,#viewPicker):not([hidden])
 
 <section id="run" class="run" data-phase="prep" hidden>
   <div class="top">
-    <span class="meta tab" id="meta"></span>
-    <span class="row">
-      <button class="iconbtn" id="fsBtn">Plein écran</button>
-      <button class="iconbtn" id="muteBtn">Voix : on</button>
+    <div class="phasebox">
+      <div class="phaseline"><span class="phase" id="phase">Prêt</span><span class="pausetag" id="pausetag" hidden>En pause</span></div>
+      <span class="meta tab" id="meta"></span>
+    </div>
+    <span class="topbtns">
+      <button class="iconbtn" id="fsBtn" aria-label="Plein écran" title="Plein écran"><svg class="i" viewBox="0 0 24 24"><path d="M4 4h6v2H6v4H4zm10 0h6v6h-2V6h-4zM4 14h2v4h4v2H4zm14 0h2v6h-6v-2h4z"/></svg></button>
+      <button class="iconbtn" id="muteBtn" aria-pressed="false" title="Voix"><svg class="i" viewBox="0 0 24 24"><path d="M3 9h4l5-4v14l-5-4H3z"/><path id="muteWaves" d="M15.5 8.5a5 5 0 0 1 0 7l-1.4-1.4a3 3 0 0 0 0-4.2zM18.4 5.6a9 9 0 0 1 0 12.8L17 17a7 7 0 0 0 0-10z"/><path id="muteCross" d="M14.3 9.7l1.4-1.4 2.3 2.3 2.3-2.3 1.4 1.4-2.3 2.3 2.3 2.3-1.4 1.4-2.3-2.3-2.3 2.3-1.4-1.4 2.3-2.3z" style="display:none"/></svg></button>
     </span>
   </div>
   <div class="stage">
@@ -635,9 +648,7 @@ body:has(#tab-activites:not([hidden]) :is(#viewSeance,#viewPicker):not([hidden])
       <div class="ringwrap">
         <svg viewBox="0 0 200 200" aria-hidden="true"><circle class="trk" cx="100" cy="100" r="90"/><circle class="bar" id="ringBar" cx="100" cy="100" r="90" stroke-dasharray="565.49" stroke-dashoffset="0"/></svg>
         <div class="ringc">
-          <span class="phase" id="phase">Prêt</span>
           <span class="secs" id="secs">10</span>
-          <span class="pausetag" id="pausetag"></span>
         </div>
       </div>
       <div class="demo" id="demoBox"><canvas id="demo" aria-label="Démonstration animée du mouvement"></canvas><span id="demoTag">Démo</span></div>
@@ -645,6 +656,7 @@ body:has(#tab-activites:not([hidden]) :is(#viewSeance,#viewPicker):not([hidden])
     <div class="card">
       <p class="kicker" id="kicker">À suivre</p>
       <h2 class="name" id="exNameBox"><span id="exName">—</span></h2>
+      <p class="side" id="sideBar" hidden></p>
       <div class="chips" id="chips"></div>
       <p class="upnext" id="upnext"></p>
     </div>
@@ -676,10 +688,10 @@ body:has(#tab-activites:not([hidden]) :is(#viewSeance,#viewPicker):not([hidden])
 </section>
 
 <!-- À mettre à jour à chaque publication : ce bandeau, figure.js?v= et generator.js?v= plus bas, et VERSION dans sw.js -->
-<footer class="ver" id="ver">Version 1.21.2 · publiée le <time datetime="2026-10-28T17:58">28/10/2026 à 17:58</time></footer>
+<footer class="ver" id="ver">Version 1.22.0 · publiée le <time datetime="2026-10-28T18:03">28/10/2026 à 18:03</time></footer>
 
-<script src="figure.js?v=1.21.2"></script>
-<script src="generator.js?v=1.21.2"></script>
+<script src="figure.js?v=1.22.0"></script>
+<script src="generator.js?v=1.22.0"></script>
 <script>
 /* ---------- Bibliothèque d'exercices ----------
    exercises.json = jeu de départ (SEED). La bibliothèque active est LIB, copiée dans le stockage local au premier lancement
@@ -1078,7 +1090,7 @@ function render(){
   run.dataset.phase=s.type; run.classList.toggle("paused",!state.running);
   readColors();
   $("phase").textContent={work:"Travail",rest:"Récup",switch:"Côté",prep:"Prêt"}[s.type];
-  $("pausetag").textContent=state.running?"":"En pause";
+  $("pausetag").hidden=state.running;
   $("playBtn").textContent=state.running?"Pause":"Reprendre";
   $("plusBtn").disabled=s.type==="work";
   $("ctlMain").hidden=!!state.stopAsk; $("stopAsk").hidden=!state.stopAsk;
@@ -1092,9 +1104,12 @@ function render(){
   if(nk!==animKey){animKey=nk; animT0=performance.now();}
   $("demoBox").classList.toggle("off",!animKey);
   $("demoTag").textContent=s.type==="work"?"Démo":"Aperçu";
+  // Côté en grand sous le titre (affiché seulement, jamais annoncé)
+  const side=show&&show.side;
+  $("sideBar").hidden=!side;
+  $("sideBar").textContent=side?(side==="gauche"?"◀ Côté gauche":`Côté ${side} ▶`):"";
   const chips=$("chips"); chips.innerHTML="";
   if(show){
-    if(show.side) addChip(`Côté ${show.side}`,true);
     if(show.reps) addChip(show.reps);
     if(show.sets>1) addChip(`Série ${show.set}/${show.sets}`);
     addChip(`${show.dur} s`);
@@ -1136,7 +1151,11 @@ function renderTime(){
   $("pfill").style.width=((1-left/total)*100).toFixed(2)+"%";
   $("tElapsed").textContent=fmt(total-left); $("tLeft").textContent="reste "+fmt(left);
 }
-function updateMute(){$("muteBtn").textContent="Voix : "+(state.voice?"on":"off")}
+function updateMute(){
+  const b=$("muteBtn"), t=state.voice?"Couper la voix":"Activer la voix";
+  b.setAttribute("aria-label",t); b.title=t; b.setAttribute("aria-pressed",String(!state.voice));
+  $("muteWaves").style.display=state.voice?"":"none"; $("muteCross").style.display=state.voice?"none":"";
+}
 try{matchMedia("(prefers-color-scheme: dark)").addEventListener("change",()=>{if(state.active) readColors()})}catch(e){}
 try{new MutationObserver(()=>{if(state.active) readColors()}).observe(document.documentElement,{attributes:true,attributeFilter:["data-theme"]})}catch(e){}
 
