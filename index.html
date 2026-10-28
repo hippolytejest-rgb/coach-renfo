@@ -251,7 +251,15 @@ body:has(#run:not([hidden])) .update{display:none} /* jamais par-dessus la séan
 .who b{color:var(--ink)}
 .who{justify-content:space-between}
 .hello{font-family:var(--display);font-weight:800;font-size:clamp(3rem,13vw,5rem);line-height:.9;margin:0;text-transform:uppercase;overflow-wrap:anywhere}
-.cal h3{margin:0 0 8px;font-size:1rem;text-transform:capitalize}
+.cal{margin-bottom:28px} /* espace net avant la liste des activités */
+.calhead{display:grid;grid-template-columns:44px minmax(0,1fr) auto 44px;align-items:center;gap:6px;margin:0 0 8px}
+.calhead h3{margin:0;min-width:0}
+.calnav{display:flex;align-items:center;justify-content:center;width:44px;height:44px;border:1.5px solid var(--line);border-radius:50%;background:var(--surface);color:var(--ink);padding:0}
+.calnav svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.caltitle{display:block;width:100%;min-height:44px;border:0;background:none;color:inherit;font:inherit;font-size:1rem;font-weight:700;text-transform:capitalize;padding:0 4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.caltoday{border:1.5px solid var(--line);background:var(--surface);color:var(--ink);border-radius:999px;padding:0 12px;min-height:32px;font:inherit;font-size:.8rem;font-weight:700}
+.calnav:focus-visible,.caltitle:focus-visible,.caltoday:focus-visible{outline:3px solid var(--work);outline-offset:2px}
+.calgrid{touch-action:pan-y} /* swipe horizontal pour changer de mois, défilement vertical laissé au navigateur */
 .calgrid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;text-align:center}
 .calgrid .dow{color:var(--muted);font-size:.75rem;font-weight:700;text-transform:uppercase}
 .calgrid .day{box-sizing:border-box;min-width:0;width:100%;max-width:2.6em;justify-self:center;aspect-ratio:1;display:flex;align-items:center;justify-content:center;border-radius:50%;font-size:.9rem;font-variant-numeric:tabular-nums} /* pastille plafonnée à la taille du numéro, même sur grand écran */
@@ -452,7 +460,12 @@ body:has(#tab-activites:not([hidden]) :is(#viewSeance,#viewPicker):not([hidden])
     <section>
       <h2 class="sechead histtitle">Historique des séances</h2>
     <section class="cal" aria-labelledby="calTitle">
-      <h3 id="calTitle"></h3>
+      <div class="calhead">
+        <button class="calnav" id="calPrev" type="button" aria-label="Mois précédent"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>
+        <h3><button class="caltitle" id="calTitle" type="button" aria-live="polite"></button></h3>
+        <button class="caltoday" id="calToday" type="button" hidden>Aujourd'hui</button>
+        <button class="calnav" id="calNext" type="button" aria-label="Mois suivant"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></button>
+      </div>
       <div class="calgrid" id="calGrid"></div>
     </section>
       <ul class="hist" id="histList"></ul>
@@ -680,8 +693,8 @@ body:has(#tab-activites:not([hidden]) :is(#viewSeance,#viewPicker):not([hidden])
 </section>
 
 <!-- À mettre à jour à chaque publication : figure.js?v= et generator.js?v= (source du numéro affiché dans Options), et VERSION dans sw.js -->
-<script src="figure.js?v=1.24.2"></script>
-<script src="generator.js?v=1.24.2"></script>
+<script src="figure.js?v=1.24.3"></script>
+<script src="generator.js?v=1.24.3"></script>
 <script>
 /* ---------- Bibliothèque d'exercices ----------
    exercises.json = jeu de départ (SEED). La bibliothèque active est LIB, copiée dans le stockage local au premier lancement
@@ -1243,22 +1256,49 @@ function renderDashSync(){
   const c=syncCfg(), on=!!(c&&c.gist), el=$("dashSync");
   el.textContent=on?$("syncMsg").textContent:"Synchronisation désactivée : l'historique reste sur cet appareil. Active-la dans Options pour le retrouver partout.";
 }
+let calOff=0; // mois affiché, en décalage par rapport au mois courant
 function renderCal(h){
-  const now=new Date(), y=now.getFullYear(), m=now.getMonth(), grid=$("calGrid"); grid.innerHTML="";
-  $("calTitle").textContent=now.toLocaleDateString("fr-FR",{month:"long",year:"numeric"});
+  const now=new Date(), first=new Date(now.getFullYear(),now.getMonth()+calOff,1), y=first.getFullYear(), m=first.getMonth(), grid=$("calGrid"); grid.innerHTML="";
+  $("calTitle").textContent=first.toLocaleDateString("fr-FR",{month:"long",year:"numeric"});
+  $("calTitle").setAttribute("aria-label",calOff?$("calTitle").textContent+" : revenir au mois courant":$("calTitle").textContent);
+  $("calToday").hidden=!calOff;
   const cnt={}; // jour du mois -> nombre de séances, en heure locale
   h.forEach(x=>{const d=new Date(x.d); if(d.getFullYear()===y&&d.getMonth()===m) cnt[d.getDate()]=(cnt[d.getDate()]||0)+1});
   ["lun","mar","mer","jeu","ven","sam","dim"].forEach(t=>{const c=document.createElement("span"); c.className="dow"; c.textContent=t; grid.appendChild(c)});
   const lead=(new Date(y,m,1).getDay()+6)%7, days=new Date(y,m+1,0).getDate();
-  for(let i=0;i<lead;i++) grid.appendChild(document.createElement("span"));
+  const pad=()=>{const c=document.createElement("span"); c.className="day"; c.setAttribute("aria-hidden","true"); grid.appendChild(c)}; // case vide de même taille qu'un jour
+  for(let i=0;i<lead;i++) pad();
   for(let d=1;d<=days;d++){
     const c=document.createElement("span"); c.className="day"; c.textContent=d;
     // classe "act", pas "done" : .done est l'écran de fin de séance (plein écran, padding) et déformait les pastilles
     if(cnt[d]){c.classList.add("act"); c.setAttribute("aria-label",new Date(y,m,d).toLocaleDateString("fr-FR",{day:"numeric",month:"long"})+" : "+cnt[d]+(cnt[d]>1?" activités":" activité"))}
-    if(d===now.getDate()) {c.classList.add("today"); c.setAttribute("aria-current","date")}
+    if(!calOff&&d===now.getDate()) {c.classList.add("today"); c.setAttribute("aria-current","date")}
     grid.appendChild(c);
   }
+  for(let i=lead+days;i<42;i++) pad(); // toujours 6 lignes : hauteur constante d'un mois à l'autre
 }
+function calGo(n){calOff=n?calOff+n:0; renderCal((profile&&pdata().hist)||[])}
+$("calPrev").onclick=()=>calGo(-1); $("calNext").onclick=()=>calGo(1);
+$("calTitle").onclick=$("calToday").onclick=()=>{if(calOff) calGo(0)};
+$("calGrid").addEventListener("pointerdown",e=>{ // swipe horizontal : gauche = mois suivant, droite = mois précédent
+  if((e.pointerType==="mouse"&&e.button>0)||e.clientX<24) return; // pas depuis le bord gauche (retour Safari)
+  const g=e.currentTarget, d={x:e.clientX,y:e.clientY,id:e.pointerId,on:false};
+  const move=ev=>{
+    if(ev.pointerId!==d.id||d.on) return;
+    const dx=ev.clientX-d.x, dy=ev.clientY-d.y;
+    if(Math.abs(dy)>10&&Math.abs(dy)>Math.abs(dx)){end(ev); return} // défilement vertical : on laisse faire
+    if(Math.abs(dx)>10){d.on=true; try{g.setPointerCapture(d.id)}catch(err){}}
+  };
+  const end=ev=>{
+    if(ev.pointerId!==d.id) return;
+    g.removeEventListener("pointermove",move); g.removeEventListener("pointerup",end); g.removeEventListener("pointercancel",end);
+    if(!d.on) return;
+    try{g.releasePointerCapture(d.id)}catch(err){}
+    const dx=ev.clientX-d.x, dy=ev.clientY-d.y;
+    if(ev.type==="pointerup"&&Math.abs(dx)>=50&&Math.abs(dx)>Math.abs(dy)) calGo(dx<0?1:-1);
+  };
+  g.addEventListener("pointermove",move); g.addEventListener("pointerup",end); g.addEventListener("pointercancel",end);
+});
 function renderDash(){
   const h=(profile&&pdata().hist)||[], wk=h.filter(x=>x.d>Date.now()-7*864e5);
   const sum=a=>a.reduce((t,x)=>t+x.s,0);
