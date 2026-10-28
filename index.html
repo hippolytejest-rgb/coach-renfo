@@ -8,13 +8,13 @@
 <title>Renfo Batai</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Big+Shoulders+Display:wght@600;800&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Barlow+Condensed:wght@700&family=Big+Shoulders+Display:wght@600;800&family=Inter:wght@400;600&display=swap">
 <style>
 /* Base (remplace le gabarit de l'artifact) */
 [hidden]{display:none!important}
 :root{padding-top:env(safe-area-inset-top,0px);box-sizing:border-box;--foot:env(safe-area-inset-bottom,0px)} /* --foot = marge basse iOS (barre d'accueil), sous la barre d'onglets et les barres fixes */
 body{margin:0}
-/* Layout: écran de coach — rangée média (anneau de temps + silhouette animée), carte exercice, commandes en bas */
+/* Layout : séance en cours = 1 couleur plein écran par état (étiquette, titre, puces, jauge chrono, description, ensuite, barre d’outils) */
 :root{
   --bg:#F2F3EF; --surface:#FFFFFF; --ink:#15171C; --muted:#5D636E; --line:#D9DCD4; --ghost:#A9AEB8;
   --work:#2343D6; --work-bg:#E5EAFF;
@@ -266,70 +266,63 @@ body:has(#run:not([hidden])) .update{display:none} /* jamais par-dessus la séan
 .calgrid .day.act{background:var(--work);color:var(--bg);font-weight:700}
 .calgrid .day.today{outline:2px solid var(--ink);outline-offset:-2px}
 
-/* ---------- Run ---------- */
-.run{--c:var(--prep);--cbg:var(--prep-bg);height:100%;box-sizing:border-box;overflow:hidden;display:flex;flex-direction:column;gap:10px;background:var(--cbg);padding-left:max(14px,env(safe-area-inset-left,0px));padding-right:max(14px,env(safe-area-inset-right,0px));padding-block:10px calc(12px + var(--foot));transition:background-color .35s}
-.run[data-phase="work"]{--c:var(--work);--cbg:var(--work-bg)}
-.run[data-phase="rest"]{--c:var(--rest);--cbg:var(--rest-bg)}
-.run[data-phase="switch"]{--c:var(--switch);--cbg:var(--switch-bg)}
-/* Bandeau plein de la couleur de phase, collé en haut : libellé de phase, pause, repère bloc/exo, boutons */
-.top{display:flex;justify-content:space-between;align-items:center;gap:8px;flex:none;margin:-10px calc(-1 * max(14px,env(safe-area-inset-right,0px))) 0 calc(-1 * max(14px,env(safe-area-inset-left,0px)));padding:4px max(14px,env(safe-area-inset-right,0px)) 4px max(14px,env(safe-area-inset-left,0px));background:var(--c);color:var(--cbg);transition:background-color .35s}
-.phasebox{min-width:0;display:flex;flex-direction:column;gap:1px}
-.phaseline{display:flex;align-items:center;gap:8px;min-width:0;height:28px} /* hauteur fixe : la pause ne décale rien */
-.phase{font-family:var(--display);font-weight:800;text-transform:uppercase;letter-spacing:.08em;font-size:1.5rem;line-height:1;white-space:nowrap}
-.pausetag{font-family:var(--display);font-weight:800;text-transform:uppercase;letter-spacing:.04em;font-size:1.4rem;line-height:1;white-space:nowrap;background:var(--cbg);color:var(--c);border-radius:6px;padding:2px 7px}
-.top .meta{font-size:.8rem;font-weight:700;letter-spacing:.03em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;opacity:.85}
-.top .meta b{color:inherit}
-.topbtns{display:flex;gap:6px;flex:none}
-.iconbtn{display:inline-flex;align-items:center;justify-content:center;min-width:44px;min-height:44px;box-sizing:border-box;border:1.5px solid color-mix(in srgb,var(--cbg) 45%,transparent);background:transparent;color:inherit;border-radius:9px;padding:0}
-.iconbtn svg.i{width:22px;height:22px}
-/* Trois zones à hauteur fixe (média, titre + paramètres, description) : rien ne bouge d'un exercice à l'autre */
-.stage{--m:min(36vw,24vh,300px);--cardh:clamp(110px,25vh,260px);flex:1 1 auto;min-height:0;display:grid;grid-template-rows:var(--m) var(--cardh) minmax(0,1fr);gap:12px;text-align:center}
-.media{display:flex;gap:12px;align-items:center;justify-content:center;max-width:100%;min-width:0}
-.ringwrap{position:relative;width:var(--m);height:var(--m);flex:none}
-.ringwrap svg{width:100%;height:100%;transform:rotate(-90deg);display:block}
-.ringwrap .trk{fill:none;stroke:color-mix(in srgb,var(--c) 18%,transparent);stroke-width:10}
-.ringwrap .bar{fill:none;stroke:var(--c);stroke-width:10;stroke-linecap:round;transition:stroke-dashoffset .12s linear}
-.ringc{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
-.secs{font-family:var(--display);font-weight:800;line-height:.85;font-size:calc(var(--m)*.48);font-variant-numeric:tabular-nums;color:var(--ink)}
-.paused .secs{opacity:.35}
-.demo{position:relative;width:calc(var(--m)*1.41);height:var(--m);max-width:56vw;flex:none;background:color-mix(in srgb,var(--surface) 70%,transparent);border-radius:12px;overflow:hidden}
-.demo canvas{width:100%;height:100%;display:block}
-.demo span{position:absolute;left:8px;top:6px;font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;font-weight:700;color:var(--muted)}
-.demo.off{visibility:hidden} /* place gardée même sans animation */
-.card{display:grid;grid-template-rows:auto minmax(0,1fr) auto auto;gap:6px;width:100%;max-width:42rem;min-width:0;min-height:0;justify-self:center;overflow:hidden}
-.kicker{margin:0;font-size:.8rem;letter-spacing:.14em;text-transform:uppercase;font-weight:700;color:var(--c)}
-/* Taille ajustée par fitText() pour tenir dans la zone */
-.name{margin:0;min-height:0;overflow:hidden;display:flex;align-items:center;justify-content:center;font-family:var(--display);font-weight:800;text-transform:uppercase;line-height:.95;font-size:clamp(2rem,9vw,4rem);text-wrap:balance;overflow-wrap:anywhere}
-.chips{display:flex;flex-wrap:nowrap;gap:6px;justify-content:center;overflow:hidden;min-height:1.6em}
-.chip{flex:none}
-.chip{border:1.5px solid var(--c);color:var(--c);border-radius:999px;padding:1px 10px;font-weight:700;font-size:.82rem}
-.chip.fill{background:var(--c);color:var(--cbg)}
-.descbox{min-height:0;overflow-y:auto;overscroll-behavior:contain;justify-self:center;width:100%;max-width:44rem}
-.desc{margin:0 auto;font-size:1.3rem;line-height:1.35;max-width:44ch;text-wrap:pretty}
-.upnext{margin:0;color:var(--muted);font-size:.95rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-height:1.4em}
-.upnext b{color:var(--ink)}
-@media (min-width:900px){ .stage{--m:min(24vw,40vh,360px)} .media{gap:20px} }
-@media (max-height:500px){ .stage{--cardh:28vh;gap:8px} }
-/* Écran très bas (iPhone SE avec barres Safari, paysage) : le titre garde de la place, sans « Maintenant » ni « Ensuite » */
-@media (max-height:520px){ .stage{--m:min(36vw,18vh)} .kicker,.upnext{display:none} .card{grid-template-rows:minmax(0,1fr) auto} }
-.bottom{display:flex;flex-direction:column;gap:8px;flex:none}
-.pbar{height:5px;border-radius:3px;background:color-mix(in srgb,var(--ink) 12%,transparent);overflow:hidden}
-.pbar i{display:block;height:100%;background:var(--c);width:0}
-.times{display:flex;justify-content:space-between;color:var(--muted);font-size:.8rem;font-weight:700}
-.controls{height:48px;display:flex;justify-content:center;align-items:center}
-.controls>div{display:flex;gap:6px;justify-content:center;align-items:center;flex-wrap:nowrap}
-#stopAsk .ctl{min-width:130px;min-height:44px;font-size:1rem}
-.ctl{display:inline-flex;align-items:center;justify-content:center;gap:4px;border:1.5px solid color-mix(in srgb,var(--ink) 20%,transparent);background:var(--surface);border-radius:9px;padding:8px 12px;font-weight:700;font-size:.85rem;min-width:44px;min-height:44px;box-sizing:border-box;white-space:nowrap;flex:none}
-.ctl.main{background:var(--c);border-color:var(--c);color:var(--cbg);font-family:var(--display);font-size:1.2rem;letter-spacing:.06em;text-transform:uppercase;padding:6px 14px;min-width:108px}
-@media (max-width:360px){ .controls>div{gap:4px} .ctl{padding:8px 6px} .ctl.main{min-width:0;padding:6px 8px;font-size:1rem;letter-spacing:.03em} }
-.ctl[disabled]{opacity:.35;cursor:default}
-.ctl.warn{border-color:var(--danger);color:var(--danger)}
+/* ---------- Run : 1 état = 1 couleur plein écran ---------- */
+.run,.done{--ink-r:#101214;--paper:#F3F2EE;--rdisp:"Barlow Condensed",system-ui,sans-serif;--rbody:"Inter",system-ui,sans-serif}
+.run{--c:#E8E6E1;height:100%;box-sizing:border-box;overflow:hidden;display:flex;flex-direction:column;gap:14px;background:var(--c);color:var(--ink-r);font-family:var(--rbody);padding:24px max(20px,env(safe-area-inset-right,0px)) calc(20px + var(--foot)) max(20px,env(safe-area-inset-left,0px));transition:background-color .35s}
+.run[data-phase="work"]{--c:#FF7A30}
+.run[data-phase="rest"]{--c:#7CC0EC}
+.run[data-phase="switch"]{--c:#F2B63D}
+.run>*{width:100%;max-width:680px;margin-inline:auto;box-sizing:border-box} /* colonne centrée sur grand écran */
+/* Bande de la zone sûre iOS (padding de :root) dans la couleur de l'écran */
+body:has(#run:not([hidden])){background:#E8E6E1}
+body:has(#run[data-phase="work"]:not([hidden])){background:#FF7A30}
+body:has(#run[data-phase="rest"]:not([hidden])){background:#7CC0EC}
+body:has(#run[data-phase="switch"]:not([hidden])){background:#F2B63D}
+body:has(#done:not([hidden])){background:#101214}
+.rlabel{flex:none;margin-block:0;font-family:var(--rdisp);font-weight:700;font-size:18px;line-height:1;letter-spacing:4px;text-transform:uppercase}
+/* Taille ajustée par fitTitle() : 2 lignes au plus */
+.rtitle{flex:none;margin-block:0;font-family:var(--rdisp);font-weight:700;font-size:52px;line-height:1;text-transform:uppercase;overflow-wrap:anywhere;text-wrap:balance}
+.rchips{flex:none;display:flex;flex-wrap:wrap;gap:8px}
+.rchip{flex:none;display:inline-flex;align-items:center;height:36px;padding:0 14px;border-radius:999px;background:rgba(16,18,20,.14);font-weight:600;font-size:16px;line-height:1;white-space:nowrap}
+.rchip.side{background:var(--ink-r);color:var(--c)}
+/* Le chrono est prioritaire : la description cède d'abord (flex-shrink énorme), puis la jauge rétrécit */
+.rclock{flex:1 1 300px;min-height:0;container-type:size;display:flex;align-items:center;justify-content:center}
+.rring{position:relative;width:min(300px,100cqw,100cqh);aspect-ratio:1}
+.rring svg{width:100%;height:100%;display:block;transform:rotate(-90deg)}
+.rring .trk{fill:none;stroke:rgba(16,18,20,.15);stroke-width:16}
+.rring .bar{fill:none;stroke:var(--ink-r);stroke-width:16;stroke-linecap:round;transition:stroke-dashoffset .1s linear}
+.rsecs{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:var(--rdisp);font-weight:700;font-size:min(130px,43.3cqw,43.3cqh);line-height:1;font-variant-numeric:tabular-nums}
+.rdesc{flex:0 1000 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;margin-block:0;font-size:17px;line-height:1.45;text-wrap:pretty}
+.rdesc.cut{visibility:hidden} /* moins d'une ligne de place : masquée plutôt que coupée */
+.rnext{flex:none;border-top:2px solid rgba(16,18,20,.2);padding-top:10px;display:flex;flex-direction:column;gap:4px}
+.rnext span{font-family:var(--rdisp);font-weight:700;font-size:15px;line-height:1;letter-spacing:2px}
+.rnext p{margin:0;font-weight:600;font-size:16px;line-height:1.3;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
+.rbar{flex:none;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.rbtn{height:76px;min-width:0;border:0;border-radius:18px;background:var(--ink-r);color:var(--paper);font-family:var(--rbody);font-size:12px;line-height:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;padding:0 4px;touch-action:manipulation}
+.rbtn svg{width:24px;height:24px;fill:var(--c);flex:none}
+.rbtn[disabled]{opacity:.35;cursor:default}
+.rbtn:focus-visible,.rask button:focus-visible,.rclose:focus-visible{outline:3px solid var(--ink-r);outline-offset:3px}
+.rask{flex:none;background:var(--ink-r);color:var(--paper);border-radius:18px;padding:14px;display:flex;flex-direction:column;gap:12px}
+.rask p{margin:0;text-align:center;font-weight:600;font-size:17px}
+.rask div{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.rask button{height:56px;border-radius:14px;font-family:var(--rbody);font-weight:600;font-size:16px}
+#stopNo{background:transparent;border:2px solid #5B6268;color:var(--paper)}
+#stopYes{background:#E8705A;border:0;color:var(--ink-r)}
+.rask button:focus-visible{outline-color:var(--paper)}
+/* Paysage bas (iPhone couché) : espacements resserrés */
+@media (max-height:560px){ .run{gap:8px;padding-top:12px;padding-bottom:calc(12px + var(--foot))} .rtitle{font-size:40px} .rbtn{height:60px} .rask{padding:10px;gap:8px} .rask button{height:48px} }
 
 /* ---------- Done ---------- */
-.done{height:100%;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;text-align:center;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:24px calc(24px + var(--foot))}
-.done h2{font-family:var(--display);font-weight:800;text-transform:uppercase;font-size:clamp(2.6rem,9vw,4.6rem);line-height:.9;margin:0;color:var(--work)}
-.done p{margin:0;color:var(--muted)}
-@media (prefers-reduced-motion:reduce){.run,.top,.ringwrap .bar{transition:none}}
+.done{height:100%;box-sizing:border-box;display:flex;flex-direction:column;background:var(--ink-r);color:var(--paper);font-family:var(--rbody);text-align:center;padding:24px max(20px,env(safe-area-inset-right,0px)) calc(20px + var(--foot)) max(20px,env(safe-area-inset-left,0px))}
+.done>*{width:100%;max-width:680px;margin-inline:auto}
+.rdone{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px}
+.rdone svg{width:64px;height:64px;fill:none;stroke:var(--paper);stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
+.done h2{margin:0;font-family:var(--rdisp);font-weight:700;font-size:80px;line-height:.95;text-transform:uppercase}
+.done p{margin:0;font-size:18px;color:#C9CDD1}
+.rclose{flex:none;height:76px;border:0;border-radius:18px;background:var(--paper);color:var(--ink-r);font-family:var(--rdisp);font-weight:700;font-size:28px;letter-spacing:3px}
+.rclose:focus-visible{outline-color:var(--paper)}
+@media (max-height:560px){ .done h2{font-size:56px} .rclose{height:60px} }
+@media (prefers-reduced-motion:reduce){.run,.rring .bar{transition:none}}
 /* Affichage mobile : pas de zoom, champs >= 16px, cartes portrait */
 html{touch-action:manipulation;-webkit-text-size-adjust:100%}
 input,select,textarea{font-size:max(16px,1em)}
@@ -673,57 +666,36 @@ body:has(#tab-activites:not([hidden]) :is(#viewSeance,#viewPicker):not([hidden])
 </main>
 
 <section id="run" class="run" data-phase="prep" hidden>
-  <div class="top">
-    <div class="phasebox">
-      <div class="phaseline"><span class="phase" id="phase">Prêt</span><span class="pausetag" id="pausetag" hidden>En pause</span></div>
-      <span class="meta tab" id="meta"></span>
+  <p class="rlabel" id="phase">Prépare-toi</p>
+  <h2 class="rtitle" id="exName">—</h2>
+  <div class="rchips" id="chips"></div>
+  <div class="rclock">
+    <div class="rring">
+      <svg viewBox="0 0 300 300" aria-hidden="true"><circle class="trk" cx="150" cy="150" r="138"/><circle class="bar" id="ringBar" cx="150" cy="150" r="138" stroke-dasharray="867.08" stroke-dashoffset="0"/></svg>
+      <span class="rsecs" id="secs">0:10</span>
     </div>
-    <span class="topbtns">
-      <button class="iconbtn" id="fsBtn" aria-label="Plein écran" title="Plein écran"><svg class="i" viewBox="0 0 24 24"><path d="M4 4h6v2H6v4H4zm10 0h6v6h-2V6h-4zM4 14h2v4h4v2H4zm14 0h2v6h-6v-2h4z"/></svg></button>
-      <button class="iconbtn" id="muteBtn" aria-pressed="false" title="Voix"><svg class="i" viewBox="0 0 24 24"><path d="M3 9h4l5-4v14l-5-4H3z"/><path id="muteWaves" d="M15.5 8.5a5 5 0 0 1 0 7l-1.4-1.4a3 3 0 0 0 0-4.2zM18.4 5.6a9 9 0 0 1 0 12.8L17 17a7 7 0 0 0 0-10z"/><path id="muteCross" d="M14.3 9.7l1.4-1.4 2.3 2.3 2.3-2.3 1.4 1.4-2.3 2.3 2.3 2.3-1.4 1.4-2.3-2.3-2.3 2.3-1.4-1.4 2.3-2.3z" style="display:none"/></svg></button>
-    </span>
   </div>
-  <div class="stage">
-    <div class="media">
-      <div class="ringwrap">
-        <svg viewBox="0 0 200 200" aria-hidden="true"><circle class="trk" cx="100" cy="100" r="90"/><circle class="bar" id="ringBar" cx="100" cy="100" r="90" stroke-dasharray="565.49" stroke-dashoffset="0"/></svg>
-        <div class="ringc">
-          <span class="secs" id="secs">10</span>
-        </div>
-      </div>
-      <div class="demo" id="demoBox"><canvas id="demo" aria-label="Démonstration animée du mouvement"></canvas><span id="demoTag">Démo</span></div>
-    </div>
-    <div class="card">
-      <p class="kicker" id="kicker">À suivre</p>
-      <h2 class="name" id="exNameBox"><span id="exName">—</span></h2>
-      <div class="chips" id="chips"></div>
-      <p class="upnext" id="upnext"></p>
-    </div>
-    <div class="descbox" id="descBox"><p class="desc" id="exDesc"></p></div>
+  <p class="rdesc" id="exDesc"></p>
+  <div class="rnext" id="upnext"><span>ENSUITE</span><p id="upnextTxt"></p></div>
+  <div class="rbar" id="ctlMain">
+    <button class="rbtn" id="prevBtn" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 5h2v14H6zM20 5v14L9 12z"/></svg>Précédent</button>
+    <button class="rbtn" id="playBtn" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path id="playIco" d="M6 5h4v14H6zm8 0h4v14h-4z"/></svg><span id="playTxt">Pause</span></button>
+    <button class="rbtn" id="nextBtn" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 5h2v14h-2zM4 5v14l11-7z"/></svg>Suivant</button>
+    <button class="rbtn" id="stopBtn" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6h12v12H6z"/></svg>Stop</button>
   </div>
-  <div class="bottom">
-    <div class="pbar"><i id="pfill"></i></div>
-    <div class="times tab"><span id="tElapsed">0:00</span><span id="tLeft">reste 0:00</span></div>
-    <div class="controls">
-      <div id="ctlMain">
-        <button class="ctl" id="prevBtn" aria-label="Exercice précédent"><svg class="i" viewBox="0 0 24 24"><path d="M6 5h2v14H6zM20 5v14L9 12z"/></svg></button>
-        <button class="ctl main" id="playBtn">Pause</button>
-        <button class="ctl" id="nextBtn" aria-label="Passer à la suite"><svg class="i" viewBox="0 0 24 24"><path d="M16 5h2v14h-2zM4 5v14l11-7z"/></svg></button>
-        <button class="ctl" id="plusBtn" aria-label="Ajouter 10 secondes de récup">+10 s</button>
-        <button class="ctl" id="stopBtn" aria-label="Arrêter la séance"><svg class="i" viewBox="0 0 24 24"><path d="M6 6h12v12H6z"/></svg></button>
-      </div>
-      <div id="stopAsk" hidden>
-        <button class="ctl warn" id="stopYes">Confirmer</button>
-        <button class="ctl" id="stopNo">Annuler</button>
-      </div>
-    </div>
+  <div class="rask" id="stopAsk" hidden>
+    <p>Arrêter la séance ?</p>
+    <div><button id="stopNo" type="button">Annuler</button><button id="stopYes" type="button">Confirmer</button></div>
   </div>
 </section>
 
 <section id="done" class="done" hidden>
-  <h2>Séance terminée</h2>
-  <p id="doneSum"></p>
-  <button class="start" id="againBtn" style="max-width:320px">Retour</button>
+  <div class="rdone">
+    <svg viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="29"/><path d="M19 33l9 9 17-19"/></svg>
+    <h2>Séance terminée</h2>
+    <p id="doneSum"></p>
+  </div>
+  <button class="rclose" id="againBtn" type="button">FERMER</button>
 </section>
 
 <section class="xsheet" id="xs" hidden>
@@ -741,8 +713,8 @@ body:has(#tab-activites:not([hidden]) :is(#viewSeance,#viewPicker):not([hidden])
 </section>
 
 <!-- À mettre à jour à chaque publication : figure.js?v= et generator.js?v= (source du numéro affiché dans Options), et VERSION dans sw.js -->
-<script src="figure.js?v=1.25.0"></script>
-<script src="generator.js?v=1.25.0"></script>
+<script src="figure.js?v=1.26.0"></script>
+<script src="generator.js?v=1.26.0"></script>
 <script>
 /* ---------- Bibliothèque d'exercices ----------
    exercises.json = jeu de départ (SEED). La bibliothèque active est LIB, copiée dans le stockage local au premier lancement
@@ -1014,14 +986,11 @@ async function lockScreen(){try{if("wakeLock" in navigator&&document.visibilityS
 function unlockScreen(){try{wake&&wake.release()}catch(e){} wake=null}
 document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible"&&state.active&&state.running) lockScreen()});
 
-/* ---------- Silhouette animée ---------- */
-const cv=$("demo"), g2=cv.getContext("2d");
+/* ---------- Silhouette animée (démo de la Bibliothèque) ---------- */
 let COL={};
-function readColors(el=$("run")){const cs=getComputedStyle(el);const v=n=>cs.getPropertyValue(n).trim();COL={ink:v("--ink"),ghost:v("--ghost"),line:v("--line"),muted:v("--muted"),c:v("--c")||v("--work")}}
-function sizeCanvas(){const r=cv.getBoundingClientRect(),d=window.devicePixelRatio||1;const w=Math.max(1,Math.round(r.width*d)),h=Math.max(1,Math.round(r.height*d));if(cv.width!==w||cv.height!==h){cv.width=w;cv.height=h}}
-try{new ResizeObserver(sizeCanvas).observe(cv)}catch(e){window.addEventListener("resize",sizeCanvas)}
+function readColors(el){const cs=getComputedStyle(el);const v=n=>cs.getPropertyValue(n).trim();COL={ink:v("--ink"),ghost:v("--ghost"),line:v("--line"),muted:v("--muted"),c:v("--c")||v("--work")}}
 const REDUCED=window.matchMedia&&matchMedia("(prefers-reduced-motion: reduce)").matches;
-function drawFigure(key,ms,cnv=cv,ctx=g2){
+function drawFigure(key,ms,cnv,ctx){
   const a=ANIMS[key]; const W=cnv.width,H=cnv.height; ctx.setTransform(1,0,0,1,0,0); ctx.clearRect(0,0,W,H);
   if(!a) return;
   const s=Math.min(W/FIG.W,H/FIG.H); ctx.setTransform(s,0,0,s,(W-FIG.W*s)/2,(H-FIG.H*s)/2);
@@ -1044,13 +1013,6 @@ function drawFigure(key,ms,cnv=cv,ctx=g2){
   for(const pr of a.props||[]) if(pr.type==="weight"){ctx.fillStyle=COL.c;ctx.beginPath();ctx.arc(J[pr.at][0],J[pr.at][1],5,0,Math.PI*2);ctx.fill()}
   for(const f of a.focus||[]){ const r=11+(REDUCED?0:3*Math.sin(ms/260)); ctx.strokeStyle=COL.c; ctx.lineWidth=2.5; ctx.beginPath(); ctx.arc(J[f][0],J[f][1],r,0,Math.PI*2); ctx.stroke(); }
 }
-let animKey=null, animT0=0;
-function loop(now){
-  if(!state.active) return;
-  requestAnimationFrame(loop);
-  if(animKey){ try{ drawFigure(animKey,Math.max(0,performance.now()-animT0)); }catch(e){ console.error(e); } }
-}
-
 /* ---------- Moteur ---------- */
 const state={active:false,running:false,segs:[],i:0,remaining:0,last:0,lastSec:null,voice:true,beep:true,readDesc:true,prog:null,stopAsk:null}; // stopAsk : {wasRunning} pendant la confirmation d'arrêt
 const cur=()=>state.segs[state.i];
@@ -1109,14 +1071,14 @@ function start(){
   if(HAS_TTS){try{speak(" ",null,true)}catch(e){}}
   $("setup").hidden=true; $("done").hidden=true; $("run").hidden=false;
   state.active=true; state.running=true; state.last=performance.now(); state.stopAsk=null;
-  updateMute(); lockScreen(); sizeCanvas(); enter(0); requestAnimationFrame(loop);
+  lockScreen(); enter(0);
 }
 function finish(){
   state.active=false; state.running=false; unlockScreen(); syncDeferred();
-  const segs=state.segs, work=segs.filter(s=>s.type==="work");
+  const segs=state.segs;
   if(profile) setPdata({hist:[...(pdata().hist||[]),{d:Date.now(),p:state.prog.name,s:Math.round(totalOf(segs)),x:[...new Set(state.prog.blocks.flatMap(b=>b.items.map(i=>i.ex).filter(Boolean)))]}]});
   say("Séance terminée. Bien joué, mon grand.",true);
-  $("doneSum").textContent=`${state.prog.name} · ${fmt(totalOf(segs))} · ${work.length} passages`;
+  $("doneSum").textContent=state.prog.name;
   $("run").hidden=true; $("done").hidden=false;
 }
 // Carré stop : met en pause et remplace les commandes par Confirmer / Annuler (même conteneur, même hauteur)
@@ -1146,85 +1108,63 @@ function togglePlay(){
 }
 function goNext(){if(state.active&&!state.stopAsk) advance()}
 function goPrev(){
-  if(!state.active||state.stopAsk) return;
+  if(!state.active||state.stopAsk||state.i===0) return;
   const s=cur(), elapsed=s.dur-state.remaining/1000;
-  if(elapsed>3||state.i===0){enter(state.i);return}
+  if(elapsed>3){enter(state.i);return}
   enter(state.i-1);
 }
-function plus10(){if(!state.active||cur().type==="work")return; state.remaining+=10000; cur().dur+=10; renderTime()}
 
 /* ---------- Affichage ---------- */
-const CIRC=565.49;
+const CIRC=867.08; // 2π × 138
+const PHASE_LABEL={prep:"Prépare-toi",work:"Travail",rest:"Repos",switch:"Change de côté"};
+// Étape de travail suivant w, avec la récup qui la précède s'il y en a une
+function upAfter(w){
+  const after=w.next; if(!after) return "";
+  const restSeg=state.segs[state.segs.indexOf(w)+1];
+  return label(after)+(after.side?` · côté ${after.side}`:"")+(restSeg&&restSeg.type==="rest"?` (après ${restSeg.dur} s de récup)`:"");
+}
 function render(){
   const s=cur(); const run=$("run");
-  run.dataset.phase=s.type; run.classList.toggle("paused",!state.running);
-  readColors();
-  $("phase").textContent={work:"Travail",rest:"Récup",switch:"Côté",prep:"Prêt"}[s.type];
-  $("pausetag").hidden=state.running;
-  $("playBtn").textContent=state.running?"Pause":"Reprendre";
-  $("plusBtn").disabled=s.type==="work";
+  run.dataset.phase=s.type;
+  $("phase").textContent=PHASE_LABEL[s.type];
+  $("playIco").setAttribute("d",state.running?"M6 5h4v14H6zm8 0h4v14h-4z":"M7 4v16l13-8z");
+  $("playTxt").textContent=state.running?"Pause":"Reprendre";
+  $("prevBtn").disabled=state.i===0;
   $("ctlMain").hidden=!!state.stopAsk; $("stopAsk").hidden=!state.stopAsk;
   const show=s.type==="work"?s:s.next;
-  const r=s.rounds>1?` · Tour <b>${s.round}/${s.rounds}</b>`:"";
-  $("meta").innerHTML=`<b>${esc(s.block||"")}</b>${r} · Exo <b>${s.wi||1}/${s.totalWork}</b>`;
-  $("kicker").textContent=s.type==="work"?"Maintenant":s.type==="switch"?"Change de côté":"À suivre";
-  $("exName").textContent=show?show.name:"";
+  $("exName").textContent=s.type==="rest"?"Repos":show?show.name:"";
   $("exDesc").textContent=show?show.desc:"";
-  const nk=show?show.anim:null;
-  if(nk!==animKey){animKey=nk; animT0=performance.now();}
-  $("demoBox").classList.toggle("off",!animKey);
-  $("demoTag").textContent=s.type==="work"?"Démo":"Aperçu";
+  $("exDesc").hidden=!$("exDesc").textContent.trim(); $("exDesc").scrollTop=0;
   const chips=$("chips"); chips.innerHTML="";
   if(show){
-    if(show.side) addChip(`Côté ${show.side}`,true);
-    if(show.reps) addChip(show.reps);
     if(show.sets>1) addChip(`Série ${show.set}/${show.sets}`);
-    addChip(`${show.dur} s`);
+    addChip(show.reps||`${show.dur} s`);
+    if(show.side) addChip(`Côté ${show.side}`,true);
   }
-  let up="";
-  if(s.type==="work"){
-    const after=s.next, restSeg=state.segs[state.i+1];
-    up=after?`Ensuite${restSeg&&restSeg.type==="rest"?` (après ${restSeg.dur} s de récup)`:""} : <b>${esc(label(after))}</b>`:"Dernier exercice";
-  }
-  $("upnext").innerHTML=up;
-  fitRun();
+  chips.hidden=!chips.children.length;
+  const up=s.type==="work"?upAfter(s):s.type==="switch"?(s.next?upAfter(s.next):""):s.type==="rest"&&s.next?label(s.next)+(s.next.side?` · côté ${s.next.side}`:""):"";
+  $("upnextTxt").textContent=up; $("upnext").hidden=!up;
+  fitTitle();
   renderTime();
 }
-// Réduit titre et description jusqu'à ce qu'ils tiennent dans leur zone (la description défile au-delà)
-function fitText(el,box,max,min){
-  let px=max; el.style.fontSize=px+"px";
-  while(px>min&&(el.offsetHeight>box.clientHeight||el.scrollWidth>box.clientWidth)){px-=1; el.style.fontSize=px+"px"}
-}
+// Titre sur 2 lignes au plus : réduit la police jusqu'à ce qu'il tienne
 let fitKey="";
-function fitRun(){
-  const box=$("exNameBox"), dbox=$("descBox");
-  const key=[$("exName").textContent,$("exDesc").textContent,box.clientWidth,box.clientHeight,dbox.clientHeight].join("|");
+function fitTitle(){
+  const el=$("exName"), key=el.textContent+"|"+el.clientWidth+"|"+innerHeight;
   if(key===fitKey) return; fitKey=key;
-  const rem=parseFloat(getComputedStyle(document.documentElement).fontSize)||16;
-  fitText($("exName"),box,Math.min(64,Math.max(32,innerWidth*.09)),18);
-  fitText($("exDesc"),dbox,1.3*rem,rem);
-  dbox.scrollTop=0;
+  el.style.fontSize=""; let px=parseFloat(getComputedStyle(el).fontSize);
+  while(px>22&&(el.scrollHeight>px*2.1||el.scrollWidth>el.clientWidth)){px-=2; el.style.fontSize=px+"px"}
 }
-try{new ResizeObserver(()=>{if(state.active) fitRun()}).observe($("descBox"))}catch(e){addEventListener("resize",()=>{if(state.active) fitRun()})}
-function addChip(t,fill){const c=document.createElement("span");c.className="chip"+(fill?" fill":"");c.textContent=t;$("chips").appendChild(c)}
+function fitDesc(){const d=$("exDesc"); d.classList.toggle("cut",d.clientHeight<24)}
+try{new ResizeObserver(()=>{if(state.active){fitTitle(); fitDesc()}}).observe($("run")); new ResizeObserver(fitDesc).observe($("exDesc"))}catch(e){addEventListener("resize",()=>{if(state.active){fitTitle(); fitDesc()}})}
+function addChip(t,side){const c=document.createElement("span");c.className="rchip"+(side?" side":"");c.textContent=t;$("chips").appendChild(c)}
 function esc(t){return String(t).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]))}
 function renderTime(){
   const s=cur(); if(!s) return;
   const rem=Math.max(0,state.remaining/1000);
-  $("secs").textContent=Math.ceil(rem);
+  $("secs").textContent=fmt(Math.ceil(rem));
   $("ringBar").setAttribute("stroke-dashoffset",(CIRC*(1-rem/s.dur)).toFixed(2));
-  const total=totalOf(state.segs); let left=rem;
-  for(let k=state.i+1;k<state.segs.length;k++) left+=state.segs[k].dur;
-  $("pfill").style.width=((1-left/total)*100).toFixed(2)+"%";
-  $("tElapsed").textContent=fmt(total-left); $("tLeft").textContent="reste "+fmt(left);
 }
-function updateMute(){
-  const b=$("muteBtn"), t=state.voice?"Couper la voix":"Activer la voix";
-  b.setAttribute("aria-label",t); b.title=t; b.setAttribute("aria-pressed",String(!state.voice));
-  $("muteWaves").style.display=state.voice?"":"none"; $("muteCross").style.display=state.voice?"none":"";
-}
-try{matchMedia("(prefers-color-scheme: dark)").addEventListener("change",()=>{if(state.active) readColors()})}catch(e){}
-try{new MutationObserver(()=>{if(state.active) readColors()}).observe(document.documentElement,{attributes:true,attributeFilter:["data-theme"]})}catch(e){}
 
 /* ---------- Profils ---------- */
 function initials(n){return (n.trim()[0]||"?")}
@@ -2537,14 +2477,10 @@ addEventListener("gesturestart",e=>e.preventDefault());
 $("playBtn").onclick=togglePlay;
 $("nextBtn").onclick=goNext;
 $("prevBtn").onclick=goPrev;
-$("plusBtn").onclick=plus10;
 $("stopBtn").onclick=askStop;
 $("stopYes").onclick=stop;
 $("stopNo").onclick=cancelStop;
 $("againBtn").onclick=()=>{stop(); showTab("dash")};
-$("muteBtn").onclick=()=>{state.voice=!state.voice; if(!state.voice){try{speechSynthesis.cancel()}catch(e){}} updateMute()};
-$("fsBtn").onclick=async()=>{try{if(document.fullscreenElement) await document.exitFullscreen(); else await document.documentElement.requestFullscreen()}catch(e){$("fsBtn").hidden=true}};
-if(!document.documentElement.requestFullscreen) $("fsBtn").hidden=true;
 document.addEventListener("keydown",e=>{
   if(!state.active||e.target.tagName==="TEXTAREA") return;
   if(state.stopAsk){ if(e.key==="Escape") cancelStop(); return } // espace/entrée agissent sur le bouton ciblé

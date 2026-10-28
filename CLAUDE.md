@@ -2,7 +2,7 @@
 
 ## But
 Piloter les séances de renfo d'un traileur (prépa Veni Vici 52 km / nov. 2026, puis Templiers 80 km / oct. 2027).
-L'app enchaîne seule les exercices avec voix, bips, timer et silhouette animée, comme une vidéo de coach.
+L'app enchaîne seule les exercices avec voix, bips et jauge chrono, un écran plein de couleur par état (silhouette animée réservée à la démo de la Bibliothèque).
 Utilisée sur Mac (Chrome ou Safari) et iPhone (Safari), écran posé au sol pendant la séance.
 
 ## Contraintes techniques
