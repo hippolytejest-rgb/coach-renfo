@@ -626,6 +626,7 @@ body:has(#tab-activites:not([hidden]) :is(#viewSeance,#viewPicker):not([hidden])
         <div class="row"><button class="btn" id="syncNow">Synchroniser maintenant</button><button class="btn" id="syncOffBtn">Désactiver</button></div>
       </div>
       <p class="tips" id="syncMsg" role="status"></p>
+      <button class="btn" id="profBackupBtn" type="button" hidden></button>
     </section>
   </div>
 </main>
@@ -685,10 +686,10 @@ body:has(#tab-activites:not([hidden]) :is(#viewSeance,#viewPicker):not([hidden])
 </section>
 
 <!-- À mettre à jour à chaque publication : ce bandeau, figure.js?v= et generator.js?v= plus bas, et VERSION dans sw.js -->
-<footer class="ver" id="ver">Version 1.22.3 · publiée le <time datetime="2026-10-28T18:12">28/10/2026 à 18:12</time></footer>
+<footer class="ver" id="ver">Version 1.23.0 · publiée le <time datetime="2026-10-28T18:25">28/10/2026 à 18:25</time></footer>
 
-<script src="figure.js?v=1.22.3"></script>
-<script src="generator.js?v=1.22.3"></script>
+<script src="figure.js?v=1.23.0"></script>
+<script src="generator.js?v=1.23.0"></script>
 <script>
 /* ---------- Bibliothèque d'exercices ----------
    exercises.json = jeu de départ (SEED). La bibliothèque active est LIB, copiée dans le stockage local au premier lancement
@@ -781,11 +782,25 @@ let profs=jget(PROFS_KEY,{list:[],last:null});
 let profile=null; // profil actif {id,name}
 function saveProfs(){return lsSet(PROFS_KEY,JSON.stringify(profs))}
 function pdata(){return jget(PDATA+profile.id,{})}
-const SYNCED=["custom","equip","sessions"]; // champs en « dernier modifié gagne » ; l'historique est fusionné
+function writePdata(id,o){if(o===null){lsDel(PDATA+id); return true} return lsSet(PDATA+id,JSON.stringify(o))} // seul point d'écriture des profils
+/* Champs synchronisés : custom et equip en « dernier modifié gagne » (date par champ dans fmt), sessions fusionnées
+   séance par séance (updatedAt, pierres tombales dans sdel). mt global gardé pour les versions antérieures à 1.23. */
+const SYNCED=["custom","equip","sessions"];
 function setPdata(patch){
-  const mt=SYNCED.some(k=>k in patch)?{mt:Date.now()}:{};
-  const ok=lsSet(PDATA+profile.id,JSON.stringify({...pdata(),...patch,...mt}));
-  if("hist" in patch||mt.mt) scheduleSync();
+  const d=pdata(), o={...d,...patch};
+  if(SYNCED.some(k=>k in patch)){
+    const now=Date.now(); o.mt=now; o.fmt={...(d.fmt||{})};
+    ["custom","equip"].forEach(k=>{if(k in patch) o.fmt[k]=now});
+    if("sessions" in patch){
+      const old=new Map((d.sessions||[]).map(x=>[x.id,x])), sdel={...(d.sdel||{})};
+      o.sessions=(patch.sessions||[]).map(x=>{const p=old.get(x.id); old.delete(x.id); delete sdel[x.id];
+        return p&&canon(stripStamp(p))===canon(stripStamp(x))?p:{...stripStamp(x),updatedAt:now}});
+      old.forEach((x,id)=>{sdel[id]=now}); // séances retirées
+      if(Object.keys(sdel).length) o.sdel=sdel; else delete o.sdel;
+    }
+  }
+  const ok=writePdata(profile.id,o);
+  if("hist" in patch||o.mt!==d.mt) scheduleSync();
   return ok;
 }
 function loadCustom(){return pdata().custom||null}
@@ -1168,7 +1183,7 @@ function renderProfiles(){
       if(d.classList.contains("warn")){
         profs.list=profs.list.filter(x=>x.id!==p.id); if(profs.last===p.id) profs.last=null;
         profs.gone={...profs.gone,[p.id]:Date.now()};
-        lsDel(PDATA+p.id); saveProfs(); renderProfiles(); scheduleSync();
+        writePdata(p.id,null); saveProfs(); renderProfiles(); scheduleSync();
       } else {
         d.classList.add("warn"); d.textContent="Confirmer ?";
         setTimeout(()=>{if(d.isConnected){d.classList.remove("warn"); d.textContent="Suppr."}},3000);
@@ -1186,7 +1201,7 @@ function openProfile(id){
   const o=d.opts||{}; $("optVoice").checked=o.voice!==false; $("optBeep").checked=o.beep!==false; $("optDesc").checked=o.desc!==false;
   $("whoName").textContent=profile.name;
   $("profiles").hidden=true; $("setup").hidden=false; showTab("dash");
-  renderSetup(); pickVoice();
+  renderSetup(); renderProfBackup(); pickVoice();
 }
 function closeProfile(){
   profile=null; $("setup").hidden=true; $("profiles").hidden=false; renderProfiles();
@@ -1205,7 +1220,7 @@ $("pnew").onsubmit=e=>{
   if(first){ // reprend les réglages d'avant les profils
     const patch={}, c=jget(LEGACY_CUSTOM,null), v=lsGet(LEGACY_VOICE);
     if(c) patch.custom=c; if(v) patch.voice=v;
-    if(Object.keys(patch).length) lsSet(PDATA+p.id,JSON.stringify(patch));
+    if(Object.keys(patch).length) writePdata(p.id,patch);
   }
   $("pname").value=""; openProfile(p.id);
 };
@@ -1309,10 +1324,64 @@ async function gh(path,opt={}){
   return r.json();
 }
 function adoptId(oldId,newId){
-  const raw=lsGet(PDATA+oldId); if(raw!==null){lsSet(PDATA+newId,raw); lsDel(PDATA+oldId)}
+  const d=jget(PDATA+oldId,null); if(d){writePdata(newId,d); writePdata(oldId,null)}
   const e=profs.list.find(p=>p.id===oldId); e.id=newId;
   if(profs.last===oldId) profs.last=newId;
   if(profile&&profile.id===oldId) profile=e;
+}
+// a (local) ou b (distant) selon leurs dates ; à égalité, choix fixe (texte le plus grand) pour que les appareils convergent.
+const newer=(a,b,ta,tb)=>ta!==tb?(tb>ta?b:a):(canon(b)||"")>(canon(a)||"")?b:a;
+// Fusion d'un profil : local L, distant R ; renvoie le profil local à écrire.
+function mergeProfile(L,R){
+  const hg=[...new Set([...(L.hgone||[]),...(R.hgone||[])])], gs=new Set(hg); // séances supprimées de l'historique
+  const seen=new Set(), hist=[...(L.hist||[]),...(R.hist||[])].filter(x=>!gs.has(x.d)&&!seen.has(x.d)&&seen.add(x.d)).sort((a,b)=>a.d-b.d);
+  const m={...L,hist}; if(hg.length) m.hgone=hg;
+  const take=(k,v)=>{if(v===undefined) delete m[k]; else m[k]=v};
+  const fmt={...(L.fmt||{})}, sdel={...(L.sdel||{})};
+  Object.entries(R.fmt||{}).forEach(([k,t])=>{fmt[k]=Math.max(fmt[k]||0,t)});
+  Object.entries(R.sdel||{}).forEach(([id,t])=>{sdel[id]=Math.max(sdel[id]||0,t)});
+  if(!R.fmt){ // dernier auteur antérieur à 1.23 (il retire fmt et sdel) ou premier passage : règle d'avant, champs en bloc selon mt
+    const src=(R.mt||0)>(L.mt||0)?R:L; SYNCED.forEach(k=>take(k,src[k]));
+    if(src===R){ // l'ancien appareil ne date pas ce qu'il change : on lui donne son mt, sinon un updatedAt périmé perdrait ensuite
+      ["custom","equip"].forEach(k=>{if(canon(L[k])!==canon(R[k])) fmt[k]=Math.max(fmt[k]||0,R.mt)});
+      const lm=new Map((L.sessions||[]).map(x=>[x.id,x]));
+      if(m.sessions) m.sessions=m.sessions.map(x=>{const a=lm.get(x.id); lm.delete(x.id);
+        return a&&canon(stripStamp(a))===canon(stripStamp(x))?x:{...x,updatedAt:Math.max(x.updatedAt||0,R.mt)}});
+      lm.forEach((x,id)=>{sdel[id]=Math.max(sdel[id]||0,R.mt)}); // retirées par l'ancien appareil
+    }
+  } else {
+    ["custom","equip"].forEach(k=>take(k,newer(L[k],R[k],(L.fmt||{})[k]||0,R.fmt[k]||0)));
+    if(L.sessions||R.sessions){ // par id, comme mergeLib : la version la plus récente gagne, pierres tombales comprises
+      const LS=L.sessions||[], RS=R.sessions||[], lm=new Map(LS.map(x=>[x.id,x])), rm=new Map(RS.map(x=>[x.id,x])), out=[];
+      new Set([...lm.keys(),...rm.keys()]).forEach(id=>{ // ordre local, puis séances seulement distantes
+        const a=lm.get(id), b=rm.get(id), best=a&&b?newer(a,b,a.updatedAt||0,b.updatedAt||0):a||b, td=sdel[id]||0;
+        if(!td||(best.updatedAt||0)>td){out.push(best); delete sdel[id]}
+      });
+      m.sessions=out;
+    }
+  }
+  m.fmt=fmt; // toujours publié : signale aux autres appareils un auteur 1.23 ou plus
+  if(Object.keys(sdel).length) m.sdel=sdel; else delete m.sdel;
+  const mt=Math.max(L.mt||0,R.mt||0); if(mt) m.mt=mt;
+  return m;
+}
+/* Copie de sécurité des profils (custom, equip, sessions), écrite avant toute synchro qui les modifie ; hist n'est jamais perdu (union). */
+const PBK_KEY="coach-renfo-pbackup";
+function profBackup(){return jget(PBK_KEY,null)}
+function backupProfiles(why,datas){
+  const data={}; Object.entries(datas).forEach(([id,d])=>{data[id]={}; [...SYNCED,"fmt","sdel","mt"].forEach(k=>{if(d[k]!==undefined) data[id][k]=d[k]})});
+  lsSet(PBK_KEY,JSON.stringify({at:Date.now(),why,data}));
+}
+function renderProfBackup(){
+  const bk=profBackup(), d=bk&&profile&&bk.data[profile.id], b=$("profBackupBtn"); b.hidden=!d;
+  if(!d) return;
+  b.textContent=`Restaurer la copie de sécurité du profil du ${fmtDate(bk.at)}`; b.title=bk.why||"";
+  confirmClick(b,["Confirmer la restauration de la copie"],()=>{
+    const cur=profBackup(), c=cur&&profile&&cur.data[profile.id]; if(!c) return;
+    backupProfiles("avant la restauration de la copie",Object.fromEntries(profs.list.map(p=>[p.id,jget(PDATA+p.id,{})])));
+    setPdata({sessions:c.sessions||[],equip:c.equip,custom:c.custom}); // réestampillées : gagnent à la prochaine synchro
+    renderSetup(); renderEquip(); renderProfBackup(); setSyncMsg("Copie de sécurité du profil restaurée.");
+  });
 }
 // Fusionne l'état distant r dans le local ; renvoie l'état à publier et si le local a changé.
 function mergeSync(r){
@@ -1320,7 +1389,7 @@ function mergeSync(r){
   const gone={...(r.gone||{})}; Object.entries(profs.gone||{}).forEach(([k,v])=>{gone[k]=Math.max(gone[k]||0,v)});
   profs.gone=gone;
   const before=profs.list.length;
-  profs.list.filter(p=>gone[p.id]).forEach(p=>lsDel(PDATA+p.id));
+  profs.list.filter(p=>gone[p.id]).forEach(p=>writePdata(p.id,null));
   profs.list=profs.list.filter(p=>!gone[p.id]);
   if(profs.list.length!==before) changed=true;
   (r.profs||[]).filter(rp=>!gone[rp.id]).forEach(rp=>{
@@ -1329,16 +1398,14 @@ function mergeSync(r){
     if(same) adoptId(same.id,rp.id); else profs.list.push({id:rp.id,name:rp.name});
     changed=true;
   });
-  const data={};
+  const data={}, olds={}, news={};
+  profs.list.forEach(p=>{olds[p.id]=jget(PDATA+p.id,{}); news[p.id]=mergeProfile(olds[p.id],(r.data||{})[p.id]||{})});
+  if(profs.list.some(p=>SYNCED.some(k=>canon(olds[p.id][k])!==canon(news[p.id][k])))) // copie avant d'écrire
+    backupProfiles("avant la synchro du "+fmtDate(Date.now()),olds);
   profs.list.forEach(p=>{
-    const key=PDATA+p.id, L=jget(key,{}), R=(r.data||{})[p.id]||{};
-    const hg=[...new Set([...(L.hgone||[]),...(R.hgone||[])])], gs=new Set(hg); // séances supprimées
-    const seen=new Set(), hist=[...(L.hist||[]),...(R.hist||[])].filter(x=>!gs.has(x.d)&&!seen.has(x.d)&&seen.add(x.d)).sort((a,b)=>a.d-b.d);
-    const src=(R.mt||0)>(L.mt||0)?R:L;
-    const m={...L,hist}; if(hg.length) m.hgone=hg; SYNCED.forEach(k=>{if(src[k]===undefined) delete m[k]; else m[k]=src[k]});
-    if(src.mt) m.mt=src.mt;
-    if(JSON.stringify(m)!==JSON.stringify(L)){lsSet(key,JSON.stringify(m)); changed=true}
-    const o={hist}; if(hg.length) o.hgone=hg; SYNCED.forEach(k=>{if(m[k]!==undefined) o[k]=m[k]}); if(m.mt) o.mt=m.mt; data[p.id]=o;
+    const L=olds[p.id], m=news[p.id];
+    if(JSON.stringify(m)!==JSON.stringify(L)){writePdata(p.id,m); changed=true}
+    const o={hist:m.hist}; ["hgone",...SYNCED,"mt","fmt","sdel"].forEach(k=>{if(m[k]!==undefined) o[k]=m[k]}); data[p.id]=o;
   });
   saveProfs();
   return {out:{v:1,profs:profs.list.map(p=>({id:p.id,name:p.name})),gone,data},changed};
@@ -1381,7 +1448,7 @@ async function sync(){
 function refreshAfterSync(){
   if(state.active) return;
   if(profile&&!profs.list.some(p=>p.id===profile.id)){closeProfile(); return}
-  if(!$("setup").hidden){renderSetup(); refreshLibUi()} else renderProfiles();
+  if(!$("setup").hidden){renderSetup(); refreshLibUi(); renderProfBackup()} else renderProfiles();
 }
 $("syncForm").onsubmit=async e=>{
   e.preventDefault(); const token=$("syncToken").value.trim(); if(!token) return;

@@ -40,6 +40,12 @@ Utilisée sur Mac (Chrome ou Safari) et iPhone (Safari), écran posé au sol pen
 - `exercises.json` = seed. La bibliothèque active est `LIB` (clé locale `coach-renfo-lib`, commune à tous les profils), lue via `getLibrary()`.
 - Synchro Gist : fichier `lib.json`, fusion par id (`updatedAt`), suppressions en pierres tombales (`deleted`). Copie de sécurité locale : `coach-renfo-libbackup`.
 
+## Synchro des profils (`coach-renfo.json`, `mergeSync` → `mergeProfile`)
+- `hist` : union (suppressions dans `hgone`). `equip`, `custom` : dernier modifié gagne, date par champ dans `fmt`. `sessions` : fusion par id (`updatedAt` dans chaque séance), suppressions en pierres tombales `sdel`. `setPdata()` pose toutes ces dates : ne pas écrire un profil autrement que par `setPdata`/`writePdata`.
+- `mt` global toujours écrit pour les appareils antérieurs à 1.23 : ceux-ci publient sans `fmt` ni `sdel`. Si le profil distant n'a pas de `fmt`, on applique l'ancienne règle (champs en bloc selon `mt`), et ce que l'ancien appareil a changé est daté de son `mt`.
+- Avant toute synchro qui change `custom`/`equip`/`sessions` : copie de sécurité `coach-renfo-pbackup` (tous les profils, sans `hist`), restaurable dans Options › Synchronisation.
+- Tester la synchro sans Gist : un port par « appareil » (`localStorage` séparé), `G=mergeSync(G).out` en console d'un onglet à l'autre. Désenregistrer le service worker après chaque modification, sinon il sert l'ancien `index.html`.
+
 ## Page de séance (Activités › Bibliothèque › Mes séances)
 - Un clic sur une séance de la liste ouvre sa page (pile `["biblio","seance",id]`, `history.pushState`). « Créer une séance » (bouton sous la liste ; état vide « Aucune séance pour l'instant ») ouvre `["biblio","seance","new"]` : même page en édition, séance vide, écrite dans `sessions` à « Enregistrer » puis `history.back()`. État : `sx`. Rendu : `renderSession()`.
 - Mode édition sur une copie (`sx.draft`), écrite dans `sessions` seulement à « Enregistrer ». Le format d'origine de chaque item (`ex:"id"` ou en ligne) est conservé ; seuls les ajouts prennent la forme `{ex:"id"}`.
