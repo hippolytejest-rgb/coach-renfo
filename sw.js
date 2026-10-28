@@ -1,33 +1,48 @@
 /* Service worker : mode hors ligne + mise à jour avec bandeau.
    À chaque publication, changer VERSION ici ET dans index.html (figure.js?v= et generator.js?v=). */
-const VERSION = "1.27.0";
+const VERSION = "1.28.0";
 const CACHE = "coach-renfo-" + VERSION;
 const FONTS = "coach-renfo-fonts"; // polices Google, conservées d'une version à l'autre
+const PREF = "coach-renfo-pref"; // voix choisie (message de la page), conservée d'une version à l'autre
+const VOIX = ["femme", "homme"];
 const CARDS = ["quotidien", "echauffement", "recuperation", "biblio"].concat(
   ["quotidien-quick-gym", "quotidien-par-zone", "quotidien-renfo-trail"],
   ["echauffement", "recuperation"].flatMap(r => ["par-zone", "trail", "cyclisme"].map(k => r + "-" + k))
 ).map(id => "img/cards/" + id + ".svg");
-const FILES = ["./", "index.html", "figure.js?v=" + VERSION, "generator.js?v=" + VERSION, "exercises.json", "phrases.json", "audio/manifest.json"].concat(CARDS);
+const FILES = ["./", "index.html", "figure.js?v=" + VERSION, "generator.js?v=" + VERSION, "exercises.json", "phrases.json"].concat(VOIX.map(v => "audio/" + v + "/manifest.json"), CARDS);
 const fresh = u => new Request(u, {cache: "reload"});
+
+/* Clips audio : seuls ceux de la voix choisie sont mis en cache (les deux voix pèsent ~16 Mo).
+   Liste lue dans le manifeste de la voix (tools/gen-audio.py) ; un clip manquant n'empêche pas l'installation. */
+const prefVoix = () => caches.open(PREF).then(c => c.match("voix")).then(r => r ? r.text() : "femme").then(v => VOIX.includes(v) ? v : "femme").catch(() => "femme");
+function cacheVoix(c, v) {
+  return c.match("audio/" + v + "/manifest.json").then(r => r ? r.json() : fetch("audio/" + v + "/manifest.json").then(r => r.json()))
+    .then(m => Promise.all([...new Set(Object.values(m))].map(f => "audio/" + v + "/" + f)
+      .map(u => c.match(u).then(hit => hit || c.add(fresh(u))).catch(() => {}))))
+    .catch(() => {});
+}
 
 self.addEventListener("install", e => {
   // Pas de skipWaiting ici : la nouvelle version attend le clic sur « Recharger ».
-  // Clips audio : liste lue dans le manifeste (tools/gen-audio.py) ; un clip manquant n'empêche pas l'installation
-  e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES.map(fresh))
-    .then(() => c.match("audio/manifest.json")).then(r => r.json())
-    .then(m => Promise.all([...new Set(Object.values(m))].map(f => c.add(fresh("audio/" + f)).catch(() => {}))))));
+  e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES.map(fresh)).then(prefVoix).then(v => cacheVoix(c, v))));
 });
 
 self.addEventListener("activate", e => {
   e.waitUntil(
     caches.keys()
-      .then(keys => Promise.all(keys.filter(k => k.startsWith("coach-renfo-") && k !== CACHE && k !== FONTS).map(k => caches.delete(k))))
+      .then(keys => Promise.all(keys.filter(k => k.startsWith("coach-renfo-") && k !== CACHE && k !== FONTS && k !== PREF).map(k => caches.delete(k))))
       .then(() => self.clients.claim())
   );
 });
 
 self.addEventListener("message", e => {
   if (e.data === "SKIP_WAITING") self.skipWaiting();
+  // {voix} : envoyé par la page au chargement et à chaque changement de réglage
+  else if (e.data && VOIX.includes(e.data.voix)) {
+    const v = e.data.voix;
+    e.waitUntil(caches.open(PREF).then(c => c.put("voix", new Response(v)))
+      .then(() => caches.open(CACHE)).then(c => cacheVoix(c, v)));
+  }
 });
 
 self.addEventListener("fetch", e => {

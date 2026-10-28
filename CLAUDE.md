@@ -8,8 +8,8 @@ Utilisée sur Mac (Chrome ou Safari) et iPhone (Safari), écran posé au sol pen
 ## Contraintes techniques
 - Pas d'étape de build : HTML, CSS et JavaScript vanilla, ouverts tels quels dans le navigateur.
 - Interface et voix en français.
-- Voix : clips MP3 pré-générés (`audio/`, voix edge-tts fr-FR-DeniseNeural), `speechSynthesis` en secours pour tout texte sans clip (noms de séance, consignes, exercices personnels). La synthèse ne marche pas dans la vue intégrée de l'app Claude sur Mac : tester dans Chrome ou Safari.
-- Après ajout/renommage d'exo (ou d'une phrase fixe), relancer `python3 tools/gen-audio.py` (`pip install edge-tts`) : il ne génère que les clips manquants et réécrit `audio/manifest.json`. Puis bump de version (le service worker précache les clips listés dans le manifeste).
+- Voix : réglage du profil « Voix » femme/homme (champ `voix`, synchronisé). Clips MP3 pré-générés par voix (`audio/femme/` fr-FR-DeniseNeural, `audio/homme/` fr-FR-HenriNeural, un `manifest.json` chacun) ; `speechSynthesis` en secours pour un texte sans clip, avec une voix système du même genre seulement (`TTS_NAMES`), sinon bip. Jamais l'autre genre, et une seule voix par séance (`state.voix`, `state.tts` figés au lancement). La synthèse ne marche pas dans la vue intégrée de l'app Claude sur Mac : tester dans Chrome ou Safari.
+- Après ajout/renommage d'exo, de séance (ou d'une phrase fixe), relancer `python3 tools/gen-audio.py --gist` (`pip install edge-tts` ; `--gist` lit exercices personnels et séances du Gist via `gh`) : il ne génère que les clips manquants des deux voix et réécrit les manifestes (`--prune` supprime les orphelins). Puis bump de version. Le service worker ne précache que les clips de la voix choisie (message `{voix}` de la page, mémorisé dans le cache `coach-renfo-pref`) : les deux voix pèsent ~16 Mo.
 - Audio et voix démarrent uniquement après un clic (règle iOS) : le bouton Démarrer débloque les deux.
 - Écran maintenu allumé avec la Wake Lock API.
 - Mise en page pensée d'abord pour l'iPhone en portrait : rien ne doit se superposer.
@@ -39,9 +39,9 @@ Utilisée sur Mac (Chrome ou Safari) et iPhone (Safari), écran posé au sol pen
 
 ## Son (index.html, sections « Son »)
 - Un seul `AudioContext` (`actx`), créé et repris par `unlockAudio()` au tap (Démarrer, Reprise, tout toucher si suspendu). Bips en oscillateur, clips décodés en `AudioBuffer` (cache `clipBufs`, préchargés au démarrage d'une séance). Pas de `new Audio()`.
-- `speak(parts)` : une annonce = liste de morceaux (nom, répétitions, nombres et phrases fixes séparés) ; chaque morceau joue son clip si `audio/manifest.json` connaît `normTxt(texte)`, sinon Web Speech. Une nouvelle annonce coupe la précédente (`hush()`). `say()` = `speak()` si la voix est activée.
-- Phrases fixes : `phrases.json` (le script signale une phrase absente de `index.html`). `normTxt()` et `norm()` de `tools/gen-audio.py` doivent rester identiques.
-- Options › Son : « Tester le son » (bip + clip + état de l'AudioContext et de la session audio iOS), « Voix de secours » (Web Speech seul).
+- `speak(parts)` : une annonce = liste de morceaux (nom, répétitions, nombres et phrases fixes séparés) ; chaque morceau joue son clip si le manifeste de la voix connaît `normalize(texte)`, sinon Web Speech (voix du même genre), sinon rien ; une annonce dont rien n'a été dit devient un bip. Log console `[voix] clip|secours|ignoré`. Une nouvelle annonce coupe la précédente (`hush()`). `say()` = `speak()` si la voix est activée.
+- Phrases fixes : `phrases.json` (le script signale une phrase absente de `index.html` et `generator.js`). `normalize()` de `index.html` et de `tools/gen-audio.py` doivent rester identiques (mêmes règles, même ordre ; espaces explicites, pas `\s`).
+- Options › Son : Voix (femme/homme), Secours (voix système du genre choisi), « Tester le son » (bip + clip), « Voix de secours » (Web Speech seul). Diagnostic : voix, clips chargés, voix de secours retenue ou « aucune » (avertissement), compteur clip/secours/ignoré, textes sans clip (bibliothèque, séances, phrases, plus ceux entendus).
 
 ## Bibliothèque d'exercices
 - `exercises.json` = seed. La bibliothèque active est `LIB` (clé locale `coach-renfo-lib`, commune à tous les profils), lue via `getLibrary()`.
@@ -49,7 +49,7 @@ Utilisée sur Mac (Chrome ou Safari) et iPhone (Safari), écran posé au sol pen
 - Synchro Gist : fichier `lib.json`, fusion par id (`updatedAt`), suppressions en pierres tombales (`deleted`). Copie de sécurité locale : `coach-renfo-libbackup`.
 
 ## Synchro des profils (`coach-renfo.json`, `mergeSync` → `mergeProfile`)
-- `hist` : union (suppressions dans `hgone`). `equip`, `custom` : dernier modifié gagne, date par champ dans `fmt`. `sessions` : fusion par id (`updatedAt` dans chaque séance), suppressions en pierres tombales `sdel`. `setPdata()` pose toutes ces dates : ne pas écrire un profil autrement que par `setPdata`/`writePdata`.
+- `hist` : union (suppressions dans `hgone`). `equip`, `custom`, `voix` (`LWW`) : dernier modifié gagne, date par champ dans `fmt`. `sessions` : fusion par id (`updatedAt` dans chaque séance), suppressions en pierres tombales `sdel`. `setPdata()` pose toutes ces dates : ne pas écrire un profil autrement que par `setPdata`/`writePdata`.
 - `mt` global toujours écrit pour les appareils antérieurs à 1.23 : ceux-ci publient sans `fmt` ni `sdel`. Si le profil distant n'a pas de `fmt`, on applique l'ancienne règle (champs en bloc selon `mt`), et ce que l'ancien appareil a changé est daté de son `mt`.
 - Avant toute synchro qui change `custom`/`equip`/`sessions` : copie de sécurité `coach-renfo-pbackup` (tous les profils, sans `hist`), restaurable dans Options › Synchronisation.
 - Tester la synchro sans Gist : un port par « appareil » (`localStorage` séparé), `G=mergeSync(G).out` en console d'un onglet à l'autre. Désenregistrer le service worker après chaque modification, sinon il sert l'ancien `index.html`.

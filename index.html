@@ -620,14 +620,19 @@ body:has(#tab-activites:not([hidden]) :is(#viewSeance,#viewPicker):not([hidden])
         <label class="chk"><input type="checkbox" id="optDesc" checked> Lire les consignes</label>
       </div>
       <div class="voicebox">
-        <label class="chk" for="voiceSel" style="padding:4px 10px">Voix
-          <select id="voiceSel" style="font:inherit;border:0;background:transparent;color:inherit;max-width:180px"><option value="">Par défaut</option></select></label>
+        <label class="chk" for="voixSel" style="padding:4px 10px">Voix
+          <select id="voixSel" style="font:inherit;border:0;background:transparent;color:inherit"><option value="femme">Femme</option><option value="homme">Homme</option></select></label>
+        <label class="chk" for="voiceSel" style="padding:4px 10px">Secours
+          <select id="voiceSel" style="font:inherit;border:0;background:transparent;color:inherit;max-width:180px"><option value="">Automatique</option></select></label>
         <button class="btn" id="testVoice">Tester le son</button>
         <button class="btn" id="testTts">Voix de secours</button>
         <p id="voiceStatus" role="status">Teste avant de lancer la séance.</p>
       </div>
+      <p class="tips err" id="voiceWarn" role="status" hidden></p>
       <p class="tips" id="audioDiag" aria-live="polite"></p>
-      <p class="tips">Annonces en clips enregistrés ; la voix choisie ici sert de secours (séances et exercices personnels). iPhone : monte le volume.</p>
+      <details class="tips" id="audioMiss" hidden><summary>Textes sans clip (<span id="audioMissN">0</span>)</summary><ul id="audioMissList"></ul>
+        <p>Pour les enregistrer : <code>python3 tools/gen-audio.py --gist</code>.</p></details>
+      <p class="tips">Annonces en clips enregistrés dans la voix choisie. Un texte sans clip est dit par une voix de secours du même genre, sinon remplacé par un bip. iPhone : monte le volume.</p>
     </section>
     <section>
       <p class="eyebrow">Équipement disponible</p>
@@ -718,8 +723,8 @@ body:has(#tab-activites:not([hidden]) :is(#viewSeance,#viewPicker):not([hidden])
 </section>
 
 <!-- À mettre à jour à chaque publication : figure.js?v= et generator.js?v= (source du numéro affiché dans Options), et VERSION dans sw.js -->
-<script src="figure.js?v=1.27.0"></script>
-<script src="generator.js?v=1.27.0"></script>
+<script src="figure.js?v=1.28.0"></script>
+<script src="generator.js?v=1.28.0"></script>
 <script>
 /* ---------- Bibliothèque d'exercices ----------
    exercises.json = jeu de départ (SEED). La bibliothèque active est LIB, copiée dans le stockage local au premier lancement
@@ -817,12 +822,12 @@ function pdata(){return jget(PDATA+profile.id,{})}
 function writePdata(id,o){if(o===null){lsDel(PDATA+id); return true} return lsSet(PDATA+id,JSON.stringify(o))} // seul point d'écriture des profils
 /* Champs synchronisés : custom et equip en « dernier modifié gagne » (date par champ dans fmt), sessions fusionnées
    séance par séance (updatedAt, pierres tombales dans sdel). mt global gardé pour les versions antérieures à 1.23. */
-const SYNCED=["custom","equip","sessions"];
+const LWW=["custom","equip","voix"], SYNCED=[...LWW,"sessions"]; // voix : femme | homme (clips et voix de secours)
 function setPdata(patch){
   const d=pdata(), o={...d,...patch};
   if(SYNCED.some(k=>k in patch)){
     const now=Date.now(); o.mt=now; o.fmt={...(d.fmt||{})};
-    ["custom","equip"].forEach(k=>{if(k in patch) o.fmt[k]=now});
+    LWW.forEach(k=>{if(k in patch) o.fmt[k]=now});
     if("sessions" in patch){
       const old=new Map((d.sessions||[]).map(x=>[x.id,x])), sdel={...(d.sdel||{})};
       o.sessions=(patch.sessions||[]).map(x=>{const p=old.get(x.id); old.delete(x.id); delete sdel[x.id];
@@ -922,12 +927,30 @@ function beep(force=false){
   }catch(e){}
 }
 
-/* ---------- Son : clips pré-générés (audio/, tools/gen-audio.py) ---------- */
-// Clé du manifeste : même règle que norm() dans tools/gen-audio.py
-const normTxt=t=>String(t).normalize("NFC").toLowerCase().replace(/’/g,"'").replace(/[^\p{L}\p{N}']+/gu," ").trim();
-let CLIP_MAP=null; const clipBufs=new Map(); // fichier → Promise<AudioBuffer|null>, décodé une fois
-fetch("audio/manifest.json").then(r=>r.ok?r.json():null).then(m=>{CLIP_MAP=m; renderAudioDiag()}).catch(()=>{});
-const clipFile=t=>CLIP_MAP&&CLIP_MAP[normTxt(t)]||null;
+/* ---------- Son : voix choisie (femme / homme) ----------
+   Réglage « voix » du profil, synchronisé. Il choisit la série de clips (audio/femme, audio/homme) et la voix de secours.
+   Une séance garde la voix de son lancement (state.voix, state.tts) : jamais deux voix ni deux genres dans une séance. */
+const VOIX={femme:"Femme",homme:"Homme"};
+// Voix de secours (Web Speech) admises par genre : morceau du nom de la voix système, sans accents ni casse
+const TTS_NAMES={femme:["amelie","audrey","marie","aurelie","google francais"],homme:["thomas","daniel","nicolas","jacques"]};
+const voix=()=>{const v=profile&&pdata().voix; return VOIX[v]?v:"femme"};
+const curVoix=()=>state.active?state.voix:voix();
+
+/* ---------- Son : clips pré-générés (audio/<voix>/, tools/gen-audio.py) ---------- */
+// Clé du manifeste : mêmes règles, même ordre que normalize() dans tools/gen-audio.py (espaces explicites, pas \s)
+const SP="[ \\t\\n\\r\\u00a0\\u2009\\u202f]*";
+const NORM=[[/[’‘ʼ´`]/g,"'"],[new RegExp(SP+"×"+SP,"g")," fois "],[new RegExp("([0-9])"+SP+"[–-]"+SP+"([0-9])","g"),"$1 à $2"],
+  [new RegExp(SP+"/"+SP,"g")," par "],[new RegExp(SP+"\\+"+SP,"g")," plus "],[/[^\p{L}\p{N}']+/gu," "]];
+const normalize=t=>NORM.reduce((s,[re,to])=>s.replace(re,to),String(t).normalize("NFC").toLowerCase()).trim();
+let CLIP_MAP=null, clipVoix=null; // manifeste de la voix clipVoix
+const clipBufs=new Map(); // "voix/fichier" → Promise<AudioBuffer|null>, décodé une fois
+function loadManifest(v){
+  if(clipVoix===v) return;
+  clipVoix=v; CLIP_MAP=null; renderAudioDiag();
+  fetch(`audio/${v}/manifest.json`).then(r=>r.ok?r.json():null).then(m=>{if(clipVoix===v){CLIP_MAP=m; renderAudioDiag()}}).catch(()=>{});
+}
+// Clip du texte dans la voix v ; null si cette voix n'est pas celle du manifeste chargé
+const clipFile=(t,v=curVoix())=>{const f=v===clipVoix&&CLIP_MAP&&CLIP_MAP[normalize(t)]; return f?v+"/"+f:null};
 function loadClip(f){
   if(!actx) return Promise.resolve(null);
   if(!clipBufs.has(f)) clipBufs.set(f,fetch("audio/"+f).then(r=>{if(!r.ok) throw new Error(r.status); return r.arrayBuffer()})
@@ -936,54 +959,74 @@ function loadClip(f){
   return clipBufs.get(f);
 }
 function preloadClips(texts){texts.forEach(t=>{const f=clipFile(t); if(f) loadClip(f)})}
-function renderAudioDiag(){
-  const el=$("audioDiag"); if(!el) return;
-  const ses=navigator.audioSession;
-  el.textContent=`AudioContext : ${actx?actx.state:"pas encore créé"} · session audio : ${ses?ses.type:"non gérée (coupe le mode silencieux)"} · clips : ${CLIP_MAP?Object.keys(CLIP_MAP).length:"manifeste introuvable"}, ${clipBufs.size} en mémoire`;
+// Réglage appliqué : manifeste, liste des voix de secours, précache hors ligne de cette voix (sw.js)
+function applyVoix(){
+  const v=voix(); $("voixSel").value=v; loadManifest(v); pickVoice();
+  if("serviceWorker" in navigator) navigator.serviceWorker.ready.then(r=>r.active&&r.active.postMessage({voix:v})).catch(()=>{});
 }
 
-/* ---------- Son : voix de secours (Web Speech) ---------- */
+/* ---------- Son : voix de secours (Web Speech), du genre choisi uniquement ---------- */
 const HAS_TTS="speechSynthesis" in window && "SpeechSynthesisUtterance" in window;
 let nVoices=0, nFr=0, wantVoice=""; // wantVoice = voiceURI choisie (mémoire, indépendante du profil et de la liste)
 function savedVoice(){return profile&&pdata().voice||""}
-/* Voix à utiliser, résolue à chaque appel : voiceURI choisie, sinon fr-FR locale, sinon n'importe quelle voix fr */
-function resolveVoice(){
-  if(!HAS_TTS) return null;
-  try{
-    const fr=speechSynthesis.getVoices().filter(x=>/^fr/i.test(x.lang));
-    const want=wantVoice||$("voiceSel").value||savedVoice();
-    return (want&&fr.find(x=>x.voiceURI===want))
-      ||fr.find(x=>x.localService&&/fr.?FR/i.test(x.lang))||fr.find(x=>x.localService)||fr[0]||null;
-  }catch(e){return null}
+const fold=s=>s.normalize("NFD").replace(/\p{M}/gu,"").toLowerCase();
+function genderVoices(v){
+  if(!HAS_TTS) return [];
+  try{return speechSynthesis.getVoices().filter(x=>/^fr/i.test(x.lang)&&TTS_NAMES[v].some(n=>fold(x.name).includes(n)))}catch(e){return []}
+}
+/* Voix de secours du genre v : voiceURI choisie, sinon fr-FR locale, sinon la première ; null s'il n'y en a aucune (jamais l'autre genre) */
+function resolveVoice(v=voix()){
+  const fr=genderVoices(v), want=wantVoice||$("voiceSel").value||savedVoice();
+  return (want&&fr.find(x=>x.voiceURI===want))||fr.find(x=>x.localService&&/fr.?FR/i.test(x.lang))||fr.find(x=>x.localService)||fr[0]||null;
+}
+// Voix de secours de la séance : retenue au lancement (ou à la première annonce si la liste n'était pas encore chargée)
+function ttsVoice(){
+  if(!state.tts) state.tts=resolveVoice(state.voix);
+  return state.tts;
 }
 /* Remplit la liste ; une liste vide (voix pas encore chargées) ne doit jamais effacer le choix */
 function pickVoice(){
-  if(!HAS_TTS) return;
+  if(!HAS_TTS){renderAudioDiag(); return}
   try{
-    const v=speechSynthesis.getVoices(); nVoices=v.length; const fr=v.filter(x=>/^fr/i.test(x.lang)); nFr=fr.length;
+    const all=speechSynthesis.getVoices(); nVoices=all.length; nFr=all.filter(x=>/^fr/i.test(x.lang)).length;
     if(!wantVoice) wantVoice=$("voiceSel").value||savedVoice();
-    if(!fr.length) return;
-    const sel=$("voiceSel");
-    sel.innerHTML='<option value="">Par défaut</option>'+fr.map(x=>`<option value="${esc(x.voiceURI)}">${esc(x.name)}${x.localService?"":" (en ligne)"}</option>`).join("");
-    sel.value=fr.some(x=>x.voiceURI===wantVoice)?wantVoice:"";
+    if(nVoices){
+      const fr=genderVoices(voix()), sel=$("voiceSel");
+      sel.innerHTML=fr.length?'<option value="">Automatique</option>'+fr.map(x=>`<option value="${esc(x.voiceURI)}">${esc(x.name)}${x.localService?"":" (en ligne)"}</option>`).join("")
+        :`<option value="">Aucune voix ${voix()}</option>`;
+      sel.value=fr.some(x=>x.voiceURI===wantVoice)?wantVoice:"";
+    }
   }catch(e){}
+  renderAudioDiag();
 }
 const keepAlive=[];
 /* Seul endroit qui crée une SpeechSynthesisUtterance */
-function utter(text){
+function utter(text,v){
   const u=new SpeechSynthesisUtterance(text); u.lang="fr-FR"; u.rate=1.02;
-  const v=resolveVoice(); if(v){u.voice=v; u.lang=v.lang}
+  if(v){u.voice=v; u.lang=v.lang}
   keepAlive.push(u); if(keepAlive.length>30) keepAlive.shift();
   return u;
 }
 // Énoncé muet lancé au tap sur Démarrer : débloque la synthèse sur iOS
-function ttsWarm(){if(HAS_TTS){try{const u=utter(" "); u.volume=0; speechSynthesis.speak(u)}catch(e){}}}
+function ttsWarm(){if(HAS_TTS){try{const u=utter(" ",state.tts); u.volume=0; speechSynthesis.speak(u)}catch(e){}}}
 
 /* ---------- Son : annonces ----------
-   Une annonce = liste de morceaux joués dans l'ordre : clip si le manifeste le connaît, sinon Web Speech.
+   Une annonce = liste de morceaux joués dans l'ordre : clip de la voix choisie, sinon voix de secours du même genre,
+   sinon rien (jamais l'autre genre). Une annonce dont aucun morceau n'a pu être dit est remplacée par un bip.
    Jamais deux annonces superposées : une nouvelle annonce coupe celle en cours. */
 let talkId=0, talkSrc=null;
 const wait=ms=>new Promise(r=>setTimeout(r,ms));
+// Diagnostic (Options › Son, console) : compteur par mode et textes sans clip entendus depuis le chargement
+const VSTAT={clip:0,secours:0,ignoré:0}, VMISS=new Map(); // clé → {t, how}
+function voiceLog(how,t,tv){
+  VSTAT[how]++; const k=normalize(t);
+  if(how==="clip") console.debug(`[voix] clip « ${k} »`);
+  else{
+    VMISS.set(k,{t,how});
+    (how==="ignoré"?console.warn:console.info)(`[voix] ${how} « ${k} »${tv?` (${tv.name})`:` : pas de voix de secours ${curVoix()}`}`);
+  }
+  renderAudioDiag();
+}
 function hush(){
   talkId++;
   if(talkSrc){try{talkSrc.stop()}catch(e){} talkSrc=null}
@@ -999,11 +1042,11 @@ function playClip(buf,id,onstart){
     src.onended=end; talkSrc=src; src.start(); onstart&&onstart("clip");
   });
 }
-function sayTts(text,id,onstart){
+function sayTts(text,v,id,onstart){
   return new Promise(done=>{
     if(!HAS_TTS||id!==talkId) return done();
     let guard=null; const end=()=>{clearTimeout(guard); done()};
-    const u=utter(text);
+    const u=utter(text,v);
     u.onstart=()=>{onstart&&onstart("tts")};
     u.onend=end;
     u.onerror=e=>{ if(e.error&&!/interrupted|canceled/.test(e.error)) setVoiceStatus(`La voix a échoué (${e.error}).`,true); end(); };
@@ -1012,44 +1055,91 @@ function sayTts(text,id,onstart){
   });
 }
 async function speak(parts,onstart){
-  const cut=hush(), id=talkId;
+  const cut=hush(), id=talkId, v=curVoix(), run=state.active; // voix figée à l'appel : la séance peut finir pendant l'annonce
   const list=[].concat(parts).filter(x=>x!=null&&x!=="").map(String);
   if(cut) await wait(90); // Safari perd un speak() lancé juste après cancel()
+  let said=false;
   for(const t of list){
     if(id!==talkId) return;
-    const f=clipFile(t);
+    const f=clipFile(t,v);
     if(f&&actx&&actx.state==="suspended") await Promise.race([Promise.resolve(actx.resume()).catch(()=>{}),wait(300)]);
     const buf=f&&actx&&actx.state==="running"?await loadClip(f):null;
     if(id!==talkId) return;
-    const cb=onstart; onstart=null;
-    await (buf?playClip(buf,id,cb):sayTts(t,id,cb));
+    const tv=buf?null:run?ttsVoice():resolveVoice(v);
+    if(!buf&&!tv){voiceLog("ignoré",t); continue}
+    voiceLog(buf?"clip":"secours",t,tv);
+    const cb=onstart; onstart=null; said=true;
+    await (buf?playClip(buf,id,cb):sayTts(t,tv,id,cb));
   }
+  if(!said&&list.length&&id===talkId){beep(); onstart&&onstart("none")}
 }
 function say(parts,onstart){ if(state.voice&&parts) speak(parts,onstart); }
 function setVoiceStatus(t,bad){const el=$("voiceStatus"); el.textContent=t; el.classList.toggle("bad",!!bad)}
+
+/* ---------- Son : diagnostic (Options › Son) ---------- */
+let PHRASES=[]; // phrases fixes (phrases.json), pour la liste des textes sans clip
+fetch("phrases.json").then(r=>r.ok?r.json():null).then(j=>{PHRASES=j&&j.phrases||[]; renderAudioDiag()}).catch(()=>{});
+// Tout ce que l'app peut dire : phrases fixes, bibliothèque (nom, répétitions, consigne), séances (nom, valeurs propres, durées annoncées)
+function appTexts(){
+  const t=new Set(PHRASES), add=(...x)=>x.forEach(y=>{if(y!=null&&y!=="") t.add(String(y))});
+  Object.values(getLibrary()||{}).forEach(e=>add(e.name,(e.defaults||{}).reps,e.desc));
+  mySessions().forEach(p=>{add(p.name); expand(p).forEach(s=>{
+    if(s.type==="work") add(s.name,s.reps,s.desc); else if(s.type==="rest"&&(s.kind==="round"||s.kind==="block")) add(s.dur);
+  })});
+  return [...t];
+}
+function missingTexts(){
+  const seen=new Map();
+  if(CLIP_MAP) appTexts().forEach(t=>{const k=normalize(t); if(!CLIP_MAP[k]) seen.set(k,t)});
+  VMISS.forEach((x,k)=>seen.set(k,x.t));
+  return [...seen.values()];
+}
+let warnedNoTts="";
+function renderAudioDiag(){
+  const el=$("audioDiag"); if(!el) return;
+  const ses=navigator.audioSession, v=voix(), tv=resolveVoice(v), miss=missingTexts();
+  el.textContent=`Voix : ${VOIX[v]} · clips : ${CLIP_MAP&&clipVoix===v?Object.keys(CLIP_MAP).length:"manifeste introuvable"}, ${[...clipBufs.keys()].filter(f=>f.startsWith(v+"/")).length} en mémoire`
+    +` · secours : ${tv?tv.name:"aucune"} · annonces : ${VSTAT.clip} clip(s), ${VSTAT.secours} en secours, ${VSTAT.ignoré} ignorée(s)`
+    +` · AudioContext : ${actx?actx.state:"pas encore créé"} · session audio : ${ses?ses.type:"non gérée (coupe le mode silencieux)"}`;
+  // Pas de voix de secours du bon genre (une fois la liste des voix chargée) : les textes sans clip seront remplacés par un bip
+  const w=$("voiceWarn"), none=HAS_TTS&&nVoices>0&&!tv||!HAS_TTS;
+  w.hidden=!none;
+  if(none){
+    w.textContent=`Aucune voix de secours ${v} sur cet appareil : ${miss.length?`les ${miss.length} texte(s) sans clip seront remplacés par un bip.`:"les textes sans clip seront remplacés par un bip."}`;
+    if(warnedNoTts!==v){warnedNoTts=v; console.warn(`[voix] aucune voix de secours ${v} (${nFr} voix fr sur ${nVoices}) : les textes sans clip seront ignorés`)}
+  }
+  const box=$("audioMiss"); box.hidden=!miss.length;
+  $("audioMissN").textContent=miss.length;
+  $("audioMissList").innerHTML=miss.map(t=>`<li>${esc(t)}${VMISS.has(normalize(t))?` <small>(${VMISS.get(normalize(t)).how})</small>`:""}</li>`).join("");
+}
 // Test iPhone : un bip puis un clip, et l'état du contexte audio pour diagnostiquer (interrupteur silencieux, contexte suspendu)
 $("testVoice").onclick=()=>{
   unlockAudio(); beep(true); renderAudioDiag(); setVoiceStatus("Test en cours…");
   let started=false;
+  const miss=missingTexts(); if(miss.length) console.table(miss.map(t=>({texte:t,clé:normalize(t)})));
   setTimeout(()=>speak("Test de la voix. Un, deux, trois, c'est parti.",how=>{
     started=true; renderAudioDiag();
-    if(how==="clip") setVoiceStatus("Bip puis clip joués. Rien entendu : monte le volume, et vérifie la session audio ci-dessous si l'interrupteur silencieux est activé.");
-    else setVoiceStatus(`Pas de clip (${!CLIP_MAP?"manifeste introuvable":!actx||actx.state!=="running"?"AudioContext "+(actx?actx.state:"absent"):"clip illisible"}) : voix de secours du navigateur.`,true);
+    if(how==="clip") setVoiceStatus(`Bip puis clip (${VOIX[voix()]}) joués. Rien entendu : monte le volume, et vérifie la session audio ci-dessous si l'interrupteur silencieux est activé.`);
+    else{
+      const why=!CLIP_MAP?"manifeste introuvable":!actx||actx.state!=="running"?"AudioContext "+(actx?actx.state:"absent"):"clip illisible";
+      setVoiceStatus(how==="tts"?`Pas de clip (${why}) : voix de secours ${resolveVoice().name}.`:`Pas de clip (${why}) ni de voix de secours ${voix()} : bip seul.`,true);
+    }
   }),250);
   setTimeout(()=>{ if(!started){renderAudioDiag(); setVoiceStatus(`Aucun son n'a démarré (AudioContext ${actx?actx.state:"absent"}). Touche à nouveau Tester le son.`,true)} },4000);
 };
 $("testTts").onclick=()=>{
   unlockAudio();
   if(!HAS_TTS){setVoiceStatus("Ce navigateur n'a pas de synthèse vocale. Ouvre la page dans Safari ou Chrome.",true);return}
-  pickVoice(); const cut=hush(), id=talkId; let started=false;
-  setTimeout(()=>sayTts("Test de la voix de secours.",id,()=>{started=true; setVoiceStatus(`Voix de secours OK${resolveVoice()?` (${resolveVoice().name})`:" (voix par défaut)"}.`)}),cut?90:0);
-  setTimeout(()=>{ if(!started){
-    const info=`[${navigator.userAgent.match(/(Electron|Edg|Chrome|Firefox|Safari)\/[\d.]+/g)?.join(" ")||"?"} · ${nVoices} voix · ${nFr} FR · ${speechSynthesis.speaking?"parle":"muet"}]`;
-    if(nVoices===0) setVoiceStatus("Aucune voix de synthèse disponible dans cette fenêtre. Ouvre le lien de la page dans Safari ou Chrome.",true);
-    else if(nFr===0) setVoiceStatus(`Aucune voix française installée (${nVoices} voix au total). Réglages Système › Accessibilité › Contenu énoncé › Voix système.`,true);
-    else setVoiceStatus("La voix ne démarre pas ici. Choisis une autre voix dans la liste, ou ouvre la page dans Safari. "+info,true);
-    if(nVoices===0||nFr===0) $("voiceStatus").textContent+=" "+info;
-  }},4000);
+  pickVoice(); const tv=resolveVoice();
+  const info=()=>`[${navigator.userAgent.match(/(Electron|Edg|Chrome|Firefox|Safari)\/[\d.]+/g)?.join(" ")||"?"} · ${nVoices} voix · ${nFr} FR · ${speechSynthesis.speaking?"parle":"muet"}]`;
+  if(!tv){ // jamais de test avec la voix par défaut : elle peut être de l'autre genre
+    if(nVoices===0) setVoiceStatus("Aucune voix de synthèse disponible dans cette fenêtre. Ouvre le lien de la page dans Safari ou Chrome. "+info(),true);
+    else setVoiceStatus(`Aucune voix de secours ${voix()} (${TTS_NAMES[voix()].join(", ")}) parmi les ${nFr} voix françaises. Réglages Système › Accessibilité › Contenu énoncé › Voix système. `+info(),true);
+    return;
+  }
+  const cut=hush(), id=talkId; let started=false;
+  setTimeout(()=>sayTts("Test de la voix de secours.",tv,id,()=>{started=true; setVoiceStatus(`Voix de secours OK (${tv.name}).`)}),cut?90:0);
+  setTimeout(()=>{ if(!started) setVoiceStatus("La voix ne démarre pas ici. Choisis une autre voix dans la liste, ou ouvre la page dans Safari. "+info(),true) },4000);
 };
 
 /* ---------- Écran allumé ---------- */
@@ -1086,7 +1176,7 @@ function drawFigure(key,ms,cnv,ctx){
   for(const f of a.focus||[]){ const r=11+(REDUCED?0:3*Math.sin(ms/260)); ctx.strokeStyle=COL.c; ctx.lineWidth=2.5; ctx.beginPath(); ctx.arc(J[f][0],J[f][1],r,0,Math.PI*2); ctx.stroke(); }
 }
 /* ---------- Moteur ---------- */
-const state={active:false,running:false,segs:[],i:0,remaining:0,last:0,lastSec:null,voice:true,beep:true,readDesc:true,prog:null,stopAsk:null}; // stopAsk : {wasRunning} pendant la confirmation d'arrêt
+const state={active:false,running:false,segs:[],i:0,remaining:0,last:0,lastSec:null,voice:true,beep:true,readDesc:true,prog:null,stopAsk:null,voix:"femme",tts:null}; // stopAsk : {wasRunning} pendant la confirmation d'arrêt ; voix, tts : figées au lancement
 const cur=()=>state.segs[state.i];
 function label(w){if(!w)return"";return w.reps?`${w.name}, ${w.reps}`:w.name}
 const labelParts=w=>!w?[]:w.reps?[w.name,w.reps]:[w.name]; // nom et répétitions en clips séparés
@@ -1138,17 +1228,21 @@ function start(){
   if(!segs0.some(x=>x.type==="work")) return; // rien à lancer (tous les exercices ont été supprimés)
   state.prog=p; state.segs=segs0;
   state.voice=$("optVoice").checked; state.beep=$("optBeep").checked; state.readDesc=$("optDesc").checked;
-  unlockAudio(); pickVoice(); ttsWarm();
-  preloadClips([...segs0.flatMap((x,k)=>announceParts(x,segs0[k-1])||[]),"Dix secondes","Prépare-toi","Reprise","Séance terminée. Bien joué, mon grand."]);
+  state.voix=voix(); state.tts=null; // une seule voix pour toute la séance, même si la synchro change le réglage
+  unlockAudio(); pickVoice(); state.tts=resolveVoice(state.voix); ttsWarm();
+  const texts=[...segs0.flatMap((x,k)=>announceParts(x,segs0[k-1])||[]),"Dix secondes","Prépare-toi","Reprise","Séance terminée. Bien joué, mon grand."];
+  preloadClips(texts);
+  const miss=[...new Set(texts.filter(t=>!clipFile(t)).map(String))];
+  if(miss.length) console.warn(`[voix] « ${p.name} » : ${miss.length} texte(s) sans clip ${state.voix}, ${state.tts?"dits par "+state.tts.name:"remplacés par un bip"}`,miss);
   $("setup").hidden=true; $("done").hidden=true; $("run").hidden=false;
   state.active=true; state.running=true; state.last=performance.now(); state.stopAsk=null;
   lockScreen(); enter(0);
 }
 function finish(){
+  say("Séance terminée. Bien joué, mon grand."); // avant la fin de la séance : dite avec la voix de la séance
   state.active=false; state.running=false; unlockScreen(); syncDeferred();
   const segs=state.segs;
   if(profile) setPdata({hist:[...(pdata().hist||[]),{d:Date.now(),p:state.prog.name,s:Math.round(totalOf(segs)),x:[...new Set(state.prog.blocks.flatMap(b=>b.items.map(i=>i.ex).filter(Boolean)))]}]});
-  say("Séance terminée. Bien joué, mon grand.");
   $("doneSum").textContent=state.prog.name;
   $("run").hidden=true; $("done").hidden=false;
 }
@@ -1169,7 +1263,7 @@ function cancelStop(){
 function stop(){
   state.active=false; state.running=false; state.stopAsk=null; unlockScreen(); syncDeferred();
   hush();
-  $("run").hidden=true; $("done").hidden=true; $("setup").hidden=false; renderSetup();
+  $("run").hidden=true; $("done").hidden=true; $("setup").hidden=false; renderSetup(); applyVoix(); // réglage changé par la synchro pendant la séance
 }
 function togglePlay(){
   if(!state.active||state.stopAsk) return;
@@ -1267,7 +1361,7 @@ function openProfile(id){
   const o=d.opts||{}; $("optVoice").checked=o.voice!==false; $("optBeep").checked=o.beep!==false; $("optDesc").checked=o.desc!==false;
   $("whoName").textContent=profile.name;
   $("profiles").hidden=true; $("setup").hidden=false; showTab("dash");
-  renderSetup(); renderProfBackup(); pickVoice();
+  renderSetup(); renderProfBackup(); applyVoix();
 }
 function closeProfile(){
   profile=null; $("setup").hidden=true; $("profiles").hidden=false; renderProfiles();
@@ -1437,14 +1531,14 @@ function mergeProfile(L,R){
   if(!R.fmt){ // dernier auteur antérieur à 1.23 (il retire fmt et sdel) ou premier passage : règle d'avant, champs en bloc selon mt
     const src=(R.mt||0)>(L.mt||0)?R:L; SYNCED.forEach(k=>take(k,src[k]));
     if(src===R){ // l'ancien appareil ne date pas ce qu'il change : on lui donne son mt, sinon un updatedAt périmé perdrait ensuite
-      ["custom","equip"].forEach(k=>{if(canon(L[k])!==canon(R[k])) fmt[k]=Math.max(fmt[k]||0,R.mt)});
+      LWW.forEach(k=>{if(canon(L[k])!==canon(R[k])) fmt[k]=Math.max(fmt[k]||0,R.mt)});
       const lm=new Map((L.sessions||[]).map(x=>[x.id,x]));
       if(m.sessions) m.sessions=m.sessions.map(x=>{const a=lm.get(x.id); lm.delete(x.id);
         return a&&canon(stripStamp(a))===canon(stripStamp(x))?x:{...x,updatedAt:Math.max(x.updatedAt||0,R.mt)}});
       lm.forEach((x,id)=>{sdel[id]=Math.max(sdel[id]||0,R.mt)}); // retirées par l'ancien appareil
     }
   } else {
-    ["custom","equip"].forEach(k=>take(k,newer(L[k],R[k],(L.fmt||{})[k]||0,R.fmt[k]||0)));
+    LWW.forEach(k=>take(k,newer(L[k],R[k],(L.fmt||{})[k]||0,R.fmt[k]||0)));
     if(L.sessions||R.sessions){ // par id, comme mergeLib : la version la plus récente gagne, pierres tombales comprises
       const LS=L.sessions||[], RS=R.sessions||[], lm=new Map(LS.map(x=>[x.id,x])), rm=new Map(RS.map(x=>[x.id,x])), out=[];
       new Set([...lm.keys(),...rm.keys()]).forEach(id=>{ // ordre local, puis séances seulement distantes
@@ -1542,7 +1636,7 @@ async function sync(){
 function refreshAfterSync(){
   if(state.active) return;
   if(profile&&!profs.list.some(p=>p.id===profile.id)){closeProfile(); return}
-  if(!$("setup").hidden){renderSetup(); refreshLibUi(); renderProfBackup()} else renderProfiles();
+  if(!$("setup").hidden){renderSetup(); refreshLibUi(); renderProfBackup(); applyVoix()} else renderProfiles();
 }
 $("syncForm").onsubmit=async e=>{
   e.preventDefault(); const token=$("syncToken").value.trim(); if(!token) return;
@@ -2557,10 +2651,11 @@ document.addEventListener("keydown",e=>{
   else if(e.key==="ArrowLeft"){goPrev()}
   else if(e.key==="Escape"){askStop()}
 });
-$("voiceSel").onchange=()=>{wantVoice=$("voiceSel").value; if(profile) setPdata({voice:wantVoice});};
+$("voiceSel").onchange=()=>{wantVoice=$("voiceSel").value; if(profile) setPdata({voice:wantVoice}); renderAudioDiag()};
+$("voixSel").onchange=()=>{if(profile) setPdata({voix:$("voixSel").value}); applyVoix()};
 if(HAS_TTS){try{speechSynthesis.addEventListener("voiceschanged",pickVoice)}catch(e){speechSynthesis.onvoiceschanged=pickVoice}}
 $("loadRetry").onclick=async()=>{if(await loadLibrary()){scheduleSync(); refreshLibUi(); if(!$("setup").hidden){renderSetup(); renderAct(actStack)}}};
-renderProfiles(); pickVoice(); setTimeout(pickVoice,600);
+renderProfiles(); applyVoix(); setTimeout(pickVoice,600);
 buildCarousel();
 history.replaceState({act:[]},"");
 renderAct([]);
