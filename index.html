@@ -254,8 +254,8 @@ body:has(#run:not([hidden])) .update{display:none} /* jamais par-dessus la séan
 .cal h3{margin:0 0 8px;font-size:1rem;text-transform:capitalize}
 .calgrid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;text-align:center}
 .calgrid .dow{color:var(--muted);font-size:.75rem;font-weight:700;text-transform:uppercase}
-.calgrid .day{aspect-ratio:1;display:flex;align-items:center;justify-content:center;border-radius:50%;font-size:.9rem;font-variant-numeric:tabular-nums}
-.calgrid .day.done{background:var(--work);color:var(--bg);font-weight:700}
+.calgrid .day{box-sizing:border-box;min-width:0;width:100%;max-width:2.6em;justify-self:center;aspect-ratio:1;display:flex;align-items:center;justify-content:center;border-radius:50%;font-size:.9rem;font-variant-numeric:tabular-nums} /* pastille plafonnée à la taille du numéro, même sur grand écran */
+.calgrid .day.act{background:var(--work);color:var(--bg);font-weight:700}
 .calgrid .day.today{outline:2px solid var(--ink);outline-offset:-2px}
 
 /* ---------- Run ---------- */
@@ -680,8 +680,8 @@ body:has(#tab-activites:not([hidden]) :is(#viewSeance,#viewPicker):not([hidden])
 </section>
 
 <!-- À mettre à jour à chaque publication : figure.js?v= et generator.js?v= (source du numéro affiché dans Options), et VERSION dans sw.js -->
-<script src="figure.js?v=1.24.1"></script>
-<script src="generator.js?v=1.24.1"></script>
+<script src="figure.js?v=1.24.2"></script>
+<script src="generator.js?v=1.24.2"></script>
 <script>
 /* ---------- Bibliothèque d'exercices ----------
    exercises.json = jeu de départ (SEED). La bibliothèque active est LIB, copiée dans le stockage local au premier lancement
@@ -1253,7 +1253,8 @@ function renderCal(h){
   for(let i=0;i<lead;i++) grid.appendChild(document.createElement("span"));
   for(let d=1;d<=days;d++){
     const c=document.createElement("span"); c.className="day"; c.textContent=d;
-    if(cnt[d]){c.classList.add("done"); c.setAttribute("aria-label",new Date(y,m,d).toLocaleDateString("fr-FR",{day:"numeric",month:"long"})+" : "+cnt[d]+(cnt[d]>1?" activités":" activité"))}
+    // classe "act", pas "done" : .done est l'écran de fin de séance (plein écran, padding) et déformait les pastilles
+    if(cnt[d]){c.classList.add("act"); c.setAttribute("aria-label",new Date(y,m,d).toLocaleDateString("fr-FR",{day:"numeric",month:"long"})+" : "+cnt[d]+(cnt[d]>1?" activités":" activité"))}
     if(d===now.getDate()) {c.classList.add("today"); c.setAttribute("aria-current","date")}
     grid.appendChild(c);
   }
