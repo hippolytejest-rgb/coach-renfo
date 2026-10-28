@@ -381,6 +381,40 @@ input,select,textarea{font-size:max(16px,1em)}
 .sessbtn{flex:1 1 0;min-height:48px;margin:0;font-size:1.1rem}
 .sessbtn.start{font-size:1.4rem;padding:6px 16px}
 .sessbar[hidden]{display:none}
+.srow.ed:not(.gone) .stxt{cursor:pointer}
+.stxt:focus{outline:none}.stxt:focus-visible{outline:2px solid var(--work);outline-offset:2px;border-radius:4px}
+/* Volet de réglages d'un exercice (page de séance, mode Modifier) */
+.xsopen,.xsopen body{overflow:hidden}
+.xsheet{position:fixed;inset:0;z-index:40}
+.xsheet[hidden]{display:none}
+.xsback{position:absolute;inset:0;background:rgba(0,0,0,.45);animation:xsfade .18s ease}
+.xspanel{position:absolute;left:0;right:0;bottom:var(--kb,0px);margin:0 auto;max-width:560px;max-height:calc(var(--vvh,100dvh) - 24px);overflow-y:auto;overscroll-behavior:contain;box-sizing:border-box;background:var(--surface);color:var(--ink);border-radius:16px 16px 0 0;padding:0 max(16px,env(safe-area-inset-right,0px)) calc(12px + var(--foot)) max(16px,env(safe-area-inset-left,0px));animation:xsup .2s ease;transition:transform .15s ease}
+.xspanel.drag{transition:none}
+.xspanel:focus{outline:none}
+.xshead{touch-action:none;padding:8px 0 6px;cursor:grab}
+.xsgrip{width:40px;height:5px;border-radius:3px;background:var(--line);margin:0 auto 10px}
+.xshead h2{margin:0;font-size:1.15rem;font-weight:700;overflow-wrap:anywhere}
+.xsnote{margin:4px 0 0;color:var(--muted);font-size:.86rem}
+.xsnote:empty{display:none}
+.xsrows{display:flex;flex-direction:column;gap:6px;margin:12px 0 4px}
+.xsrow{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:52px;border-bottom:1.5px solid var(--line)}
+.xsrow:last-child{border-bottom:0}
+.xsrow label{flex:1 1 auto;min-width:0;font-weight:700;font-size:.95rem}
+.xsrow label small{display:block;font-weight:400;color:var(--muted);font-size:.78rem}
+.xsstep{flex:none;display:flex;align-items:center;gap:4px}
+.xsstep button{width:48px;height:48px;border:1.5px solid var(--line);background:var(--bg);color:var(--ink);border-radius:10px;font:inherit;font-size:1.5rem;font-weight:700;line-height:1;padding:0;cursor:pointer}
+.xsstep button:disabled{opacity:.35;cursor:default}
+.xsstep input{width:4.2em;height:48px;box-sizing:border-box;text-align:center;font:inherit;font-size:max(16px,1.1rem);font-weight:700;font-variant-numeric:tabular-nums;background:var(--bg);color:var(--ink);border:1.5px solid var(--line);border-radius:10px;padding:0 4px;-moz-appearance:textfield;appearance:textfield}
+.xsstep input::-webkit-inner-spin-button,.xsstep input::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+.xsstep span{color:var(--muted);font-size:.85rem;width:1em}
+.xssum{margin:6px 0 0;color:var(--muted);font-size:.86rem;font-variant-numeric:tabular-nums}
+.xsreset{min-height:44px;margin-top:10px}
+.xsreset[hidden]{display:none}
+.xsbar{display:flex;gap:10px;margin-top:14px}
+.xsbar .sessbtn.start{margin-top:0}
+@keyframes xsup{from{transform:translateY(40px);opacity:.4}}
+@keyframes xsfade{from{opacity:0}}
+@media (prefers-reduced-motion:reduce){.xspanel,.xsback{animation:none;transition:none}}
 .pickhead{position:sticky;top:0;z-index:5;background:var(--bg);display:flex;flex-direction:column;gap:8px;padding:4px 0 8px}
 .pickl{max-height:none;overflow:visible}
 .pickl label{min-height:44px}
@@ -692,9 +726,23 @@ body:has(#tab-activites:not([hidden]) :is(#viewSeance,#viewPicker):not([hidden])
   <button class="start" id="againBtn" style="max-width:320px">Retour</button>
 </section>
 
+<section class="xsheet" id="xs" hidden>
+  <div class="xsback" id="xsBack"></div>
+  <div class="xspanel" id="xsPanel" role="dialog" aria-modal="true" aria-labelledby="xsTitle" tabindex="-1">
+    <div class="xshead" id="xsHead"><div class="xsgrip" aria-hidden="true"></div><h2 id="xsTitle"></h2><p class="xsnote" id="xsNote"></p></div>
+    <div class="xsrows" id="xsRows"></div>
+    <p class="xssum" id="xsSum" aria-live="polite"></p>
+    <button class="btn xsreset" id="xsReset" type="button">Réinitialiser</button>
+    <div class="xsbar">
+      <button class="btn sessbtn" id="xsCancel" type="button">Annuler</button>
+      <button class="start sessbtn sessgo" id="xsOk" type="button">Valider</button>
+    </div>
+  </div>
+</section>
+
 <!-- À mettre à jour à chaque publication : figure.js?v= et generator.js?v= (source du numéro affiché dans Options), et VERSION dans sw.js -->
-<script src="figure.js?v=1.24.3"></script>
-<script src="generator.js?v=1.24.3"></script>
+<script src="figure.js?v=1.25.0"></script>
+<script src="generator.js?v=1.25.0"></script>
 <script>
 /* ---------- Bibliothèque d'exercices ----------
    exercises.json = jeu de départ (SEED). La bibliothèque active est LIB, copiée dans le stockage local au premier lancement
@@ -856,6 +904,7 @@ const $=id=>document.getElementById(id);
 $("appVer").textContent="Version "+new URL(document.querySelector('script[src^="figure.js"]').src).searchParams.get("v");
 let selectedId="";
 let sx=null; // page de séance ouverte : {id, base, editing, name, draft, baseName, baseBlocks}
+let xs=null; // volet de réglages d'un exercice ouvert : {it, blk, p, r, v, lo}
 function mySessions(){return profile?(pdata().sessions||[]).map(x=>({...x,sub:x.sub||"Ma séance",mine:true})):[]}
 function allPrograms(){const c=loadCustom();return [...(c?[{...c,id:"custom",sub:c.sub||"Programme perso"}]:[]),...mySessions()]} // « custom » : ancien programme perso, lu seulement
 let tempProg=null; // séance générée lancée sans être enregistrée
@@ -1571,6 +1620,7 @@ function renderAct(stack,focus){
 }
 $("actBack").onclick=()=>history.back();
 addEventListener("popstate",e=>{
+  if(xs){history.pushState({act:actStack},""); xsClose(); return} // Retour avec le volet ouvert : on le ferme (= Annuler) et on reste sur la séance
   const s=(e.state&&e.state.act)||[];
   if(sx&&sx.editing&&!sx.leaving&&!(s[1]==="seance"&&s[2]===sx.id)&&sessDirty()){ // quitter en plein changement : on reste sur la page et on demande
     history.pushState({act:actStack},""); sessAskDiscard(); return;
@@ -2042,6 +2092,7 @@ function openSession(id){
   $("sessTitle").focus({preventScroll:true});
 }
 function sessLeave(){ // sortie de la page : la copie non enregistrée est abandonnée
+  if(xs) xsClose();
   if(!sx) return;
   sx=null; pk=null;
 }
@@ -2079,7 +2130,9 @@ function sessSwipe(li,f){ // glissement horizontal vers la gauche : révèle Sup
     f.addEventListener("pointermove",move); f.addEventListener("pointerup",end); f.addEventListener("pointercancel",end);
   });
 }
-document.addEventListener("pointerdown",e=>{const o=sx&&sx.open; if(o&&!o.contains(e.target)) sessCloseOpen()},true); // toucher ailleurs referme
+document.addEventListener("pointerdown",e=>{ // toucher ailleurs referme (et ce toucher n'ouvre pas les réglages d'une autre ligne)
+  if(!sx) return; const o=sx.open; sx.tapClose=!!(o&&!o.contains(e.target)); if(sx.tapClose) sessCloseOpen();
+},true);
 function sessRow(it,blocks,ed){
   const r=resolveItem(it), li=document.createElement("li"); li.className="srow"+(ed?" ed":"")+(r.missing?" gone":""); li._item=it;
   const f=document.createElement("div"); f.className="sfront";
@@ -2112,6 +2165,17 @@ function sessRow(it,blocks,ed){
       (rows[k]?rows[k].querySelector(".shandle"):$("sessAdd")).focus({preventScroll:true});
     });
     del.textContent="Supprimer"; li.appendChild(del);
+    if(!r.missing){ // toucher la ligne (sans glisser) : volet de réglages. Écouteur posé avant sessSwipe pour voir l'état « open » avant qu'il ne le referme.
+      t.tabIndex=0; t.setAttribute("role","button"); t.setAttribute("aria-label",`Régler ${r.name}`);
+      t.onkeydown=e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault(); xsOpen(it)}};
+      f.addEventListener("pointerdown",e=>{f._tap={x:e.clientX,y:e.clientY}});
+      f.addEventListener("click",e=>{
+        const p=f._tap; f._tap=null;
+        if(e.target.closest("button")||li.classList.contains("open")||sx.tapClose||performance.now()-(f._swT||0)<300) return;
+        if(p&&Math.hypot(e.clientX-p.x,e.clientY-p.y)>10) return; // geste, pas un toucher
+        xsOpen(it);
+      });
+    }
     sessSwipe(li,f);
   }
   return li;
@@ -2216,6 +2280,120 @@ confirmClick($("sessDel"),["Confirmer la suppression"],()=>{
 });
 addEventListener("beforeunload",e=>{if(sessDirty()||efDirty()){e.preventDefault(); e.returnValue=""}});
 try{matchMedia("(prefers-color-scheme: dark)").addEventListener("change",()=>{if(sx&&!$("viewSeance").hidden) renderSession()})}catch(e){}
+
+/* Volet de réglages d'un exercice (mode Modifier) : travail, séries, repos, pour cet item de la séance seulement.
+   Les valeurs sont écrites dans l'item du brouillon (champs work/sets/setRest/rest, déjà lus par resolveItem → expand) ;
+   une valeur égale au défaut (bibliothèque, puis bloc) n'est pas écrite. La bibliothèque n'est jamais modifiée. */
+const XS_F=[
+  {k:"work",l:"Travail",u:"s",min:5,max:600,st:5},
+  {k:"sets",l:"Séries",u:"",min:1,max:10,st:1},
+  {k:"setRest",l:"Repos entre séries",u:"s",min:0,max:300,st:5},
+  {k:"rest",l:"Repos après",u:"s",min:0,max:300,st:5,h:"avant l'exercice suivant"}];
+function xsDef(v){ // défauts de l'item : bibliothèque, puis bloc et séance (même ordre que expand) ; work null pour un ancien item en ligne
+  const lib=xs.it.ex?resolveItem({ex:xs.it.ex}):{}, rest=lib.rest??xs.blk.rest??xs.p.rest??20;
+  return {work:xs.it.ex?lib.work:null,sets:lib.sets||1,rest,setRest:lib.setRest??v.rest};
+}
+function xsOpen(it){
+  const p=sessProg(); if(!sx||!sx.editing||!p) return;
+  const blk=p.blocks.find(b=>b.items.includes(it)), r=resolveItem(it); if(!blk||r.missing) return;
+  sessCloseOpen();
+  const rest=r.rest??blk.rest??p.rest??20;
+  xs={it,blk,p,r,v:{work:r.work,sets:r.sets||1,rest,setRest:r.setRest??rest}};
+  const d0=xsDef(xs.v); xs.lo={}; XS_F.forEach(f=>{xs.lo[f.k]=Math.min(f.min,xs.v[f.k],d0[f.k]??f.min)}); // une valeur actuelle ou par défaut hors bornes reste possible
+  $("xsTitle").textContent=r.name;
+  $("xsNote").textContent=[r.sides?"Unilatéral : durée par côté, gauche puis droit":"",r.reps?`Répétitions : ${r.reps}`:""].filter(Boolean).join(" · ");
+  $("xsReset").hidden=!it.ex;
+  const box=$("xsRows"); box.innerHTML="";
+  XS_F.forEach(f=>{
+    const row=document.createElement("div"); row.className="xsrow"; row.dataset.k=f.k;
+    const id="xs_"+f.k, lab=document.createElement("label"); lab.htmlFor=id; lab.textContent=f.l+(f.u?` (${f.u})`:"");
+    if(f.h){const s=document.createElement("small"); s.textContent=f.h; lab.appendChild(s)}
+    const st=document.createElement("div"); st.className="xsstep";
+    const mk=(txt,d,al)=>{const b=document.createElement("button"); b.type="button"; b.textContent=txt; b.setAttribute("aria-label",`${al} ${f.l.toLowerCase()}`);
+      b.onclick=()=>{xs.v[f.k]=xsClamp(f,(d<0?Math.ceil(xs.v[f.k]/f.st)-1:Math.floor(xs.v[f.k]/f.st)+1)*f.st); xsFill()}; return b};
+    const inp=document.createElement("input"); inp.id=id; inp.type="text"; inp.inputMode="numeric"; inp.pattern="[0-9]*"; inp.autocomplete="off"; inp.maxLength=3;
+    inp.oninput=()=>{const n=parseInt(inp.value.replace(/\D/g,""),10); if(!isNaN(n)){xs.v[f.k]=n; xsFill(inp)}};
+    inp.onchange=inp.onblur=()=>{xs.v[f.k]=xsClamp(f,parseInt(inp.value.replace(/\D/g,""),10)); xsFill()};
+    inp.onfocus=()=>{inp.select(); setTimeout(()=>{if(xs) row.scrollIntoView({block:"nearest"})},300)}; // après l'ouverture du clavier iOS
+    const u=document.createElement("span"); u.textContent=f.u; u.setAttribute("aria-hidden","true");
+    st.append(mk("−",-1,"Moins"),inp,mk("+",1,"Plus"),u); row.append(lab,st); box.appendChild(row);
+  });
+  xsFill();
+  $("xs").hidden=false; $("setup").inert=true; document.documentElement.classList.add("xsopen");
+  xsVV(); if(window.visualViewport){visualViewport.addEventListener("resize",xsVV); visualViewport.addEventListener("scroll",xsVV)}
+  $("xsPanel").scrollTop=0; $("xsPanel").focus({preventScroll:true}); // pas de focus sur un champ : le clavier ne s'ouvre qu'au toucher
+}
+function xsClamp(f,n){return Math.max(xs.lo[f.k],Math.min(f.max,isNaN(n)?xs.v[f.k]:Math.round(n)))}
+function xsFill(skip){ // valeurs, boutons ± et résumé ; skip = champ en cours de saisie, laissé tel quel
+  const v=xs.v, d=xsDef(v);
+  XS_F.forEach(f=>{
+    const row=$("xsRows").querySelector(`[data-k="${f.k}"]`), [m,inp,p]=row.querySelectorAll("button,input");
+    row.hidden=f.k==="setRest"&&v.sets<=1;
+    if(inp!==skip) inp.value=v[f.k];
+    m.disabled=v[f.k]<=xs.lo[f.k]; p.disabled=v[f.k]>=f.max;
+  });
+  const sides=xs.r.sides?2:1, one=v.sets*(v.work*sides+(sides>1?xs.p.switchTime??5:0))+(v.sets-1)*v.setRest;
+  $("xsSum").textContent=`${v.sets>1?`${v.sets} × `:""}${v.work} s${sides>1?" / côté":""} · durée de l'exercice ${fmt(one)}`;
+  $("xsReset").disabled=XS_F.every(f=>(f.k==="setRest"&&v.sets<=1)||d[f.k]==null||v[f.k]===d[f.k]);
+}
+function xsVV(){ // clavier iOS : le volet reste au-dessus de la partie visible de l'écran
+  const vv=window.visualViewport, pn=$("xsPanel"); if(!vv) return;
+  pn.style.setProperty("--kb",Math.max(0,Math.round(innerHeight-vv.height-vv.offsetTop))+"px"); pn.style.setProperty("--vvh",Math.round(vv.height)+"px");
+}
+function xsClose(){
+  if(!xs) return;
+  const it=xs.it; xs=null;
+  if(window.visualViewport){visualViewport.removeEventListener("resize",xsVV); visualViewport.removeEventListener("scroll",xsVV)}
+  if(document.activeElement&&$("xs").contains(document.activeElement)) document.activeElement.blur();
+  $("xs").hidden=true; $("setup").inert=false; document.documentElement.classList.remove("xsopen"); $("xsPanel").style.transform="";
+  const row=[...document.querySelectorAll("#sessBody .srow")].find(x=>x._item===it), t=row&&row.querySelector(".stxt");
+  if(t) t.focus({preventScroll:true});
+}
+function xsSave(){
+  if(!xs) return;
+  const {it,r}=xs, v=xs.v; XS_F.forEach(f=>{v[f.k]=xsClamp(f,v[f.k])});
+  const d=xsDef(v);
+  XS_F.forEach(({k})=>{
+    if(k==="setRest"&&v.sets<=1) delete it.setRest; // sans objet avec une seule série
+    else if(d[k]!=null&&v[k]===d[k]) delete it[k];
+    else it[k]=v[k];
+  });
+  xsClose(); renderSession(); sessLive(`Réglages de ${r.name} : ${sessDose(resolveItem(it))}.`);
+  const row=[...document.querySelectorAll("#sessBody .srow")].find(x=>x._item===it); if(row) row.querySelector(".stxt").focus({preventScroll:true});
+}
+$("xsOk").onclick=xsSave;
+$("xsCancel").onclick=xsClose;
+$("xsBack").onclick=xsClose;
+$("xsReset").onclick=()=>{
+  if(!xs) return; const v=xs.v;
+  ["work","sets","rest"].forEach(k=>{const d=xsDef(v); if(d[k]!=null) v[k]=d[k]});
+  v.setRest=xsDef(v).setRest; xsFill();
+};
+$("xs").addEventListener("keydown",e=>{
+  if(!xs) return;
+  if(e.key==="Escape"){e.preventDefault(); xsClose(); return}
+  if(e.key==="Enter"&&e.target.tagName==="INPUT"){e.preventDefault(); e.target.blur(); return}
+  if(e.key==="Tab"){ // focus gardé dans le volet
+    const fs=[...$("xsPanel").querySelectorAll("button,input")].filter(x=>!x.disabled&&x.offsetParent); if(!fs.length) return;
+    const a=fs[0], z=fs[fs.length-1];
+    if(e.shiftKey&&(document.activeElement===a||document.activeElement===$("xsPanel"))){e.preventDefault(); z.focus()}
+    else if(!e.shiftKey&&document.activeElement===z){e.preventDefault(); a.focus()}
+  }
+});
+$("xsHead").addEventListener("pointerdown",e=>{ // glisser vers le bas = Annuler
+  if(e.pointerType==="mouse"&&e.button>0) return;
+  const pn=$("xsPanel"), y0=e.clientY, id=e.pointerId; let dy=0;
+  try{e.currentTarget.setPointerCapture(id)}catch(err){}
+  pn.classList.add("drag");
+  const h=e.currentTarget, move=ev=>{if(ev.pointerId!==id) return; dy=Math.max(0,ev.clientY-y0); pn.style.transform=dy?`translateY(${dy}px)`:""};
+  const end=ev=>{
+    if(ev.pointerId!==id) return;
+    h.removeEventListener("pointermove",move); h.removeEventListener("pointerup",end); h.removeEventListener("pointercancel",end);
+    pn.classList.remove("drag");
+    if(ev.type==="pointerup"&&dy>80) xsClose(); else pn.style.transform="";
+  };
+  h.addEventListener("pointermove",move); h.addEventListener("pointerup",end); h.addEventListener("pointercancel",end);
+});
 
 /* Sélecteur d'exercices : page plein écran de la pile (["biblio","seance",id,"ajout"|"remplacer"]).
    Mode « add » (sélection multiple, ajout à la fin) ou « replace » (un seul, remplace un exercice supprimé). Le brouillon sx reste en mémoire. */
