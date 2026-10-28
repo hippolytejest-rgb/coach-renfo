@@ -1,6 +1,6 @@
 /* Service worker : mode hors ligne + mise à jour avec bandeau.
    À chaque publication, changer VERSION ici ET dans index.html (pied de page, figure.js?v= et generator.js?v=). */
-const VERSION = "1.23.0";
+const VERSION = "1.24.0";
 const CACHE = "coach-renfo-" + VERSION;
 const FONTS = "coach-renfo-fonts"; // polices Google, conservées d'une version à l'autre
 const CARDS = ["quotidien", "echauffement", "recuperation", "biblio"].concat(

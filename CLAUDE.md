@@ -38,6 +38,7 @@ Utilisée sur Mac (Chrome ou Safari) et iPhone (Safari), écran posé au sol pen
 
 ## Bibliothèque d'exercices
 - `exercises.json` = seed. La bibliothèque active est `LIB` (clé locale `coach-renfo-lib`, commune à tous les profils), lue via `getLibrary()`.
+- Plus de champs `type` ni `tags` (retirés en 1.24) : `libClean()` les ignore dans les anciennes données (comparaisons, export) et les omet à la prochaine écriture ; la synchro les laisse tels quels. Le rôle d'un exercice dans les séances générées (échauffement, mobilité, circuit, étirement…) vient de la table interne `GEN.ROLES` de `generator.js` ; un exercice absent de la table va dans le circuit.
 - Synchro Gist : fichier `lib.json`, fusion par id (`updatedAt`), suppressions en pierres tombales (`deleted`). Copie de sécurité locale : `coach-renfo-libbackup`.
 
 ## Synchro des profils (`coach-renfo.json`, `mergeSync` → `mergeProfile`)
