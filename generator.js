@@ -21,7 +21,7 @@ function genRank(type) {
 function genProgram(parts, p) {
   const blk = (name, ids, extra) => ids.length ? [{name, rounds: 1, rest: 10, transition: 15, items: ids.map(ex => ({ex})), ...extra}] : [];
   return {
-    name: "Séance générée", sub: "", prep: 10, switchTime: 5,
+    name: "Séance générée", sub: "", switchTime: 5,
     blocks: [
       ...blk("Échauffement", parts.echauffement),
       ...blk("Mobilité", parts.mobilite),
